@@ -1,24 +1,64 @@
 # API 后台项目
 
-这是一个基于 Fastify + Drizzle + PostgreSQL 的 REST API。
+## 项目技术栈
+
+- **框架**: Fastify 5
+- **数据库**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **缓存**: Redis (ioredis)
+- **认证**: JWT (@fastify/jwt)
+- **文件上传**: Multipart (@fastify/multipart)
+- **图片处理**: IPX
+- **文档**: Swagger UI
+- **日志**: Pino
+- **环境变量**: @dotenvx/dotenvx
+- **密码加密**: bcryptjs
 
 ## 开发
 
-1. 启动应用 
+1. **安装依赖**
+```bash
+pnpm install
+```
 
-```shell
+2. **配置环境变量**
+```bash
+# 生成 JWT 密钥
+openssl rand -base64 32
+
+# 在 .env 文件中配置数据库和 Redis 连接信息
+```
+
+3. **初始化数据库**
+```bash
+pnpm run db:push:dev
+```
+
+4. **启动开发服务器**
+```bash
 pnpm run dev
 ```
 
-2. 正式环境
+5. **数据库管理工具**
+```bash
+pnpm run db:studio
+```
 
-```shell
+## 部署
+
+1. **配置生产环境变量**
+```bash
+# 在 .env.production 文件中配置
+```
+
+2. **推送数据库结构**
+```bash
+pnpm run db:push:prod
+```
+
+3. **启动生产环境**
+```bash
 pnpm run prod
 ```
 
-### 1. 安全配置
-
-```bash
-# 生成强随机密钥
-openssl rand -base64 32  # 用于 JWT_SECRET
-```
+使用 PM2 进行进程管理，配置文件：`ecosystem.config.cjs`
