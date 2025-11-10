@@ -30,6 +30,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # 设置环境变量（构建时）
+# 👇 声明可接收的构建参数（来自 docker-compose build args）
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_URL
+
+# 👇 导入为环境变量供 Next.js 使用（关键）
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # 构建应用
@@ -41,6 +48,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 #   fi
 
 RUN corepack enable pnpm \
+    && echo "🚧 Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" \
     && pnpm build
 
 # 生产环境运行
