@@ -182,7 +182,7 @@ show_info() {
     echo ""
     echo -e "${GREEN}访问地址:${NC}"
     echo -e "  Web 前端: ${BLUE}http://localhost:${WEB_PORT:-3100}${NC}"
-    echo -e "  API 文档: ${BLUE}http://localhost:${API_PORT:-7100}/documentation${NC}"
+    echo -e "  API 文档: ${BLUE}http://localhost:${API_PORT:-7100}/docs${NC}"
     echo -e "  健康检查: ${BLUE}http://localhost:${API_PORT:-7100}/api${NC}"
     echo ""
     echo -e "${GREEN}常用命令:${NC}"
