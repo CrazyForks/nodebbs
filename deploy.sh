@@ -2,6 +2,7 @@
 
 # NodeBBS Docker 快速启动脚本
 # 用于首次部署或快速重新部署
+# 支持开发环境和生产环境
 
 set -e
 
@@ -11,6 +12,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+# 环境变量
+ENVIRONMENT=""
+COMPOSE_CMD=""
 
 # 打印带颜色的消息
 print_info() {
@@ -35,6 +40,46 @@ print_header() {
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}  NodeBBS Docker 部署脚本${NC}"
     echo -e "${BLUE}========================================${NC}"
+    echo ""
+}
+
+# 选择部署环境
+select_environment() {
+    echo ""
+    print_info "请选择部署环境:"
+    echo ""
+    echo "  1) 开发环境 (Development)"
+    echo "     - 暴露所有服务端口"
+    echo "     - 挂载源代码支持热重载"
+    echo "     - 默认配置适合本地开发"
+    echo ""
+    echo "  2) 生产环境 (Production)"
+    echo "     - 只暴露必要端口"
+    echo "     - 资源限制和日志管理"
+    echo "     - 生产级别优化配置"
+    echo ""
+
+    while true; do
+        read -p "请选择 [1-2]: " -n 1 -r
+        echo
+        case $REPLY in
+            1)
+                ENVIRONMENT="development"
+                COMPOSE_CMD="docker compose"
+                print_success "已选择: 开发环境"
+                break
+                ;;
+            2)
+                ENVIRONMENT="production"
+                COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+                print_success "已选择: 生产环境"
+                break
+                ;;
+            *)
+                print_error "无效选择，请输入 1 或 2"
+                ;;
+        esac
+    done
     echo ""
 }
 
@@ -87,24 +132,58 @@ check_env() {
 
     # 检查必要的配置
     warnings=0
+    errors=0
 
-    if [ "$POSTGRES_PASSWORD" = "your_secure_postgres_password_here" ]; then
-        print_warning "请修改 POSTGRES_PASSWORD"
-        warnings=$((warnings + 1))
+    if [ "$POSTGRES_PASSWORD" = "your_secure_postgres_password_here" ] || [ "$POSTGRES_PASSWORD" = "postgres_password" ]; then
+        if [ "$ENVIRONMENT" = "production" ]; then
+            print_error "生产环境必须修改 POSTGRES_PASSWORD"
+            errors=$((errors + 1))
+        else
+            print_warning "建议修改 POSTGRES_PASSWORD"
+            warnings=$((warnings + 1))
+        fi
     fi
 
-    if [ "$REDIS_PASSWORD" = "your_secure_redis_password_here" ]; then
-        print_warning "请修改 REDIS_PASSWORD"
-        warnings=$((warnings + 1))
+    if [ "$REDIS_PASSWORD" = "your_secure_redis_password_here" ] || [ "$REDIS_PASSWORD" = "redis_password" ]; then
+        if [ "$ENVIRONMENT" = "production" ]; then
+            print_error "生产环境必须修改 REDIS_PASSWORD"
+            errors=$((errors + 1))
+        else
+            print_warning "建议修改 REDIS_PASSWORD"
+            warnings=$((warnings + 1))
+        fi
     fi
 
     if [ "$JWT_SECRET" = "change-this-to-a-secure-random-string-in-production" ]; then
-        print_warning "请修改 JWT_SECRET"
-        warnings=$((warnings + 1))
+        if [ "$ENVIRONMENT" = "production" ]; then
+            print_error "生产环境必须修改 JWT_SECRET"
+            errors=$((errors + 1))
+        else
+            print_warning "建议修改 JWT_SECRET"
+            warnings=$((warnings + 1))
+        fi
+    fi
+
+    # 生产环境额外检查
+    if [ "$ENVIRONMENT" = "production" ]; then
+        if [ -z "$CORS_ORIGIN" ] || [ "$CORS_ORIGIN" = "*" ]; then
+            print_warning "生产环境建议设置具体的 CORS_ORIGIN"
+            warnings=$((warnings + 1))
+        fi
+
+        if [ -z "$APP_URL" ] || [ "$APP_URL" = "http://localhost:3100" ]; then
+            print_warning "生产环境建议设置实际的 APP_URL"
+            warnings=$((warnings + 1))
+        fi
+    fi
+
+    if [ $errors -gt 0 ]; then
+        print_error "发现 $errors 个配置错误，无法继续部署"
+        exit 1
     fi
 
     if [ $warnings -gt 0 ]; then
-        print_error "发现 $warnings 个配置警告，请修改 .env 文件"
+        print_warning "发现 $warnings 个配置警告"
         read -p "是否继续? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -118,14 +197,14 @@ check_env() {
 # 构建镜像
 build_images() {
     print_info "构建 Docker 镜像..."
-    docker compose build --no-cache
+    $COMPOSE_CMD build --no-cache
     print_success "镜像构建完成"
 }
 
 # 启动服务
 start_services() {
     print_info "启动服务..."
-    docker compose up -d
+    $COMPOSE_CMD up -d
     print_success "服务已启动"
 }
 
@@ -137,7 +216,7 @@ wait_for_health() {
     print_info "等待 PostgreSQL..."
     timeout=30
     while [ $timeout -gt 0 ]; do
-        if docker compose exec -T postgres pg_isready -U postgres &> /dev/null; then
+        if $COMPOSE_CMD exec -T postgres pg_isready -U postgres &> /dev/null; then
             print_success "PostgreSQL 已就绪"
             break
         fi
@@ -163,14 +242,14 @@ init_database() {
     read -p "是否推送数据库 schema? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose exec api npm run db:push
+        $COMPOSE_CMD exec api npm run db:push
         print_success "数据库 schema 推送完成"
     fi
 
     read -p "是否初始化种子数据? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose exec api npm run seed
+        $COMPOSE_CMD exec api npm run seed
         print_success "种子数据初始化完成"
     fi
 }
@@ -180,16 +259,27 @@ show_info() {
     echo ""
     print_success "部署完成!"
     echo ""
+    echo -e "${BLUE}部署环境: ${GREEN}${ENVIRONMENT}${NC}"
+    echo ""
     echo -e "${GREEN}访问地址:${NC}"
     echo -e "  Web 前端: ${BLUE}http://localhost:${WEB_PORT:-3100}${NC}"
     echo -e "  API 文档: ${BLUE}http://localhost:${API_PORT:-7100}/docs${NC}"
     echo -e "  健康检查: ${BLUE}http://localhost:${API_PORT:-7100}/api${NC}"
     echo ""
+
+    if [ "$ENVIRONMENT" = "production" ]; then
+        echo -e "${YELLOW}注意:${NC}"
+        echo -e "  - 数据库和 Redis 端口未暴露到主机（仅内部访问）"
+        echo -e "  - 已启用资源限制和日志管理"
+        echo -e "  - 建议配置反向代理 (nginx) 用于生产环境"
+        echo ""
+    fi
+
     echo -e "${GREEN}常用命令:${NC}"
-    echo -e "  查看日志: ${BLUE}docker compose logs -f${NC}"
-    echo -e "  停止服务: ${BLUE}docker compose down${NC}"
-    echo -e "  重启服务: ${BLUE}docker compose restart${NC}"
-    echo -e "  查看状态: ${BLUE}docker compose ps${NC}"
+    echo -e "  查看日志: ${BLUE}$COMPOSE_CMD logs -f${NC}"
+    echo -e "  停止服务: ${BLUE}$COMPOSE_CMD down${NC}"
+    echo -e "  重启服务: ${BLUE}$COMPOSE_CMD restart${NC}"
+    echo -e "  查看状态: ${BLUE}$COMPOSE_CMD ps${NC}"
     echo ""
     echo -e "更多命令请参考: ${BLUE}make help${NC} 或查看 ${BLUE}DOCKER_DEPLOY.md${NC}"
     echo ""
@@ -199,6 +289,7 @@ show_info() {
 main() {
     print_header
 
+    select_environment
     check_docker
     init_env
     check_env

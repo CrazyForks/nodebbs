@@ -1,31 +1,19 @@
-# 生产环境 Docker Compose 配置
-# 使用方式: docker compose -f docker-compose.prod.yml up -d
+# 生产环境 Docker Compose 覆盖配置
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# 本文件只包含与 docker-compose.yml 的差异部分
 
 services:
-  # PostgreSQL 数据库
+  # PostgreSQL 数据库 - 生产环境优化
   postgres:
-    image: postgres:16-alpine
-    container_name: nodebbs-postgres
     restart: always
+    ports: []  # 生产环境不暴露端口到主机，只在内部网络访问
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-nodebbs}
-      TZ: Asia/Shanghai
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    # 生产环境不暴露端口到主机，只在内部网络访问
-    # ports:
-    #   - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # 生产环境必须设置强密码
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
-    networks:
-      - nodebbs-network
     deploy:
       resources:
         limits:
@@ -40,10 +28,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Redis 缓存
+  # Redis 缓存 - 生产环境优化
   redis:
-    image: redis:7-alpine
-    container_name: nodebbs-redis
     restart: always
     command: >
       redis-server
@@ -52,21 +38,12 @@ services:
       --appendfsync everysec
       --maxmemory 512mb
       --maxmemory-policy allkeys-lru
-    environment:
-      TZ: Asia/Shanghai
-    volumes:
-      - redis_data:/data
-    # 生产环境不暴露端口到主机
-    # ports:
-    #   - "6379:6379"
+    ports: []  # 生产环境不暴露端口到主机
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
-    networks:
-      - nodebbs-network
     deploy:
       resources:
         limits:
@@ -81,44 +58,18 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # API 服务
+  # API 服务 - 生产环境优化
   api:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    container_name: nodebbs-api
     restart: always
     environment:
-      NODE_ENV: production
-      APP_NAME: ${APP_NAME:-nodebbs}
-      HOST: 0.0.0.0
-      PORT: 7100
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nodebbs}
-      REDIS_URL: redis://default:${REDIS_PASSWORD}@redis:6379/0
-      USER_CACHE_TTL: ${USER_CACHE_TTL:-300}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN:-1y}
-      CORS_ORIGIN: ${CORS_ORIGIN}
-      APP_URL: ${APP_URL}
-      TZ: Asia/Shanghai
+      USER_CACHE_TTL: ${USER_CACHE_TTL:-300}  # 生产环境缓存时间更长
+      JWT_SECRET: ${JWT_SECRET}  # 生产环境必须设置
+      CORS_ORIGIN: ${CORS_ORIGIN}  # 生产环境必须明确设置
+      APP_URL: ${APP_URL}  # 生产环境实际域名
     volumes:
-      - api_uploads:/app/uploads
-      # 生产环境不挂载源代码
-    ports:
-      - "${API_PORT:-7100}:7100"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - api_uploads:/app/uploads  # 生产环境不挂载源代码
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:7100/api', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
       start_period: 60s
-    networks:
-      - nodebbs-network
     deploy:
       resources:
         limits:
@@ -133,36 +84,18 @@ services:
         max-size: "20m"
         max-file: "5"
 
-  # Web 前端服务
+  # Web 前端服务 - 生产环境优化
   web:
+    restart: always
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-    container_name: nodebbs-web
-    restart: always
     environment:
-      NODE_ENV: production
-      APP_NAME: ${APP_NAME:-nodebbs}
-      PORT: 3100
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      TZ: Asia/Shanghai
-    ports:
-      - "${WEB_PORT:-3100}:3100"
-    depends_on:
-      api:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3100', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
       start_period: 60s
-    networks:
-      - nodebbs-network
     deploy:
       resources:
         limits:
@@ -177,21 +110,9 @@ services:
         max-size: "20m"
         max-file: "5"
 
-# 数据卷
-volumes:
-  postgres_data:
-    driver: local
-    # 生产环境可以使用外部数据卷或 NFS
-    # external: true
-  redis_data:
-    driver: local
-  api_uploads:
-    driver: local
-
-# 网络
+# 网络 - 生产环境使用固定子网
 networks:
   nodebbs-network:
-    driver: bridge
     ipam:
       config:
         - subnet: 172.28.0.0/16

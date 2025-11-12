@@ -165,17 +165,24 @@ web (3100) → api (7100) → postgres (5432)
 ./deploy.sh
 ```
 
+**脚本新特性**：
+- 📋 **交互式环境选择**：支持开发环境/生产环境切换
+- 🔒 **生产环境强制校验**：生产环境必须配置强密码和安全密钥
+- 📊 **实时状态显示**：显示当前部署环境和配置建议
+
 脚本会自动执行：
-1. ✅ 检查 Docker 环境
-2. ✅ 初始化 `.env` 文件
-3. ✅ 验证配置安全性
-4. ✅ 构建 Docker 镜像
-5. ✅ 启动所有服务
-6. ✅ 等待服务健康
-7. ✅ 初始化数据库
+1. ✅ 选择部署环境（开发/生产）
+2. ✅ 检查 Docker 环境
+3. ✅ 初始化 `.env` 文件
+4. ✅ 验证配置安全性
+5. ✅ 构建 Docker 镜像
+6. ✅ 启动所有服务
+7. ✅ 等待服务健康
+8. ✅ 初始化数据库
 
 **优点**：
 - 自动化程度高，适合新手
+- 支持一键切换开发/生产环境
 - 包含配置验证和安全检查
 - 交互式引导，减少错误
 
@@ -190,8 +197,11 @@ make init
 # 2. 编辑 .env 文件（重要！）
 vi .env
 
-# 3. 启动服务
+# 3. 启动服务（默认开发环境）
 make up
+
+# 或启动生产环境
+ENV=prod make up
 
 # 4. 初始化数据库
 make db-push
@@ -206,8 +216,22 @@ make health
 
 **优点**：
 - 命令简洁，易于记忆
+- 支持 ENV 参数切换环境（`ENV=prod` 或 `ENV=dev`）
 - 适合日常开发和运维
 - 支持更多操作选项
+
+**环境切换说明**：
+```bash
+# 开发环境（默认）
+make up
+make logs
+make db-push
+
+# 生产环境（添加 ENV=prod）
+ENV=prod make up
+ENV=prod make logs
+ENV=prod make db-push
+```
 
 ### 方式三：使用 Docker Compose
 
@@ -220,8 +244,11 @@ cp .env.docker.example .env
 # 2. 修改 .env 配置
 vi .env
 
-# 3. 启动服务
+# 3. 启动服务（开发环境）
 docker compose up -d
+
+# 或启动生产环境
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # 4. 初始化数据库
 docker compose exec api npm run db:push
@@ -234,6 +261,11 @@ docker compose ps
 **优点**：
 - 完全控制，适合高级用户
 - 标准 Docker 命令，可移植性强
+
+**环境说明**：
+- **开发环境**：`docker compose up -d`
+- **生产环境**：`docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`
+- `docker-compose.prod.yml` 是覆盖配置，会自动合并到基础配置上
 
 ### 验证部署成功
 
@@ -355,10 +387,22 @@ SMTP_PASS=your-password
 make help
 ```
 
+#### 环境切换
+
+所有 Makefile 命令都支持 `ENV` 参数：
+```bash
+# 开发环境（默认）
+make <command>
+
+# 生产环境
+ENV=prod make <command>
+```
+
 #### 容器管理
 
 ```bash
-make up                # 启动所有服务
+make up                # 启动所有服务（开发环境）
+ENV=prod make up       # 启动所有服务（生产环境）
 make down              # 停止所有服务
 make restart           # 重启所有服务
 make build             # 重新构建镜像（不使用缓存）
@@ -446,7 +490,7 @@ docker compose down --volumes --remove-orphans
 make db-push
 
 # 推送数据库 schema（生产环境）
-make db-push-prod
+ENV=prod make db-push
 
 # 生成数据库迁移文件
 make db-generate
@@ -501,6 +545,90 @@ docker compose exec postgres psql -U postgres -d nodebbs
 \l               # 列出所有数据库
 \du              # 列出所有用户
 \q               # 退出
+```
+
+## 🔄 开发环境 vs 生产环境
+
+### 配置文件说明
+
+项目使用 Docker Compose 覆盖配置方式：
+- **`docker-compose.yml`**: 基础配置（开发环境默认使用）
+- **`docker-compose.prod.yml`**: 生产环境覆盖配置（只包含差异部分）
+
+使用方式：
+```bash
+# 开发环境（使用基础配置）
+docker compose up -d
+
+# 生产环境（合并基础配置 + 生产覆盖配置）
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### 主要区别对比
+
+| 特性 | 开发环境 | 生产环境 |
+|------|---------|---------|
+| **端口暴露** | 全部暴露（便于调试） | 仅 API/Web（安全） |
+| **数据库端口** | 5432 → 5432 | 不暴露 |
+| **Redis 端口** | 6379 → 6379 | 不暴露 |
+| **源代码挂载** | ✓ 支持热重载 | ✗ 不挂载 |
+| **资源限制** | 无限制 | CPU/内存限制 |
+| **重启策略** | unless-stopped | always |
+| **日志管理** | 默认无限制 | 限制大小/数量 |
+| **Redis 配置** | 基础配置 | 最大内存+LRU策略 |
+| **缓存 TTL** | 120秒 | 300秒 |
+| **健康检查间隔** | 10-30秒 | 30秒 |
+| **启动等待时间** | 40秒 | 60秒 |
+| **网络配置** | 动态子网 | 固定子网 |
+
+### 使用建议
+
+**开发环境适用场景**：
+- 本地开发和调试
+- 需要频繁修改代码
+- 需要直接访问数据库和 Redis
+- 快速测试和迭代
+
+**生产环境适用场景**：
+- 正式部署上线
+- 需要资源控制和优化
+- 需要更高的安全性
+- 需要稳定的服务运行
+
+### 环境切换
+
+#### 使用 deploy.sh
+```bash
+./deploy.sh
+# 交互式选择环境：
+# 1) 开发环境 (Development)
+# 2) 生产环境 (Production)
+```
+
+#### 使用 Makefile
+```bash
+# 开发环境
+make up
+make logs
+make db-push
+
+# 生产环境
+ENV=prod make up
+ENV=prod make logs
+ENV=prod make db-push
+```
+
+#### 使用 Docker Compose
+```bash
+# 开发环境
+docker compose up -d
+docker compose logs -f
+docker compose down
+
+# 生产环境
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
 ## 🐳 独立 Docker 部署
@@ -1104,20 +1232,55 @@ sudo certbot renew --dry-run
 
 ### 5. 部署应用
 
+#### 方式一：使用部署脚本（推荐）
 ```bash
-# 使用部署脚本（推荐）
+# 运行部署脚本
 ./deploy.sh
 
-# 或使用生产环境配置手动部署
-docker compose -f docker-compose.prod.yml up -d
+# 在交互界面中选择：
+# 2) 生产环境 (Production)
+
+# 脚本会自动：
+# - 检查生产环境配置的完整性
+# - 使用生产优化的 docker-compose 配置
+# - 初始化数据库
+```
+
+#### 方式二：使用 Makefile
+```bash
+# 启动生产环境服务
+ENV=prod make up
 
 # 初始化数据库
-make db-push
-make seed
+ENV=prod make db-push
+ENV=prod make seed
 
 # 查看日志
-make logs
+ENV=prod make logs
+
+# 检查服务健康
+ENV=prod make health
 ```
+
+#### 方式三：手动使用 Docker Compose
+```bash
+# 使用生产配置启动
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# 初始化数据库
+docker compose exec api npm run db:push
+docker compose exec api npm run seed
+
+# 查看日志
+docker compose logs -f
+```
+
+**生产环境特性**：
+- ✅ 数据库和 Redis 不对外暴露端口
+- ✅ 启用资源限制（CPU/内存）
+- ✅ 配置日志管理（大小和数量限制）
+- ✅ 使用固定子网配置
+- ✅ 重启策略：always（自动重启）
 
 ### 6. 配置防火墙
 

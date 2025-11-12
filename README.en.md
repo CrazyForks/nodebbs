@@ -74,12 +74,17 @@ A modern, high-performance forum platform built with Turborepo monorepo architec
 ```bash
 # Run the automated deployment script
 ./deploy.sh
+
+# Interactive environment selection:
+# 1) Development Environment - For local development
+# 2) Production Environment - For production deployment
 ```
 
 The script will:
+- Select deployment environment (dev/prod)
 - Check Docker environment
 - Initialize `.env` file
-- Validate configuration
+- Validate configuration (mandatory security checks for production)
 - Build images
 - Start services
 - Initialize database
@@ -93,8 +98,11 @@ make init
 # Edit .env file (IMPORTANT!)
 vi .env
 
-# Start all services
+# Start all services (default: development)
 make up
+
+# Or start production environment
+ENV=prod make up
 
 # Initialize database
 make db-push
@@ -116,8 +124,11 @@ cp .env.docker.example .env
 # 2. Edit configuration
 vi .env
 
-# 3. Start services
+# 3. Start services (development)
 docker compose up -d
+
+# Or start production environment
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # 4. Initialize database
 docker compose exec api npm run db:push
@@ -154,12 +165,17 @@ After deployment, access:
 ```bash
 make help              # Show all available commands
 
-# Container Management
+# Container Management (default: development)
 make up                # Start all services
 make down              # Stop all services
 make restart           # Restart all services
 make build             # Rebuild images
 make ps                # Show container status
+
+# Production Environment (add ENV=prod)
+ENV=prod make up       # Start production services
+ENV=prod make logs     # View production logs
+ENV=prod make db-push  # Push production database schema
 
 # Logs
 make logs              # View all logs
@@ -300,15 +316,38 @@ sudo nginx -t && sudo nginx -s reload
 
 ### 3. Deploy with Docker
 
+**Method 1: Using deploy.sh (Recommended)**
 ```bash
-# Using deployment script
+# Run deployment script
 ./deploy.sh
 
-# Or manually
-docker compose -f docker-compose.prod.yml up -d
+# Select: 2) Production Environment
+```
+
+**Method 2: Using Makefile**
+```bash
+# Start production environment
+ENV=prod make up
+
+# Initialize database
+ENV=prod make db-push
+ENV=prod make seed
+```
+
+**Method 3: Manual Deployment**
+```bash
+# Use production configuration
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 make db-push
 make seed
 ```
+
+**Production Environment Features**:
+- ✅ Database and Redis ports not exposed (secure)
+- ✅ Resource limits enabled (CPU/memory)
+- ✅ Log management configured (size and count limits)
+- ✅ Automatic restart policy
+- ✅ Production-grade Redis optimizations
 
 ### 4. Setup Database Backups
 

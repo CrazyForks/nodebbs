@@ -74,12 +74,17 @@
 ```bash
 # 运行自动部署脚本
 ./deploy.sh
+
+# 交互式选择环境：
+# 1) 开发环境 (Development) - 适合本地开发
+# 2) 生产环境 (Production) - 适合正式部署
 ```
 
 该脚本会自动：
+- 选择部署环境（开发/生产）
 - 检查 Docker 环境
 - 初始化 `.env` 文件
-- 验证配置
+- 验证配置（生产环境强制安全检查）
 - 构建镜像
 - 启动服务
 - 初始化数据库
@@ -93,8 +98,11 @@ make init
 # 编辑 .env 文件（重要！）
 vi .env
 
-# 启动所有服务
+# 启动所有服务（默认开发环境）
 make up
+
+# 或启动生产环境
+ENV=prod make up
 
 # 初始化数据库
 make db-push
@@ -116,8 +124,11 @@ cp .env.docker.example .env
 # 2. 编辑配置
 vi .env
 
-# 3. 启动服务
+# 3. 启动服务（开发环境）
 docker compose up -d
+
+# 或启动生产环境
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # 4. 初始化数据库
 docker compose exec api npm run db:push
@@ -154,12 +165,17 @@ CORS_ORIGIN=https://yourdomain.com  # 生产环境
 ```bash
 make help              # 显示所有可用命令
 
-# 容器管理
+# 容器管理（默认开发环境）
 make up                # 启动所有服务
 make down              # 停止所有服务
 make restart           # 重启所有服务
 make build             # 重新构建镜像
 make ps                # 查看容器状态
+
+# 生产环境（添加 ENV=prod）
+ENV=prod make up       # 启动生产环境服务
+ENV=prod make logs     # 查看生产环境日志
+ENV=prod make db-push  # 推送生产环境数据库
 
 # 日志
 make logs              # 查看所有日志
@@ -300,15 +316,38 @@ sudo nginx -t && sudo nginx -s reload
 
 ### 3. 使用 Docker 部署
 
+**方式一：使用 deploy.sh（推荐）**
 ```bash
 # 使用部署脚本
 ./deploy.sh
 
-# 或手动部署
-docker compose -f docker-compose.prod.yml up -d
+# 选择：2) 生产环境 (Production)
+```
+
+**方式二：使用 Makefile**
+```bash
+# 启动生产环境
+ENV=prod make up
+
+# 初始化数据库
+ENV=prod make db-push
+ENV=prod make seed
+```
+
+**方式三：手动部署**
+```bash
+# 使用生产配置
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 make db-push
 make seed
 ```
+
+**生产环境特性**：
+- ✅ 数据库和 Redis 不对外暴露端口（安全）
+- ✅ 启用资源限制（CPU/内存）
+- ✅ 配置日志管理（大小和数量限制）
+- ✅ 自动重启策略
+- ✅ 生产级别 Redis 优化配置
 
 ### 4. 设置数据库备份
 
