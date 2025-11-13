@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Loading } from '@/components/common/Loading';
 import { Pager } from '@/components/common/Pagination';
 
-export function PendingContent({ type = 'all', onStatsChange }) {
+export function PendingContent({ type = 'all', onModerationComplete }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -27,14 +27,6 @@ export function PendingContent({ type = 'all', onStatsChange }) {
       const data = await moderationApi.getPending(type, page, pageSize);
       setItems(data.items || []);
       setTotal(data.total || 0);
-
-      // 将统计信息传递给父组件
-      if (onStatsChange) {
-        onStatsChange({
-          totalTopics: data.totalTopics || 0,
-          totalPosts: data.totalPosts || 0,
-        });
-      }
     } catch (error) {
       console.error('Failed to load pending content:', error);
       toast.error('加载待审核内容失败');
@@ -48,6 +40,10 @@ export function PendingContent({ type = 'all', onStatsChange }) {
       await moderationApi.approve(itemType, id);
       toast.success(`${itemType === 'topic' ? '话题' : '回复'}已批准`);
       loadPendingContent();
+      // 通知父组件刷新统计数据
+      if (onModerationComplete) {
+        onModerationComplete();
+      }
     } catch (error) {
       console.error('Failed to approve:', error);
       toast.error('批准失败');
@@ -59,6 +55,10 @@ export function PendingContent({ type = 'all', onStatsChange }) {
       await moderationApi.reject(itemType, id);
       toast.success(`${itemType === 'topic' ? '话题' : '回复'}已拒绝`);
       loadPendingContent();
+      // 通知父组件刷新统计数据
+      if (onModerationComplete) {
+        onModerationComplete();
+      }
     } catch (error) {
       console.error('Failed to reject:', error);
       toast.error('拒绝失败');

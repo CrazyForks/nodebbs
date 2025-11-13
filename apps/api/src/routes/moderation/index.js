@@ -489,6 +489,37 @@ export default async function moderationRoutes(fastify, options) {
 
   // ============= 内容审核接口 =============
 
+  // 获取待审核统计数据（管理员/版主）
+  fastify.get('/stat', {
+    preHandler: [fastify.requireModerator],
+    schema: {
+      tags: ['moderation'],
+      description: '获取待审核统计数据（管理员/版主）',
+      security: [{ bearerAuth: [] }]
+    }
+  }, async (request, reply) => {
+    // 获取待审核话题总数
+    const [{ count: topicCount }] = await db
+      .select({ count: sql`count(*)` })
+      .from(topics)
+      .where(eq(topics.approvalStatus, 'pending'));
+
+    // 获取待审核回复总数（排除第一条回复）
+    const [{ count: postCount }] = await db
+      .select({ count: sql`count(*)` })
+      .from(posts)
+      .where(and(
+        eq(posts.approvalStatus, 'pending'),
+        ne(posts.postNumber, 1)
+      ));
+
+    return {
+      totalTopics: Number(topicCount),
+      totalPosts: Number(postCount),
+      total: Number(topicCount) + Number(postCount)
+    };
+  });
+
   // 获取待审核内容列表（管理员/版主）
   fastify.get('/pending', {
     preHandler: [fastify.requireModerator],
@@ -589,8 +620,7 @@ export default async function moderationRoutes(fastify, options) {
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // 获取总数（应用相同的搜索条件）
-    let totalTopics = 0;
-    let totalPosts = 0;
+    let total = 0;
 
     if (type === 'all' || type === 'topic') {
       // 构建话题统计条件
@@ -610,14 +640,14 @@ export default async function moderationRoutes(fastify, options) {
           .from(topics)
           .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
           .where(and(...topicCountConditions));
-        totalTopics = Number(count);
+        total += Number(count);
       } else {
         // 没有搜索条件时，直接统计
         const [{ count }] = await db
           .select({ count: sql`count(*)` })
           .from(topics)
           .where(and(...topicCountConditions));
-        totalTopics = Number(count);
+        total += Number(count);
       }
     }
 
@@ -636,16 +666,14 @@ export default async function moderationRoutes(fastify, options) {
         .select({ count: sql`count(*)` })
         .from(posts)
         .where(and(...postCountConditions));
-      totalPosts = Number(count);
+      total += Number(count);
     }
 
     return {
       items: items.slice(0, limit),
       page,
       limit,
-      total: type === 'all' ? totalTopics + totalPosts : (type === 'topic' ? totalTopics : totalPosts),
-      totalTopics,
-      totalPosts
+      total
     };
   });
 

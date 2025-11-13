@@ -562,6 +562,11 @@ export const moderationApi = {
   },
 
   // ============= 内容审核 API =============
+  // 获取待审核统计数据
+  async getStat() {
+    return apiClient.get('/moderation/stat');
+  },
+
   // 获取待审核内容列表
   async getPending(type = 'all', page = 1, limit = 20) {
     return apiClient.get('/moderation/pending', { type, page, limit });
