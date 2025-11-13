@@ -11,7 +11,13 @@ import {
 } from '@/components/ui/select';
 import { moderationApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, FileText, User, MessageSquare } from 'lucide-react';
+import {
+  CheckCircle,
+  XCircle,
+  FileText,
+  User,
+  MessageSquare,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Loading } from '@/components/common/Loading';
 import { Pager } from '@/components/common/Pagination';
@@ -128,41 +134,45 @@ export function ModerationLogs() {
         <>
           <div className='space-y-3'>
             {logs.map((log) => {
-              const actionText = {
-                approve: '批准',
-                reject: '拒绝',
-                delete: '删除',
-                restore: '恢复',
-                close: '关闭',
-                open: '打开',
-                pin: '置顶',
-                unpin: '取消置顶',
-              }[log.action] || log.action;
+              const actionText =
+                {
+                  approve: '批准',
+                  reject: '拒绝',
+                  delete: '删除',
+                  restore: '恢复',
+                  close: '关闭',
+                  open: '打开',
+                  pin: '置顶',
+                  unpin: '取消置顶',
+                }[log.action] || log.action;
 
-              const targetTypeText = {
-                topic: '话题',
-                post: '回复',
-                user: '用户',
-              }[log.targetType] || log.targetType;
+              const targetTypeText =
+                {
+                  topic: '话题',
+                  post: '回复',
+                  user: '用户',
+                }[log.targetType] || log.targetType;
 
-              const actionColor = {
-                approve: 'text-green-600',
-                reject: 'text-red-600',
-                delete: 'text-red-600',
-                restore: 'text-blue-600',
-                close: 'text-yellow-600',
-                open: 'text-green-600',
-                pin: 'text-blue-600',
-                unpin: 'text-gray-600',
-              }[log.action] || 'text-foreground';
+              const actionColor =
+                {
+                  approve: 'text-green-600',
+                  reject: 'text-red-600',
+                  delete: 'text-red-600',
+                  restore: 'text-blue-600',
+                  close: 'text-yellow-600',
+                  open: 'text-green-600',
+                  pin: 'text-blue-600',
+                  unpin: 'text-gray-600',
+                }[log.action] || 'text-foreground';
 
-              const ActionIcon = {
-                approve: CheckCircle,
-                reject: XCircle,
-                topic: FileText,
-                post: MessageSquare,
-                user: User,
-              }[log.targetType] || FileText;
+              const ActionIcon =
+                {
+                  approve: CheckCircle,
+                  reject: XCircle,
+                  topic: FileText,
+                  post: MessageSquare,
+                  user: User,
+                }[log.targetType] || FileText;
 
               return (
                 <div
@@ -177,29 +187,40 @@ export function ModerationLogs() {
                           {log.moderatorName || log.moderatorUsername}
                         </span>
                         <span className='text-muted-foreground'>
-                          <span className={actionColor}>{actionText}</span>
-                          了{targetTypeText}
+                          <span className={actionColor}>{actionText}</span>了
+                          {targetTypeText}
                         </span>
                         {log.targetInfo && (
                           <>
-                            {log.targetType === 'topic' && log.targetInfo.title && (
-                              <Link
-                                href={`/topic/${log.targetId}`}
-                                className='text-primary hover:underline truncate'
-                              >
-                                「{log.targetInfo.title}」
-                              </Link>
-                            )}
-                            {log.targetType === 'post' && log.targetInfo.content && (
-                              <span className='text-sm text-muted-foreground truncate'>
-                                「{log.targetInfo.content}」
-                              </span>
-                            )}
-                            {log.targetType === 'user' && log.targetInfo.username && (
-                              <span className='text-sm font-medium'>
-                                @{log.targetInfo.username}
-                              </span>
-                            )}
+                            {log.targetType === 'topic' &&
+                              log.targetInfo.title && (
+                                <Link
+                                  href={`/topic/${log.targetId}`}
+                                  className='text-primary hover:underline truncate'
+                                >
+                                  「{log.targetInfo.title}」
+                                </Link>
+                              )}
+                            {log.targetType === 'post' &&
+                              log.targetInfo.content && (
+                                <>
+                                  <span className='text-sm text-muted-foreground truncate'>
+                                    「{log.targetInfo.content}」
+                                  </span>
+                                  <Link
+                                    href={`/topic/${log.targetInfo.topicId}#${log.targetId}`}
+                                    className='text-primary hover:underline truncate'
+                                  >
+                                    ({log.targetInfo.topicTitle})
+                                  </Link>
+                                </>
+                              )}
+                            {log.targetType === 'user' &&
+                              log.targetInfo.username && (
+                                <span className='text-sm font-medium'>
+                                  @{log.targetInfo.username}
+                                </span>
+                              )}
                           </>
                         )}
                       </div>
