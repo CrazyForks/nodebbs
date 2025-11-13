@@ -93,7 +93,7 @@ export const categories = pgTable(
     color: varchar('color', { length: 7 }).default('#000000'),
     icon: varchar('icon', { length: 50 }),
     parentId: integer('parent_id').references(() => categories.id, {
-      onDelete: 'cascade',
+      onDelete: 'set null',
     }),
     position: integer('position').notNull().default(0),
     isPrivate: boolean('is_private').notNull().default(false),
