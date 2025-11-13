@@ -9,30 +9,41 @@ export default async function categoryRoutes(fastify, options) {
     preHandler: [fastify.optionalAuth],
     schema: {
       tags: ['categories'],
-      description: '获取所有分类',
+      description: '获取所有分类（平铺返回）',
       querystring: {
         type: 'object',
         properties: {
-          includeSubcategories: { type: 'boolean', default: true },
+          isFeatured: { type: 'boolean' },
           search: { type: 'string' }
         }
       }
     }
   }, async (request, reply) => {
-    const { includeSubcategories = true, search } = request.query;
+    const { isFeatured, search } = request.query;
     const { user } = request;
 
     // 构建查询条件
-    let query = db.select().from(categories);
+    let conditions = [];
 
     // 添加搜索条件
     if (search && search.trim()) {
-      query = query.where(
+      conditions.push(
         or(
           like(categories.name, `%${search.trim()}%`),
           like(categories.description, `%${search.trim()}%`)
         )
       );
+    }
+
+    // 添加精选过滤
+    if (isFeatured !== undefined) {
+      conditions.push(eq(categories.isFeatured, isFeatured));
+    }
+
+    // 构建查询
+    let query = db.select().from(categories);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     // 排序：精选优先，然后按 position，最后按名称
@@ -45,7 +56,7 @@ export default async function categoryRoutes(fastify, options) {
     // 检查分类是否私有（包括继承的私有属性）
     const isPrivateCategory = (category, allCats) => {
       if (category.isPrivate) return true;
-      
+
       // 检查父分类是否私有
       if (category.parentId) {
         const parent = allCats.find(c => c.id === category.parentId);
@@ -53,7 +64,7 @@ export default async function categoryRoutes(fastify, options) {
           return isPrivateCategory(parent, allCats);
         }
       }
-      
+
       return false;
     };
 
@@ -62,83 +73,59 @@ export default async function categoryRoutes(fastify, options) {
       allCategories = allCategories.filter(cat => !isPrivateCategory(cat, allCategories));
     }
 
-    if (includeSubcategories) {
-      // Get topic counts and stats for each category
-      const categoriesWithStats = await Promise.all(
-        allCategories.map(async (category) => {
-          // 获取话题数量
-          const [topicCount] = await db
-            .select({ count: sql`count(*)` })
-            .from(topics)
-            .where(and(
-              eq(topics.categoryId, category.id),
-              eq(topics.isDeleted, false)
-            ));
+    // 获取话题统计信息
+    const categoriesWithStats = await Promise.all(
+      allCategories.map(async (category) => {
+        // 获取话题数量
+        const [topicCount] = await db
+          .select({ count: sql`count(*)` })
+          .from(topics)
+          .where(and(
+            eq(topics.categoryId, category.id),
+            eq(topics.isDeleted, false)
+          ));
 
-          // 获取总回复数和总浏览数
-          const [stats] = await db
-            .select({
-              postCount: sql`COALESCE(SUM(${topics.postCount}), 0)`,
-              viewCount: sql`COALESCE(SUM(${topics.viewCount}), 0)`
-            })
-            .from(topics)
-            .where(and(
-              eq(topics.categoryId, category.id),
-              eq(topics.isDeleted, false)
-            ));
+        // 获取总回复数和总浏览数
+        const [stats] = await db
+          .select({
+            postCount: sql`COALESCE(SUM(${topics.postCount}), 0)`,
+            viewCount: sql`COALESCE(SUM(${topics.viewCount}), 0)`
+          })
+          .from(topics)
+          .where(and(
+            eq(topics.categoryId, category.id),
+            eq(topics.isDeleted, false)
+          ));
 
-          // 获取最新话题
-          const [latestTopic] = await db
-            .select({
-              id: topics.id,
-              title: topics.title,
-              slug: topics.slug,
-              createdAt: topics.createdAt,
-              updatedAt: topics.updatedAt
-            })
-            .from(topics)
-            .where(and(
-              eq(topics.categoryId, category.id),
-              eq(topics.isDeleted, false)
-            ))
-            .orderBy(desc(topics.updatedAt))
-            .limit(1);
+        // 获取最新话题
+        const [latestTopic] = await db
+          .select({
+            id: topics.id,
+            title: topics.title,
+            slug: topics.slug,
+            createdAt: topics.createdAt,
+            updatedAt: topics.updatedAt
+          })
+          .from(topics)
+          .where(and(
+            eq(topics.categoryId, category.id),
+            eq(topics.isDeleted, false)
+          ))
+          .orderBy(desc(topics.updatedAt))
+          .limit(1);
 
-          return {
-            ...category,
-            topicCount: Number(topicCount.count),
-            postCount: Number(stats.postCount),
-            viewCount: Number(stats.viewCount),
-            latestTopic: latestTopic || null
-          };
-        })
-      );
+        return {
+          ...category,
+          topicCount: Number(topicCount.count),
+          postCount: Number(stats.postCount),
+          viewCount: Number(stats.viewCount),
+          latestTopic: latestTopic || null
+        };
+      })
+    );
 
-      // Organize into hierarchy
-      const categoryMap = new Map();
-      const rootCategories = [];
-
-      categoriesWithStats.forEach(cat => {
-        categoryMap.set(cat.id, { ...cat, subcategories: [] });
-      });
-
-      categoriesWithStats.forEach(cat => {
-        if (cat.parentId) {
-          const parent = categoryMap.get(cat.parentId);
-          if (parent) {
-            parent.subcategories.push(categoryMap.get(cat.id));
-          }
-        } else {
-          rootCategories.push(categoryMap.get(cat.id));
-        }
-      });
-
-      return rootCategories;
-    } else {
-      // Only root categories
-      const rootCategories = allCategories.filter(cat => !cat.parentId);
-      return rootCategories;
-    }
+    // 平铺返回所有分类，不组装层级结构
+    return categoriesWithStats;
   });
 
   // Get single category

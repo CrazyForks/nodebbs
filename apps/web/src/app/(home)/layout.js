@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function HomeLayout({ children }) {
   // 并行获取分类和统计数据
   const [categories, stats] = await Promise.all([
-    getCategoriesData(),
+    getCategoriesData({ isFeatured: true }),
     getStatsData(),
   ]);
 

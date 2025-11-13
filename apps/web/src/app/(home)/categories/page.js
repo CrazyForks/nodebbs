@@ -29,12 +29,30 @@ export default function CategoriesPage() {
       try {
         setLoading(true);
         const data = await categoryApi.getAll();
-        // const processedCategories = data.categories.map((cat) => ({
-        //   ...cat,
-        //   totalReplies: cat.postCount || 0,
-        //   totalViews: cat.viewCount || 0,
-        // }));
-        setCategories(data);
+
+        // 在前端组装子分类结构
+        const categoryMap = new Map();
+        const rootCategories = [];
+
+        // 首先创建所有分类的映射
+        data.forEach(cat => {
+          categoryMap.set(cat.id, { ...cat, subcategories: [] });
+        });
+
+        // 然后组装层级结构
+        data.forEach(cat => {
+          const category = categoryMap.get(cat.id);
+          if (cat.parentId) {
+            const parent = categoryMap.get(cat.parentId);
+            if (parent) {
+              parent.subcategories.push(category);
+            }
+          } else {
+            rootCategories.push(category);
+          }
+        });
+
+        setCategories(rootCategories);
       } catch (err) {
         setError(err);
         toast.error('获取分类列表失败: ' + err.message);

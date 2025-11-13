@@ -51,11 +51,28 @@ export async function getTopicsData(params = {}) {
 
 /**
  * 服务端获取所有分类
+ * @param {Object} params - 查询参数
+ * @param {boolean} params.isFeatured - 是否只获取精选分类
+ * @param {string} params.search - 搜索关键词
  * @returns {Promise<Array>} 分类列表
  */
-export async function getCategoriesData() {
+export async function getCategoriesData(params = {}) {
   try {
-    const data = await request('/api/categories');
+    const { isFeatured, search } = params;
+    const queryParams = new URLSearchParams();
+
+    if (isFeatured !== undefined) {
+      queryParams.set('isFeatured', isFeatured.toString());
+    }
+
+    if (search) {
+      queryParams.set('search', search);
+    }
+
+    const queryString = queryParams.toString();
+    const url = queryString ? `/api/categories?${queryString}` : '/api/categories';
+
+    const data = await request(url);
     return data || [];
   } catch (error) {
     console.error('Error fetching categories:', error);

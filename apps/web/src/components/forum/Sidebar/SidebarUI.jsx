@@ -11,10 +11,7 @@ export function formatNumber(num) {
 
 // 分类列表组件
 export function CategoryList({ categories, currentPath }) {
-  const featuredCategories = categories.filter(
-    (cat) => !cat.parentId && cat.isFeatured
-  );
-
+  // categories 已经通过 isFeatured 参数从后端过滤，无需前端再次过滤
   const isActiveCategory = (categorySlug) => {
     return (
       currentPath === `/categories/${categorySlug}` ||
@@ -31,13 +28,13 @@ export function CategoryList({ categories, currentPath }) {
         </h3>
       </div>
       <div className='p-2'>
-        {featuredCategories.length === 0 ? (
+        {categories.length === 0 ? (
           <div className='px-2 py-8 text-center text-sm text-muted-foreground'>
             暂无分类
           </div>
         ) : (
           <div className='space-y-1'>
-            {featuredCategories.map((category) => {
+            {categories.map((category) => {
               const isActive = isActiveCategory(category.slug);
               return (
                 <Link
