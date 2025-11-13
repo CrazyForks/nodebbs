@@ -32,6 +32,8 @@ import {
   Unlock,
   Pin,
   PinOff,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Time from '@/components/forum/Time';
@@ -87,6 +89,10 @@ export default function AdminTopicsPage() {
           params.isPinned = true;
         } else if (statusFilter === 'closed') {
           params.isClosed = true;
+        } else if (statusFilter === 'pending') {
+          params.approvalStatus = 'pending';
+        } else if (statusFilter === 'rejected') {
+          params.approvalStatus = 'rejected';
         }
       }
 
@@ -166,6 +172,12 @@ export default function AdminTopicsPage() {
           </Link>
           {row.isPinned && <Pin className='h-3 w-3 text-orange-500' />}
           {row.isClosed && <Lock className='h-3 w-3 text-muted-foreground' />}
+          {row.approvalStatus === 'pending' && (
+            <Clock className='h-3 w-3 text-chart-5' />
+          )}
+          {row.approvalStatus === 'rejected' && (
+            <AlertCircle className='h-3 w-3 text-destructive' />
+          )}
         </div>
       ),
     },
@@ -198,6 +210,22 @@ export default function AdminTopicsPage() {
       label: '状态',
       width: 'w-[100px]',
       render: (_, row) => {
+        // 优先显示审核状态
+        if (row.approvalStatus === 'pending') {
+          return (
+            <Badge variant='outline' className='text-chart-5 border-chart-5 text-xs'>
+              待审核
+            </Badge>
+          );
+        }
+        if (row.approvalStatus === 'rejected') {
+          return (
+            <Badge variant='outline' className='text-destructive border-destructive text-xs'>
+              已拒绝
+            </Badge>
+          );
+        }
+        // 其次显示删除和关闭状态
         if (row.isDeleted) {
           return (
             <Badge variant='destructive' className='text-xs'>
@@ -330,6 +358,8 @@ export default function AdminTopicsPage() {
           onChange: setStatusFilter,
           options: [
             { value: 'all', label: '全部话题' },
+            { value: 'pending', label: '待审核' },
+            { value: 'rejected', label: '已拒绝' },
             { value: 'pinned', label: '置顶话题' },
             { value: 'closed', label: '已关闭' },
             { value: 'deleted', label: '已删除' },
