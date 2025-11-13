@@ -120,16 +120,21 @@ export default function CategorySelector({
 
   return (
     <Select
-      value={value ? String(value) : undefined}
-      onValueChange={(val) => onChange(Number(val))}
+      value={value ? String(value) : 'none'}
+      onValueChange={(val) => onChange(val === 'none' ? null : Number(val))}
       disabled={disabled}
     >
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder}>
-          {getSelectedCategoryName()}
+          {value ? getSelectedCategoryName() : placeholder}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
+        {/* 添加"无"选项 */}
+        <SelectItem value='none' className='cursor-pointer'>
+          <span className='text-muted-foreground'>{placeholder}</span>
+        </SelectItem>
+
         {flatCategories.length === 0 ? (
           <div className='py-6 text-center text-sm text-muted-foreground'>
             暂无分类
