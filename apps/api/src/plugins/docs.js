@@ -85,7 +85,7 @@ async function docsPlugin(fastify, opts) {
               },
               role: {
                 type: 'string',
-                enum: ['user', 'moderator', 'admin'],
+                enum: ['user', 'moderator', 'admin', 'vip'],
                 description: '用户角色',
               },
               isBanned: { type: 'boolean', description: '是否被封禁' },

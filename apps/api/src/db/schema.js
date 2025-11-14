@@ -44,7 +44,7 @@ export const users = pgTable(
     name: varchar('name', { length: 255 }),
     bio: text('bio'),
     avatar: varchar('avatar', { length: 500 }),
-    role: varchar('role', { length: 20 }).notNull().default('user'), // user, moderator, admin
+    role: varchar('role', { length: 20 }).notNull().default('user'), // user, vip, moderator, admin
     isBanned: boolean('is_banned').notNull().default(false),
     isEmailVerified: boolean('is_email_verified').notNull().default(false),
     isDeleted: boolean('is_deleted').notNull().default(false),

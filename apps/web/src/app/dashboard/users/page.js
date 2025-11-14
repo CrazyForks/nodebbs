@@ -296,6 +296,7 @@ export default function UsersManagement() {
   const getRoleLabel = (role) => {
     const labels = {
       user: '用户',
+      vip: 'VIP',
       moderator: '版主',
       admin: '管理员',
     };
@@ -306,6 +307,7 @@ export default function UsersManagement() {
     const variants = {
       admin: 'destructive',
       moderator: 'default',
+      vip: 'secondary',
       user: 'secondary',
     };
     return variants[role] || 'secondary';
@@ -498,6 +500,7 @@ export default function UsersManagement() {
           options: [
             { value: 'all-all', label: '全部' },
             { value: 'user-all', label: '用户' },
+            { value: 'vip-all', label: 'VIP' },
             { value: 'moderator-all', label: '版主' },
             { value: 'admin-all', label: '管理员' },
             { value: 'all-active', label: '正常用户' },
@@ -590,6 +593,7 @@ export default function UsersManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">用户</SelectItem>
+                <SelectItem value="vip">VIP</SelectItem>
                 <SelectItem value="moderator">版主</SelectItem>
                 <SelectItem value="admin">管理员</SelectItem>
               </SelectContent>
@@ -731,6 +735,7 @@ export default function UsersManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">用户</SelectItem>
+                  <SelectItem value="vip">VIP</SelectItem>
                   <SelectItem value="moderator">版主</SelectItem>
                   <SelectItem value="admin">管理员</SelectItem>
                 </SelectContent>

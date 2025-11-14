@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -95,7 +102,7 @@ export default function InvitationRulesPage() {
       setSaving(true);
 
       if (!formData.role) {
-        toast.error('请输入角色名称');
+        toast.error('请选择角色');
         return;
       }
 
@@ -288,15 +295,23 @@ export default function InvitationRulesPage() {
           <div className='space-y-4 py-4'>
             <div className='space-y-2'>
               <Label htmlFor='role'>角色</Label>
-              <Input
-                id='role'
+              <Select
                 value={formData.role}
-                onChange={(e) =>
-                  setFormData({ ...formData, role: e.target.value })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, role: value })
                 }
                 disabled={!!editingRule}
-                placeholder='例如: vip'
-              />
+              >
+                <SelectTrigger id='role'>
+                  <SelectValue placeholder='选择角色' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='user'>普通用户</SelectItem>
+                  <SelectItem value='vip'>VIP用户</SelectItem>
+                  <SelectItem value='moderator'>版主</SelectItem>
+                  <SelectItem value='admin'>管理员</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className='space-y-2'>

@@ -406,7 +406,7 @@ export default async function moderationRoutes(fastify, options) {
         type: 'object',
         required: ['role'],
         properties: {
-          role: { type: 'string', enum: ['user', 'moderator', 'admin'] }
+          role: { type: 'string', enum: ['user', 'moderator', 'admin', 'vip'] }
         }
       }
     }

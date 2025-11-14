@@ -26,7 +26,7 @@ export default async function userRoutes(fastify, options) {
           email: { type: 'string', format: 'email' },
           password: { type: 'string', minLength: 6 },
           name: { type: 'string', maxLength: 255 },
-          role: { type: 'string', enum: ['user', 'moderator', 'admin'], default: 'user' },
+          role: { type: 'string', enum: ['user', 'moderator', 'admin', 'vip'], default: 'user' },
           isEmailVerified: { type: 'boolean', default: false }
         }
       },
@@ -120,7 +120,7 @@ export default async function userRoutes(fastify, options) {
           page: { type: 'number', default: 1 },
           limit: { type: 'number', default: 20, maximum: 100 },
           search: { type: 'string' },
-          role: { type: 'string', enum: ['user', 'moderator', 'admin'] },
+          role: { type: 'string', enum: ['user', 'moderator', 'admin', 'vip'] },
           isBanned: { type: 'boolean' },
           includeDeleted: { type: 'boolean', default: true }
         }
@@ -1126,7 +1126,7 @@ export default async function userRoutes(fastify, options) {
           username: { type: 'string', minLength: 3, maxLength: 50 },
           email: { type: 'string', format: 'email' },
           name: { type: 'string', maxLength: 255 },
-          role: { type: 'string', enum: ['user', 'moderator', 'admin'] },
+          role: { type: 'string', enum: ['user', 'moderator', 'admin', 'vip'] },
           isEmailVerified: { type: 'boolean' }
         }
       },
