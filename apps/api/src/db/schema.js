@@ -56,6 +56,9 @@ export const users = pgTable(
     contentVisibility: varchar('content_visibility', { length: 20 })
       .notNull()
       .default('everyone'), // 'everyone', 'authenticated', 'private'
+    // 用户名修改相关字段
+    usernameChangedAt: timestamp('username_changed_at'),
+    usernameChangeCount: integer('username_change_count').notNull().default(0),
   },
   (table) => [
     index('users_email_idx').on(table.email),

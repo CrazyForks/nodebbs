@@ -46,6 +46,57 @@ export const SETTING_KEYS = {
     category: 'features',
   },
 
+  // 用户设置
+  ALLOW_USERNAME_CHANGE: {
+    key: 'allow_username_change',
+    value: 'false',
+    valueType: 'boolean',
+    description: '是否允许用户修改用户名',
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_COOLDOWN_DAYS: {
+    key: 'username_change_cooldown_days',
+    value: '30',
+    valueType: 'number',
+    description: '用户名修改冷却期（天），0表示无冷却期',
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_LIMIT: {
+    key: 'username_change_limit',
+    value: '3',
+    valueType: 'number',
+    description: '用户名修改次数限制，0表示无限制',
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_REQUIRES_PASSWORD: {
+    key: 'username_change_requires_password',
+    value: 'true',
+    valueType: 'boolean',
+    description: '修改用户名是否需要密码验证',
+    category: 'user_settings',
+  },
+  ALLOW_EMAIL_CHANGE: {
+    key: 'allow_email_change',
+    value: 'true',
+    valueType: 'boolean',
+    description: '是否允许用户修改邮箱',
+    category: 'user_settings',
+  },
+  EMAIL_CHANGE_REQUIRES_PASSWORD: {
+    key: 'email_change_requires_password',
+    value: 'true',
+    valueType: 'boolean',
+    description: '修改邮箱是否需要密码验证',
+    category: 'user_settings',
+  },
+  EMAIL_CHANGE_VERIFICATION_EXPIRES_MINUTES: {
+    key: 'email_change_verification_expires_minutes',
+    value: '15',
+    valueType: 'number',
+    description: '邮箱修改验证码有效期（分钟）',
+    category: 'user_settings',
+  },
+
   // 访问限速
   RATE_LIMIT_ENABLED: {
     key: 'rate_limit_enabled',
@@ -90,6 +141,7 @@ export const SETTINGS_BY_CATEGORY = Object.values(SETTING_KEYS).reduce((acc, set
 export const CATEGORY_NAMES = {
   general: '通用设置',
   features: '功能开关',
+  user_settings: '用户设置',
   rate_limit: '访问限速',
   other: '其他设置',
 };

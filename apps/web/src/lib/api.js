@@ -274,6 +274,30 @@ export const userApi = {
     });
   },
 
+  // 修改用户名
+  async changeUsername(newUsername, password) {
+    return apiClient.post('/users/me/change-username', {
+      newUsername,
+      password,
+    });
+  },
+
+  // 请求修改邮箱 - 发送验证码
+  async requestEmailChange(newEmail, password) {
+    return apiClient.post('/users/me/change-email/request', {
+      newEmail,
+      password,
+    });
+  },
+
+  // 验证并完成邮箱修改
+  async verifyEmailChange(newEmail, verificationCode) {
+    return apiClient.post('/users/me/change-email/verify', {
+      newEmail,
+      verificationCode,
+    });
+  },
+
   // 关注用户
   async followUser(username) {
     return apiClient.post(`/users/${username}/follow`);

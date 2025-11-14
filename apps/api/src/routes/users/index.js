@@ -357,6 +357,341 @@ export default async function userRoutes(fastify, options) {
     return { message: 'Password changed successfully' };
   });
 
+  // Change username
+  fastify.post('/me/change-username', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['users'],
+      description: '修改用户名',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['newUsername'],
+        properties: {
+          newUsername: { type: 'string', minLength: 3, maxLength: 50 },
+          password: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            username: { type: 'string' },
+            nextChangeAvailableAt: { type: ['string', 'null'] },
+            remainingChanges: { type: 'number' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { newUsername, password } = request.body;
+    const userId = request.user.id;
+
+    // 获取系统设置
+    const { getSetting } = await import('../../utils/settings.js');
+
+    const allowUsernameChange = await getSetting('allow_username_change', false);
+    if (!allowUsernameChange) {
+      return reply.code(403).send({ error: '系统暂不允许修改用户名' });
+    }
+
+    // 获取当前用户信息
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+    // 检查是否需要密码验证
+    const requiresPassword = await getSetting('username_change_requires_password', true);
+    if (requiresPassword) {
+      if (!password) {
+        return reply.code(400).send({ error: '请提供当前密码' });
+      }
+      const isValidPassword = await fastify.verifyPassword(password, user.passwordHash);
+      if (!isValidPassword) {
+        return reply.code(400).send({ error: '当前密码不正确' });
+      }
+    }
+
+    // 检查用户名修改次数限制
+    const changeLimit = await getSetting('username_change_limit', 3);
+    if (changeLimit > 0 && user.usernameChangeCount >= changeLimit) {
+      return reply.code(400).send({
+        error: `已达到用户名修改次数上限（${changeLimit}次）`
+      });
+    }
+
+    // 检查冷却期
+    const cooldownDays = await getSetting('username_change_cooldown_days', 30);
+    if (user.usernameChangedAt) {
+      const lastChangeDate = new Date(user.usernameChangedAt);
+      const now = new Date();
+      const daysSinceLastChange = Math.floor((now - lastChangeDate) / (1000 * 60 * 60 * 24));
+
+      if (daysSinceLastChange < cooldownDays) {
+        const nextAvailableDate = new Date(lastChangeDate);
+        nextAvailableDate.setDate(nextAvailableDate.getDate() + cooldownDays);
+
+        return reply.code(400).send({
+          error: `用户名修改冷却期未过，下次可修改时间：${nextAvailableDate.toLocaleDateString('zh-CN')}`,
+          nextChangeAvailableAt: nextAvailableDate.toISOString()
+        });
+      }
+    }
+
+    // 规范化并验证用户名格式
+    const { validateUsername, normalizeUsername } = await import('../../utils/validateUsername.js');
+    const normalizedUsername = normalizeUsername(newUsername);
+    const usernameValidation = validateUsername(normalizedUsername);
+
+    if (!usernameValidation.valid) {
+      return reply.code(400).send({ error: usernameValidation.error });
+    }
+
+    // 检查用户名是否与当前用户名相同
+    if (normalizedUsername === user.username) {
+      return reply.code(400).send({ error: '新用户名与当前用户名相同' });
+    }
+
+    // 检查用户名是否已被占用
+    const [existingUser] = await db.select().from(users).where(eq(users.username, normalizedUsername)).limit(1);
+    if (existingUser) {
+      return reply.code(400).send({ error: '用户名已被占用' });
+    }
+
+    // 更新用户名
+    const now = new Date();
+    const [updatedUser] = await db.update(users).set({
+      username: normalizedUsername,
+      usernameChangedAt: now,
+      usernameChangeCount: user.usernameChangeCount + 1,
+      updatedAt: now
+    }).where(eq(users.id, userId)).returning();
+
+    // 清除用户缓存
+    await fastify.clearUserCache(userId);
+
+    // 记录操作日志
+    const { moderationLogs } = await import('../../db/schema.js');
+    await db.insert(moderationLogs).values({
+      action: 'username_change',
+      targetType: 'user',
+      targetId: userId,
+      moderatorId: userId,
+      previousStatus: user.username,
+      newStatus: normalizedUsername,
+      metadata: JSON.stringify({
+        oldUsername: user.username,
+        newUsername: normalizedUsername,
+        changeCount: updatedUser.usernameChangeCount
+      })
+    });
+
+    // 计算下次可修改时间
+    let nextChangeAvailableAt = null;
+    if (cooldownDays > 0) {
+      const nextDate = new Date(now);
+      nextDate.setDate(nextDate.getDate() + cooldownDays);
+      nextChangeAvailableAt = nextDate.toISOString();
+    }
+
+    // 计算剩余修改次数
+    const remainingChanges = changeLimit > 0 ? changeLimit - updatedUser.usernameChangeCount : -1;
+
+    return {
+      message: '用户名修改成功',
+      username: normalizedUsername,
+      nextChangeAvailableAt,
+      remainingChanges
+    };
+  });
+
+  // Request email change - Step 1
+  fastify.post('/me/change-email/request', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['users'],
+      description: '请求修改邮箱 - 发送验证码',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['newEmail'],
+        properties: {
+          newEmail: { type: 'string', format: 'email' },
+          password: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            expiresAt: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { newEmail, password } = request.body;
+    const userId = request.user.id;
+
+    // 获取系统设置
+    const { getSetting } = await import('../../utils/settings.js');
+
+    const allowEmailChange = await getSetting('allow_email_change', true);
+    if (!allowEmailChange) {
+      return reply.code(403).send({ error: '系统暂不允许修改邮箱' });
+    }
+
+    // 获取当前用户信息
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+    // 检查是否需要密码验证
+    const requiresPassword = await getSetting('email_change_requires_password', true);
+    if (requiresPassword) {
+      if (!password) {
+        return reply.code(400).send({ error: '请提供当前密码' });
+      }
+      const isValidPassword = await fastify.verifyPassword(password, user.passwordHash);
+      if (!isValidPassword) {
+        return reply.code(400).send({ error: '当前密码不正确' });
+      }
+    }
+
+    // 检查新邮箱是否与当前邮箱相同
+    if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+      return reply.code(400).send({ error: '新邮箱与当前邮箱相同' });
+    }
+
+    // 检查新邮箱是否已被其他用户使用
+    const [existingUser] = await db.select().from(users).where(eq(users.email, newEmail.toLowerCase())).limit(1);
+    if (existingUser) {
+      return reply.code(400).send({ error: '该邮箱已被其他用户使用' });
+    }
+
+    // 生成验证码
+    const { createEmailChangeVerification } = await import('../../utils/verification.js');
+    const expiresMinutes = await getSetting('email_change_verification_expires_minutes', 15);
+    const verificationToken = await createEmailChangeVerification(newEmail, userId, expiresMinutes);
+
+    // 发送验证邮件（会自动检查邮件服务配置）
+    try {
+      await fastify.sendEmail({
+        to: newEmail,
+        template: 'email-change-verification',
+        data: {
+          username: user.username,
+          verificationCode: verificationToken,
+          expiresMinutes,
+        },
+      });
+
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + expiresMinutes);
+
+      return {
+        message: '验证码已发送到新邮箱，请查收',
+        expiresAt: expiresAt.toISOString()
+      };
+    } catch (error) {
+      fastify.log.error('发送邮箱验证码失败:', error);
+      return reply.code(500).send({ error: '发送验证码失败，请稍后重试' });
+    }
+  });
+
+  // Verify and complete email change - Step 2
+  fastify.post('/me/change-email/verify', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['users'],
+      description: '验证并完成邮箱修改',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['newEmail', 'verificationCode'],
+        properties: {
+          newEmail: { type: 'string', format: 'email' },
+          verificationCode: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            email: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { newEmail, verificationCode } = request.body;
+    const userId = request.user.id;
+
+    // 验证验证码
+    const { verifyEmailChangeCode } = await import('../../utils/verification.js');
+    const isValid = await verifyEmailChangeCode(newEmail, verificationCode);
+
+    if (!isValid) {
+      return reply.code(400).send({ error: '验证码错误或已过期' });
+    }
+
+    // 获取当前用户信息
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const oldEmail = user.email;
+
+    // 再次检查新邮箱是否已被其他用户使用
+    const [existingUser] = await db.select().from(users).where(eq(users.email, newEmail.toLowerCase())).limit(1);
+    if (existingUser && existingUser.id !== userId) {
+      return reply.code(400).send({ error: '该邮箱已被其他用户使用' });
+    }
+
+    // 更新邮箱
+    await db.update(users).set({
+      email: newEmail.toLowerCase(),
+      isEmailVerified: true, // 通过验证码验证后自动设置为已验证
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+
+    // 清除用户缓存
+    await fastify.clearUserCache(userId);
+
+    // 记录操作日志
+    const { moderationLogs } = await import('../../db/schema.js');
+    await db.insert(moderationLogs).values({
+      action: 'email_change',
+      targetType: 'user',
+      targetId: userId,
+      moderatorId: userId,
+      previousStatus: oldEmail,
+      newStatus: newEmail,
+      metadata: JSON.stringify({
+        oldEmail,
+        newEmail
+      })
+    });
+
+    // 发送通知到旧邮箱
+    try {
+      await fastify.sendEmail({
+        to: oldEmail,
+        template: 'email-changed-notification',
+        data: {
+          username: user.username,
+          oldEmail,
+          newEmail,
+          changeTime: new Date().toLocaleString('zh-CN'),
+        },
+      });
+    } catch (error) {
+      fastify.log.error('发送邮箱变更通知失败:', error);
+      // 不影响主流程
+    }
+
+    return {
+      message: '邮箱修改成功',
+      email: newEmail
+    };
+  });
+
   // Follow user
   fastify.post('/:username/follow', {
     preHandler: [fastify.authenticate],

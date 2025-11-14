@@ -16,6 +16,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   User,
   Mail,
   Calendar,
@@ -26,9 +34,11 @@ import {
   MessageSquare,
   Shield,
   Eye,
+  Edit,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { userApi, authApi } from '@/lib/api';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -36,6 +46,7 @@ import Time from '@/components/forum/Time';
 
 export default function SettingsPage() {
   const { user, isAuthenticated, loading: authLoading, checkAuth } = useAuth();
+  const { settings } = useSettings();
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -51,6 +62,25 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+
+  // 用户名修改相关状态
+  const [showUsernameDialog, setShowUsernameDialog] = useState(false);
+  const [usernameData, setUsernameData] = useState({
+    newUsername: '',
+    password: '',
+  });
+  const [changingUsername, setChangingUsername] = useState(false);
+
+  // 邮箱修改相关状态
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailStep, setEmailStep] = useState(1); // 1: 输入新邮箱, 2: 输入验证码
+  const [emailData, setEmailData] = useState({
+    newEmail: '',
+    password: '',
+    verificationCode: '',
+  });
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [emailExpiresAt, setEmailExpiresAt] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -200,6 +230,144 @@ export default function SettingsPage() {
     }
   };
 
+  // 处理用户名修改
+  const handleUsernameSubmit = async () => {
+    if (!usernameData.newUsername.trim()) {
+      toast.error('请输入新用户名');
+      return;
+    }
+
+    if (settings.username_change_requires_password?.value && !usernameData.password) {
+      toast.error('请输入当前密码');
+      return;
+    }
+
+    setChangingUsername(true);
+
+    try {
+      const result = await userApi.changeUsername(
+        usernameData.newUsername,
+        usernameData.password
+      );
+
+      toast.success(result.message || '用户名修改成功');
+      setShowUsernameDialog(false);
+      setUsernameData({ newUsername: '', password: '' });
+      await checkAuth(); // 刷新用户数据
+    } catch (err) {
+      console.error('修改用户名失败:', err);
+      toast.error(err.message || '修改用户名失败');
+    } finally {
+      setChangingUsername(false);
+    }
+  };
+
+  // 处理邮箱修改 - 步骤1：请求验证码
+  const handleEmailRequest = async () => {
+    if (!emailData.newEmail.trim()) {
+      toast.error('请输入新邮箱地址');
+      return;
+    }
+
+    // 简单的邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailData.newEmail)) {
+      toast.error('请输入有效的邮箱地址');
+      return;
+    }
+
+    if (settings.email_change_requires_password?.value && !emailData.password) {
+      toast.error('请输入当前密码');
+      return;
+    }
+
+    setChangingEmail(true);
+
+    try {
+      const result = await userApi.requestEmailChange(
+        emailData.newEmail,
+        emailData.password
+      );
+
+      toast.success(result.message || '验证码已发送');
+      setEmailExpiresAt(result.expiresAt);
+      setEmailStep(2); // 进入验证码输入步骤
+    } catch (err) {
+      console.error('发送验证码失败:', err);
+      toast.error(err.message || '发送验证码失败');
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
+  // 处理邮箱修改 - 步骤2：验证验证码
+  const handleEmailVerify = async () => {
+    if (!emailData.verificationCode.trim()) {
+      toast.error('请输入验证码');
+      return;
+    }
+
+    setChangingEmail(true);
+
+    try {
+      const result = await userApi.verifyEmailChange(
+        emailData.newEmail,
+        emailData.verificationCode
+      );
+
+      toast.success(result.message || '邮箱修改成功');
+      setShowEmailDialog(false);
+      setEmailStep(1);
+      setEmailData({ newEmail: '', password: '', verificationCode: '' });
+      setEmailExpiresAt(null);
+      await checkAuth(); // 刷新用户数据
+    } catch (err) {
+      console.error('邮箱验证失败:', err);
+      toast.error(err.message || '验证失败');
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
+  // 计算用户名修改限制信息
+  const getUsernameChangeInfo = () => {
+    if (!user) return null;
+
+    const cooldownDays = settings.username_change_cooldown_days?.value || 30;
+    const changeLimit = settings.username_change_limit?.value || 3;
+    const changeCount = user.usernameChangeCount || 0;
+    const lastChangedAt = user.usernameChangedAt;
+
+    let canChange = true;
+    let nextAvailable = null;
+    let remainingChanges = changeLimit > 0 ? changeLimit - changeCount : -1;
+
+    // 检查次数限制
+    if (changeLimit > 0 && changeCount >= changeLimit) {
+      canChange = false;
+    }
+
+    // 检查冷却期
+    if (lastChangedAt && cooldownDays > 0) {
+      const lastChange = new Date(lastChangedAt);
+      const now = new Date();
+      const daysSince = Math.floor((now - lastChange) / (1000 * 60 * 60 * 24));
+
+      if (daysSince < cooldownDays) {
+        canChange = false;
+        nextAvailable = new Date(lastChange);
+        nextAvailable.setDate(nextAvailable.getDate() + cooldownDays);
+      }
+    }
+
+    return {
+      canChange,
+      nextAvailable,
+      remainingChanges,
+      cooldownDays,
+    };
+  };
+
   const avatarUrl = formData.avatar
     ? formData.avatar.startsWith('http')
       ? formData.avatar
@@ -207,6 +375,8 @@ export default function SettingsPage() {
           formData.avatar
         }`
     : 'https://github.com/shadcn.png';
+
+  const usernameInfo = getUsernameChangeInfo();
 
   return (
     <div>
@@ -283,23 +453,57 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* 用户名 - 只读 */}
+                {/* 用户名 */}
                 <div>
                   <Label className='text-sm font-medium text-card-foreground block mb-2'>
                     用户名
                   </Label>
-                  <Input
-                    type='text'
-                    value={user.username}
-                    disabled
-                    className='bg-muted'
-                  />
-                  <p className='text-xs text-muted-foreground mt-1'>
-                    用户名不可修改
-                  </p>
+                  <div className='flex items-center gap-2'>
+                    <Input
+                      type='text'
+                      value={user.username}
+                      disabled
+                      className='bg-muted flex-1'
+                    />
+                    {settings.allow_username_change?.value && (
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={() => setShowUsernameDialog(true)}
+                        disabled={!usernameInfo?.canChange}
+                      >
+                        <Edit className='h-4 w-4' />
+                        修改
+                      </Button>
+                    )}
+                  </div>
+                  {settings.allow_username_change?.value ? (
+                    <p className='text-xs text-muted-foreground mt-1'>
+                      {usernameInfo?.canChange ? (
+                        <>
+                          {usernameInfo.remainingChanges >= 0
+                            ? `剩余修改次数：${usernameInfo.remainingChanges}次`
+                            : '可修改'}
+                          {usernameInfo.cooldownDays > 0 &&
+                            ` · 冷却期：${usernameInfo.cooldownDays}天`}
+                        </>
+                      ) : usernameInfo?.nextAvailable ? (
+                        `下次可修改时间：${usernameInfo.nextAvailable.toLocaleDateString(
+                          'zh-CN'
+                        )}`
+                      ) : (
+                        '已达到修改次数上限'
+                      )}
+                    </p>
+                  ) : (
+                    <p className='text-xs text-muted-foreground mt-1'>
+                      用户名不可修改
+                    </p>
+                  )}
                 </div>
 
-                {/* 邮箱 - 只读 */}
+                {/* 邮箱 */}
                 <div>
                   <Label className='text-sm font-medium text-card-foreground block mb-2'>
                     <Mail className='h-4 w-4 inline mr-1' />
@@ -321,9 +525,26 @@ export default function SettingsPage() {
                         未验证
                       </Badge>
                     )}
+                    {settings.allow_email_change?.value && (
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={() => {
+                          setShowEmailDialog(true);
+                          setEmailStep(1);
+                          setEmailData({ newEmail: '', password: '', verificationCode: '' });
+                        }}
+                      >
+                        <Edit className='h-4 w-4' />
+                        修改
+                      </Button>
+                    )}
                   </div>
                   <p className='text-xs text-muted-foreground mt-1'>
-                    邮箱不可修改
+                    {settings.allow_email_change?.value
+                      ? '可修改邮箱地址'
+                      : '邮箱不可修改'}
                   </p>
                 </div>
 
@@ -693,6 +914,205 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* 修改用户名对话框 */}
+      <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
+        <DialogContent className='sm:max-w-[500px]'>
+          <DialogHeader>
+            <DialogTitle>修改用户名</DialogTitle>
+            <DialogDescription>
+              {usernameInfo?.cooldownDays > 0 &&
+                `修改后需等待 ${usernameInfo.cooldownDays} 天才能再次修改`}
+              {usernameInfo?.remainingChanges >= 0 &&
+                ` · 剩余修改次数：${usernameInfo.remainingChanges}次`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <div>
+              <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                当前用户名
+              </Label>
+              <Input value={user?.username} disabled className='bg-muted' />
+            </div>
+            <div>
+              <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                新用户名 *
+              </Label>
+              <Input
+                value={usernameData.newUsername}
+                onChange={(e) =>
+                  setUsernameData({ ...usernameData, newUsername: e.target.value })
+                }
+                placeholder='输入新用户名'
+                disabled={changingUsername}
+              />
+            </div>
+            {settings.username_change_requires_password?.value && (
+              <div>
+                <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                  当前密码 *
+                </Label>
+                <Input
+                  type='password'
+                  value={usernameData.password}
+                  onChange={(e) =>
+                    setUsernameData({ ...usernameData, password: e.target.value })
+                  }
+                  placeholder='输入当前密码'
+                  disabled={changingUsername}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setShowUsernameDialog(false);
+                setUsernameData({ newUsername: '', password: '' });
+              }}
+              disabled={changingUsername}
+            >
+              取消
+            </Button>
+            <Button onClick={handleUsernameSubmit} disabled={changingUsername}>
+              {changingUsername ? (
+                <>
+                  <Loader2 className='h-4 w-4 animate-spin mr-2' />
+                  修改中...
+                </>
+              ) : (
+                '确认修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 修改邮箱对话框 */}
+      <Dialog
+        open={showEmailDialog}
+        onOpenChange={(open) => {
+          setShowEmailDialog(open);
+          if (!open) {
+            setEmailStep(1);
+            setEmailData({ newEmail: '', password: '', verificationCode: '' });
+            setEmailExpiresAt(null);
+          }
+        }}
+      >
+        <DialogContent className='sm:max-w-[500px]'>
+          <DialogHeader>
+            <DialogTitle>修改邮箱地址</DialogTitle>
+            <DialogDescription>
+              {emailStep === 1
+                ? '输入新邮箱地址，我们将发送验证码'
+                : '请输入发送到新邮箱的验证码'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {emailStep === 1 ? (
+            <div className='space-y-4 py-4'>
+              <div>
+                <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                  当前邮箱
+                </Label>
+                <Input value={user?.email} disabled className='bg-muted' />
+              </div>
+              <div>
+                <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                  新邮箱地址 *
+                </Label>
+                <Input
+                  type='email'
+                  value={emailData.newEmail}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, newEmail: e.target.value })
+                  }
+                  placeholder='输入新邮箱地址'
+                  disabled={changingEmail}
+                />
+              </div>
+              {settings.email_change_requires_password?.value && (
+                <div>
+                  <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                    当前密码 *
+                  </Label>
+                  <Input
+                    type='password'
+                    value={emailData.password}
+                    onChange={(e) =>
+                      setEmailData({ ...emailData, password: e.target.value })
+                    }
+                    placeholder='输入当前密码'
+                    disabled={changingEmail}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className='space-y-4 py-4'>
+              <div className='p-4 bg-muted rounded-lg'>
+                <p className='text-sm text-muted-foreground'>
+                  验证码已发送到：<span className='font-medium text-card-foreground'>{emailData.newEmail}</span>
+                </p>
+                {emailExpiresAt && (
+                  <p className='text-xs text-muted-foreground mt-1'>
+                    有效期至：{new Date(emailExpiresAt).toLocaleString('zh-CN')}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label className='text-sm font-medium text-card-foreground block mb-2'>
+                  验证码 *
+                </Label>
+                <Input
+                  value={emailData.verificationCode}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, verificationCode: e.target.value })
+                  }
+                  placeholder='输入6位验证码'
+                  maxLength={6}
+                  disabled={changingEmail}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => {
+                if (emailStep === 2) {
+                  setEmailStep(1);
+                } else {
+                  setShowEmailDialog(false);
+                  setEmailData({ newEmail: '', password: '', verificationCode: '' });
+                  setEmailExpiresAt(null);
+                }
+              }}
+              disabled={changingEmail}
+            >
+              {emailStep === 2 ? '上一步' : '取消'}
+            </Button>
+            <Button
+              onClick={emailStep === 1 ? handleEmailRequest : handleEmailVerify}
+              disabled={changingEmail}
+            >
+              {changingEmail ? (
+                <>
+                  <Loader2 className='h-4 w-4 animate-spin mr-2' />
+                  {emailStep === 1 ? '发送中...' : '验证中...'}
+                </>
+              ) : emailStep === 1 ? (
+                '发送验证码'
+              ) : (
+                '确认修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

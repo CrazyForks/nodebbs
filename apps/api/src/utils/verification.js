@@ -149,6 +149,7 @@ export const VerificationType = {
   TWO_FACTOR: '2fa',
   PHONE_VERIFICATION: 'phone_verification',
   MAGIC_LINK: 'magic_link',
+  EMAIL_CHANGE: 'email_change', // 邮箱修改验证
 };
 
 // 验证码格式常量
@@ -208,4 +209,39 @@ export async function create2FACode(identifier, userId) {
     300000, // 5 分钟
     { format: VerificationFormat.NUMERIC, length: 6 }
   );
+}
+
+/**
+ * 便捷函数：创建邮箱修改验证码（6位数字）
+ * @param {string} email - 新邮箱地址
+ * @param {number} userId - 用户ID
+ * @param {number} expiresInMinutes - 过期时间（分钟，默认15分钟）
+ * @returns {Promise<string>} 6位数字验证码
+ */
+export async function createEmailChangeVerification(email, userId, expiresInMinutes = 15) {
+  return createVerification(
+    email,
+    VerificationType.EMAIL_CHANGE,
+    userId,
+    expiresInMinutes * 60 * 1000, // 转换为毫秒
+    { format: VerificationFormat.NUMERIC, length: 6 }
+  );
+}
+
+/**
+ * 便捷函数：验证邮箱修改验证码
+ * @param {string} email - 新邮箱地址
+ * @param {string} code - 6位数字验证码
+ * @returns {Promise<boolean>} 是否验证通过
+ */
+export async function verifyEmailChangeCode(email, code) {
+  const verification = await verifyToken(code, VerificationType.EMAIL_CHANGE, email);
+
+  if (verification) {
+    // 验证成功后删除验证码
+    await deleteVerification(code, VerificationType.EMAIL_CHANGE, email);
+    return true;
+  }
+
+  return false;
 }

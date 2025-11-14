@@ -52,6 +52,45 @@ const SETTING_KEYS = {
     category: 'features',
   },
 
+  // 用户设置 - 用户名修改
+  ALLOW_USERNAME_CHANGE: {
+    key: 'allow_username_change',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_COOLDOWN_DAYS: {
+    key: 'username_change_cooldown_days',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_LIMIT: {
+    key: 'username_change_limit',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+  USERNAME_CHANGE_REQUIRES_PASSWORD: {
+    key: 'username_change_requires_password',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+
+  // 用户设置 - 邮箱修改
+  ALLOW_EMAIL_CHANGE: {
+    key: 'allow_email_change',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+  EMAIL_CHANGE_REQUIRES_PASSWORD: {
+    key: 'email_change_requires_password',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+  EMAIL_CHANGE_VERIFICATION_EXPIRES_MINUTES: {
+    key: 'email_change_verification_expires_minutes',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'user_settings',
+  },
+
   // 访问限速（仅管理员可见）
   RATE_LIMIT_ENABLED: {
     key: 'rate_limit_enabled',

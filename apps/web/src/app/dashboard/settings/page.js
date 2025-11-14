@@ -116,6 +116,7 @@ export default function SystemSettingsPage() {
             settings={settings}
             handleStringChange={handleStringChange}
             handleBooleanChange={handleBooleanChange}
+            handleNumberChange={handleNumberChange}
             saving={saving}
           />
         </TabsContent>
