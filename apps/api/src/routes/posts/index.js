@@ -28,12 +28,12 @@ async function isBlocked(userId1, userId2) {
 }
 
 export default async function postRoutes(fastify, options) {
-  // Get posts (by topic or by user)
+  // Get posts (by topic or by user, or all for admin)
   fastify.get('/', {
     preHandler: [fastify.optionalAuth],
     schema: {
       tags: ['posts'],
-      description: '获取话题或用户的帖子',
+      description: '获取话题或用户的帖子，管理员可获取所有回复',
       querystring: {
         type: 'object',
         properties: {
@@ -41,17 +41,39 @@ export default async function postRoutes(fastify, options) {
           userId: { type: 'number' },
           page: { type: 'number', default: 1 },
           limit: { type: 'number', default: 20, maximum: 100 },
-          search: { type: 'string' }
+          search: { type: 'string' },
+          // 管理员专用参数
+          approvalStatus: { type: 'string', enum: ['all', 'pending', 'approved', 'rejected'] },
+          isDeleted: { type: 'boolean' }
         }
       }
     }
   }, async (request, reply) => {
-    const { topicId, userId, page = 1, limit = 20, search } = request.query;
+    const { 
+      topicId, 
+      userId, 
+      page = 1, 
+      limit = 20, 
+      search,
+      approvalStatus = 'all',
+      isDeleted
+    } = request.query;
     const offset = (page - 1) * limit;
 
-    // Must provide either topicId or userId
-    if (!topicId && !userId) {
+    // 检查是否为管理员
+    const isAdmin = request.user && request.user.role === 'admin';
+    
+    // 判断是否为管理员模式：管理员且没有提供 topicId 或 userId
+    const isAdminMode = isAdmin && !topicId && !userId;
+
+    // 非管理员必须提供 topicId 或 userId
+    if (!isAdmin && !topicId && !userId) {
       return reply.code(400).send({ error: '必须提供 topicId 或 userId' });
+    }
+
+    // 非管理员不能使用管理员专用参数
+    if (!isAdmin && (approvalStatus !== 'all' || isDeleted !== undefined)) {
+      return reply.code(403).send({ error: '无权限使用管理员参数' });
     }
 
     // If topicId provided, verify topic exists
@@ -70,26 +92,184 @@ export default async function postRoutes(fastify, options) {
     }
 
     // Build query conditions
-    let whereConditions = [eq(posts.isDeleted, false)];
+    let whereConditions = [];
 
-    // 如果用户已登录，根据场景决定是否过滤被拉黑用户内容
-    let blockedUserIds = new Set();
-    if (request.user) {
-      const blockedUsersList = await db
-        .select({
-          blockedUserId: blockedUsers.blockedUserId,
-          userId: blockedUsers.userId
-        })
-        .from(blockedUsers)
-        .where(
-          or(
-            eq(blockedUsers.userId, request.user.id),
-            eq(blockedUsers.blockedUserId, request.user.id)
-          )
-        );
+    // 管理员模式的特殊处理
+    if (isAdminMode) {
+      // 排除话题的第一条回复（即话题内容本身）
+      whereConditions.push(ne(posts.postNumber, 1));
 
-      if (blockedUsersList.length > 0) {
-        // 收集所有需要排除的用户ID（被我拉黑的 + 拉黑我的）
+      // 删除状态过滤逻辑
+      if (isDeleted !== undefined) {
+        // 如果明确指定 isDeleted，则只显示该状态的回复
+        whereConditions.push(eq(posts.isDeleted, isDeleted));
+      }
+      // 否则默认显示所有（包括已删除的）
+
+      // 审核状态过滤（仅当明确指定时才过滤）
+      if (approvalStatus && approvalStatus !== 'all') {
+        whereConditions.push(eq(posts.approvalStatus, approvalStatus));
+      }
+    } else {
+      // 普通模式：默认不显示已删除的回复
+      whereConditions.push(eq(posts.isDeleted, false));
+
+      // 如果用户已登录，根据场景决定是否过滤被拉黑用户内容
+      let blockedUserIds = new Set();
+      if (request.user) {
+        const blockedUsersList = await db
+          .select({
+            blockedUserId: blockedUsers.blockedUserId,
+            userId: blockedUsers.userId
+          })
+          .from(blockedUsers)
+          .where(
+            or(
+              eq(blockedUsers.userId, request.user.id),
+              eq(blockedUsers.blockedUserId, request.user.id)
+            )
+          );
+
+        if (blockedUsersList.length > 0) {
+          // 收集所有需要排除的用户ID（被我拉黑的 + 拉黑我的）
+          blockedUsersList.forEach(block => {
+            if (block.userId === request.user.id) {
+              blockedUserIds.add(block.blockedUserId);
+            } else {
+              blockedUserIds.add(block.userId);
+            }
+          });
+
+          // 只在非话题详情页（即时间线、用户列表等场景）完全过滤
+          // 在话题详情页中，保留被拉黑用户的帖子但标记为屏蔽
+          if (!topicId && blockedUserIds.size > 0) {
+            whereConditions.push(
+              sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+            );
+          }
+        }
+      }
+
+      if (topicId) {
+        whereConditions.push(eq(posts.topicId, topicId));
+        // 排除话题的第一条回复（即话题内容本身）
+        whereConditions.push(ne(posts.postNumber, 1));
+      }
+      if (userId) {
+        whereConditions.push(eq(posts.userId, userId));
+        // 排除话题的第一条回复（即话题内容本身）
+        whereConditions.push(ne(posts.postNumber, 1));
+      
+        // 检查用户的内容可见性设置
+        const [targetUser] = await db
+          .select({ contentVisibility: users.contentVisibility })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        if (targetUser) {
+          const isViewingSelf = request.user && request.user.id === userId;
+          
+          // 如果不是查看自己的内容，需要检查权限
+          if (!isViewingSelf) {
+            if (targetUser.contentVisibility === 'private') {
+              // 仅自己可见，返回空结果
+              return { items: [], page, limit, total: 0 };
+            } else if (targetUser.contentVisibility === 'authenticated' && !request.user) {
+              // 需要登录才能查看，但用户未登录
+              return { items: [], page, limit, total: 0 };
+            }
+          }
+        }
+      }
+
+      // 构建审核状态过滤条件（仅普通模式）
+      // 规则：
+      // 1. 管理员/版主可以看到所有状态
+      // 2. 用户可以看到：已批准的回复 或 自己的回复（无论状态）
+      // 3. 未登录用户只能看到已批准的回复
+      const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
+
+      if (!isModerator) {
+        if (request.user) {
+          // 登录用户：显示已批准的回复 或 自己的回复
+          whereConditions.push(
+            or(
+              eq(posts.approvalStatus, 'approved'),
+              eq(posts.userId, request.user.id)
+            )
+          );
+        } else {
+          // 未登录用户：只显示已批准的回复
+          whereConditions.push(eq(posts.approvalStatus, 'approved'));
+        }
+      }
+      // 管理员/版主：不添加过滤条件，显示所有回复
+    }
+
+    // 添加搜索条件（所有模式通用）
+    if (search && search.trim()) {
+      whereConditions.push(like(posts.content, `%${search.trim()}%`));
+    }
+
+    // Get posts
+    const selectFields = {
+      id: posts.id,
+      topicId: posts.topicId,
+      topicTitle: topics.title,
+      topicSlug: topics.slug,
+      userId: posts.userId,
+      username: users.username,
+      userName: users.name,
+      userAvatar: users.avatar,
+      userRole: users.role,
+      userIsBanned: users.isBanned,
+      content: posts.content,
+      postNumber: posts.postNumber,
+      replyToPostId: posts.replyToPostId,
+      likeCount: posts.likeCount,
+      approvalStatus: posts.approvalStatus,
+      editedAt: posts.editedAt,
+      editCount: posts.editCount,
+      createdAt: posts.createdAt
+    };
+
+    // 管理员模式额外返回删除信息
+    if (isAdminMode) {
+      selectFields.isDeleted = posts.isDeleted;
+      selectFields.deletedAt = posts.deletedAt;
+    }
+
+    const postsList = await db
+      .select(selectFields)
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(topics, eq(posts.topicId, topics.id))
+      .where(and(...whereConditions))
+      .orderBy(isAdminMode ? desc(posts.createdAt) : (topicId ? posts.postNumber : desc(posts.createdAt)))
+      .limit(limit)
+      .offset(offset);
+
+    // 处理用户头像和拉黑标记
+    if (!isAdminMode) {
+      const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
+      let blockedUserIds = new Set();
+      
+      // 重新获取拉黑用户列表（如果需要）
+      if (topicId && request.user) {
+        const blockedUsersList = await db
+          .select({
+            blockedUserId: blockedUsers.blockedUserId,
+            userId: blockedUsers.userId
+          })
+          .from(blockedUsers)
+          .where(
+            or(
+              eq(blockedUsers.userId, request.user.id),
+              eq(blockedUsers.blockedUserId, request.user.id)
+            )
+          );
+
         blockedUsersList.forEach(block => {
           if (block.userId === request.user.id) {
             blockedUserIds.add(block.blockedUserId);
@@ -97,121 +277,27 @@ export default async function postRoutes(fastify, options) {
             blockedUserIds.add(block.userId);
           }
         });
+      }
 
-        // 只在非话题详情页（即时间线、用户列表等场景）完全过滤
-        // 在话题详情页中，保留被拉黑用户的帖子但标记为屏蔽
-        if (!topicId && blockedUserIds.size > 0) {
-          whereConditions.push(
-            sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
-          );
+      postsList.forEach(post => {
+        // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
+        if (post.userIsBanned && !isModerator) {
+          post.userAvatar = null;
         }
-      }
-    }
+        // 移除 userIsBanned 字段，不返回给客户端
+        delete post.userIsBanned;
 
-    // 添加搜索条件
-    if (search && search.trim()) {
-      whereConditions.push(like(posts.content, `%${search.trim()}%`));
-    }
-
-    if (topicId) {
-      whereConditions.push(eq(posts.topicId, topicId));
-      // 排除话题的第一条回复（即话题内容本身）
-      whereConditions.push(ne(posts.postNumber, 1));
-    }
-    if (userId) {
-      whereConditions.push(eq(posts.userId, userId));
-      // 排除话题的第一条回复（即话题内容本身）
-      whereConditions.push(ne(posts.postNumber, 1));
-      
-      // 检查用户的内容可见性设置
-      const [targetUser] = await db
-        .select({ contentVisibility: users.contentVisibility })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      
-      if (targetUser) {
-        const isViewingSelf = request.user && request.user.id === userId;
-        
-        // 如果不是查看自己的内容，需要检查权限
-        if (!isViewingSelf) {
-          if (targetUser.contentVisibility === 'private') {
-            // 仅自己可见，返回空结果
-            return { items: [], page, limit, total: 0 };
-          } else if (targetUser.contentVisibility === 'authenticated' && !request.user) {
-            // 需要登录才能查看，但用户未登录
-            return { items: [], page, limit, total: 0 };
-          }
+        // 标记被拉黑用户的帖子（仅在话题详情页）
+        if (topicId && blockedUserIds.size > 0) {
+          post.isBlockedUser = blockedUserIds.has(post.userId);
         }
-      }
+      });
+    } else {
+      // 管理员模式：保留所有信息，只移除 userIsBanned
+      postsList.forEach(post => {
+        delete post.userIsBanned;
+      });
     }
-
-    // 构建审核状态过滤条件
-    // 规则：
-    // 1. 管理员/版主可以看到所有状态
-    // 2. 用户可以看到：已批准的回复 或 自己的回复（无论状态）
-    // 3. 未登录用户只能看到已批准的回复
-    const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
-
-    if (!isModerator) {
-      if (request.user) {
-        // 登录用户：显示已批准的回复 或 自己的回复
-        whereConditions.push(
-          or(
-            eq(posts.approvalStatus, 'approved'),
-            eq(posts.userId, request.user.id)
-          )
-        );
-      } else {
-        // 未登录用户：只显示已批准的回复
-        whereConditions.push(eq(posts.approvalStatus, 'approved'));
-      }
-    }
-    // 管理员/版主：不添加过滤条件，显示所有回复
-
-    // Get posts
-    const postsList = await db
-      .select({
-        id: posts.id,
-        topicId: posts.topicId,
-        topicTitle: topics.title,
-        topicSlug: topics.slug,
-        userId: posts.userId,
-        username: users.username,
-        userName: users.name,
-        userAvatar: users.avatar,
-        userRole: users.role,
-        userIsBanned: users.isBanned,
-        content: posts.content,
-        postNumber: posts.postNumber,
-        replyToPostId: posts.replyToPostId,
-        likeCount: posts.likeCount,
-        approvalStatus: posts.approvalStatus,
-        editedAt: posts.editedAt,
-        editCount: posts.editCount,
-        createdAt: posts.createdAt
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .innerJoin(topics, eq(posts.topicId, topics.id))
-      .where(and(...whereConditions))
-      .orderBy(topicId ? posts.postNumber : desc(posts.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
-    postsList.forEach(post => {
-      if (post.userIsBanned && !isModerator) {
-        post.userAvatar = null;
-      }
-      // 移除 userIsBanned 字段，不返回给客户端
-      delete post.userIsBanned;
-
-      // 标记被拉黑用户的帖子（仅在话题详情页）
-      if (topicId && blockedUserIds.size > 0) {
-        post.isBlockedUser = blockedUserIds.has(post.userId);
-      }
-    });
 
     // Check which posts current user has liked
     if (request.user) {
@@ -668,7 +754,7 @@ export default async function postRoutes(fastify, options) {
       updatedAt: new Date()
     }).where(eq(topics.id, post.topicId));
 
-    return { message: 'Post deleted successfully' };
+    return { message: '帖子删除成功' };
   });
 
   // Like post

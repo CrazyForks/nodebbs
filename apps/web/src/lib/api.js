@@ -471,6 +471,11 @@ export const postApi = {
   async unlike(id) {
     return apiClient.delete(`/posts/${id}/like`);
   },
+
+  // 管理员：获取所有回复列表（不传 topicId 和 userId 即为管理员模式）
+  async getAdminList(params = {}) {
+    return apiClient.get('/posts', params);
+  },
 };
 
 // ============= 标签 API =============

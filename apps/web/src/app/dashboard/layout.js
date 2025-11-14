@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   MessageSquare,
+  MessagesSquare,
 } from 'lucide-react';
 import StickySidebar from '@/components/forum/StickySidebar';
 import { Loading } from '@/components/common/Loading';
@@ -40,6 +41,7 @@ export default function AdminLayout({ children }) {
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: '概览', exact: true },
     { href: '/dashboard/topics', icon: MessageSquare, label: '话题管理' },
+    { href: '/dashboard/posts', icon: MessagesSquare, label: '回复管理' },
     { href: '/dashboard/categories', icon: FolderTree, label: '分类管理' },
     { href: '/dashboard/users', icon: Users, label: '用户管理' },
     { href: '/dashboard/tags', icon: Tag, label: '标签管理' },
