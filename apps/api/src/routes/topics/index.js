@@ -308,46 +308,13 @@ export default async function topicRoutes(fastify, options) {
       });
 
       // Get total count with same filters
-      const countConditions = [];
-
-      // Apply same search filter
-      if (search && search.trim()) {
-        countConditions.push(like(topics.title, `%${search.trim()}%`));
-      }
-
-      // Apply same isDeleted filter
-      if (isDeleted !== undefined) {
-        countConditions.push(eq(topics.isDeleted, isDeleted));
-      } else if (!includeDeleted || !isAdmin) {
-        countConditions.push(eq(topics.isDeleted, false));
-      }
-
-      // Apply same permission filters for count
-      if (!isModerator && !isOwnTopics) {
-        countConditions.push(eq(topics.approvalStatus, 'approved'));
-      }
-
-      // Apply same filters for count
-      if (categoryId) {
-        countConditions.push(eq(topics.categoryId, categoryId));
-      }
-      if (userId) {
-        countConditions.push(eq(topics.userId, userId));
-      }
-      if (isPinned !== undefined) {
-        countConditions.push(eq(topics.isPinned, isPinned));
-      }
-      if (isClosed !== undefined) {
-        countConditions.push(eq(topics.isClosed, isClosed));
-      }
-      if (approvalStatus) {
-        countConditions.push(eq(topics.approvalStatus, approvalStatus));
-      }
-
+      // IMPORTANT: 必须使用与主查询完全相同的条件，包括 join 和所有过滤器
+      // 直接复用 conditions，因为它已经包含了所有必要的过滤条件
       let countQuery = db
         .select({ count: sql`count(*)` })
         .from(topics)
-        .where(and(...countConditions));
+        .innerJoin(categories, eq(topics.categoryId, categories.id))
+        .where(and(...conditions));
 
       if (tag) {
         const [tagRecord] = await db
