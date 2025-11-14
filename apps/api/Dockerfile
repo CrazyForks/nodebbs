@@ -44,7 +44,7 @@ COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 # --prefer-offline: 优先使用缓存，加速构建
 # --prod: 仅安装生产依赖
 RUN --mount=type=cache,id=pnpm,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile --prefer-offline --prod
+    pnpm install --frozen-lockfile --prefer-offline
 
 # ============================================
 # 阶段 3: 生产环境运行时
