@@ -8,6 +8,13 @@
       "when": 1762756004046,
       "tag": "0000_steady_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763120187825,
+      "tag": "0001_deep_alex_power",
+      "breakpoints": true
     }
   ]
 }

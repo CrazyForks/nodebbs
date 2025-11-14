@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { QRLoginTab } from './QRLoginTab';
 
 // OAuth 按钮组件
 function OAuthButton({ provider, isLogin, isLoading, setIsLoading, setError }) {
@@ -86,7 +88,9 @@ import { toast } from 'sonner';
 export default function LoginDialog({ open, onOpenChange }) {
   const { login, register } = useAuth();
   const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot-password'
+  const [loginMethod, setLoginMethod] = useState('password'); // 'password', 'qr'
   const [oauthProviders, setOauthProviders] = useState([]);
+  const [qrLoginEnabled, setQrLoginEnabled] = useState(false);
   const [formData, setFormData] = useState({
     identifier: '', // 用于登录的用户名或邮箱
     username: '',
@@ -114,11 +118,15 @@ export default function LoginDialog({ open, onOpenChange }) {
           settingsApi.getAll(),
           oauthConfigApi.getProviders().catch(() => ({ items: [] })),
         ]);
-        
+
         if (settings.registration_mode) {
           setRegistrationMode(settings.registration_mode.value);
         }
-        
+
+        if (settings.qr_login_enabled) {
+          setQrLoginEnabled(settings.qr_login_enabled.value === true);
+        }
+
         if (oauthData.items) {
           setOauthProviders(oauthData.items);
         }
@@ -293,6 +301,7 @@ export default function LoginDialog({ open, onOpenChange }) {
     // 当对话框关闭时，重置表单
     if (!isOpen) {
       setMode('login');
+      setLoginMethod('password');
       setFormData({
         identifier: '',
         username: '',
@@ -311,7 +320,7 @@ export default function LoginDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {isForgotPassword ? '找回密码' : isLogin ? '登录' : '注册'}
@@ -324,14 +333,120 @@ export default function LoginDialog({ open, onOpenChange }) {
               : '创建新账户以加入社区'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+
+        {/* 登录时显示密码/扫码选项卡 */}
+        {isLogin && !isForgotPassword && qrLoginEnabled ? (
+          <Tabs value={loginMethod} onValueChange={setLoginMethod} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="password">密码登录</TabsTrigger>
+              <TabsTrigger value="qr">扫码登录</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="password" className="mt-4">
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-4 py-4">
+                  {error && (
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="identifier">用户名或邮箱 *</Label>
+                    <Input
+                      id="identifier"
+                      name="identifier"
+                      type="text"
+                      placeholder="请输入用户名或邮箱"
+                      value={formData.identifier}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">密码 *</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-xs font-normal"
+                        onClick={() => {
+                          setMode('forgot-password');
+                          setError('');
+                          setSuccess('');
+                        }}
+                        disabled={isLoading}
+                      >
+                        忘记密码？
+                      </Button>
+                    </div>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="请输入密码"
+                      value={formData.password}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? '登录中...' : '登录'}
+                  </Button>
+                </DialogFooter>
+              </form>
+
+              {/* OAuth 登录选项 */}
+              {oauthProviders.length > 0 && (
+                <>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        或使用以下方式登录
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {oauthProviders.map((provider) => (
+                      <OAuthButton
+                        key={provider.provider}
+                        provider={provider}
+                        isLogin={true}
+                        isLoading={isLoading}
+                        setIsLoading={setIsLoading}
+                        setError={setError}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="qr" className="mt-4">
+              <QRLoginTab onSuccess={() => handleOpenChange(false)} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // 注册或找回密码表单
+          <>
+          <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
                 {error}
               </div>
             )}
-            
+
             {success && (
               <div className="text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-3 rounded-md border border-green-200 dark:border-green-900">
                 {success}
@@ -368,7 +483,8 @@ export default function LoginDialog({ open, onOpenChange }) {
               </>
             )}
 
-            {isLogin ? (
+            {/* 登录模式：用户名或邮箱 */}
+            {isLogin && !isForgotPassword && (
               <div className="grid gap-2">
                 <Label htmlFor="identifier">用户名或邮箱 *</Label>
                 <Input
@@ -382,7 +498,10 @@ export default function LoginDialog({ open, onOpenChange }) {
                   required
                 />
               </div>
-            ) : (
+            )}
+
+            {/* 注册/找回密码模式：邮箱 */}
+            {!isLogin && (
               <div className="grid gap-2">
                 <Label htmlFor="email">邮箱 *</Label>
                 <Input
@@ -398,31 +517,30 @@ export default function LoginDialog({ open, onOpenChange }) {
               </div>
             )}
 
-            {!isForgotPassword && (
+            {/* 登录模式：密码 */}
+            {!isForgotPassword && isLogin && (
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">密码 *</Label>
-                  {isLogin && (
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto text-xs font-normal"
-                      onClick={() => {
-                        setMode('forgot-password');
-                        setError('');
-                        setSuccess('');
-                      }}
-                      disabled={isLoading}
-                    >
-                      忘记密码？
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-xs font-normal"
+                    onClick={() => {
+                      setMode('forgot-password');
+                      setError('');
+                      setSuccess('');
+                    }}
+                    disabled={isLoading}
+                  >
+                    忘记密码？
+                  </Button>
                 </div>
                 <Input
                   id="password"
                   name="password"
                   type="password"
-                  placeholder={isLogin ? "请输入密码" : "至少6位字符"}
+                  placeholder="请输入密码"
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
@@ -432,19 +550,34 @@ export default function LoginDialog({ open, onOpenChange }) {
             )}
 
             {!isLogin && !isForgotPassword && (
-              <div className="grid gap-2">
-                <Label htmlFor="confirmPassword">确认密码 *</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="请再次输入密码"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">密码 *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="至少6位字符"
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="confirmPassword">确认密码 *</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="请再次输入密码"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </>
             )}
 
             {/* 邀请码输入框（仅在邀请码注册模式下显示） */}
@@ -488,8 +621,8 @@ export default function LoginDialog({ open, onOpenChange }) {
           </DialogFooter>
         </form>
 
-        {/* OAuth 登录选项 */}
-        {!isForgotPassword && oauthProviders.length > 0 && (
+        {/* OAuth 登录选项（仅在注册模式，或登录模式且未启用扫码时显示） */}
+        {!isForgotPassword && oauthProviders.length > 0 && (!isLogin || !qrLoginEnabled) && (
           <>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
@@ -515,6 +648,8 @@ export default function LoginDialog({ open, onOpenChange }) {
               ))}
             </div>
           </>
+        )}
+        </>
         )}
 
         {/* 注册/登录/找回密码切换 */}

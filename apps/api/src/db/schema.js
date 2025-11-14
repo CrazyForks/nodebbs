@@ -828,3 +828,35 @@ export const verificationsRelations = relations(verifications, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ============ QR Login Requests (扫码登录请求) ============
+export const qrLoginRequests = pgTable(
+  'qr_login_requests',
+  {
+    ...$defaults,
+    requestId: varchar('request_id', { length: 64 }).notNull().unique(), // 唯一请求ID
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'confirmed', 'expired', 'cancelled'
+    userId: integer('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }), // 确认登录的用户ID（确认后填充）
+    token: text('token'), // 生成的JWT token（确认后填充）
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ipAddress: varchar('ip_address', { length: 45 }), // 发起请求的IP
+    userAgent: text('user_agent'), // 发起请求的User-Agent
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }), // 确认时间
+    confirmedIp: varchar('confirmed_ip', { length: 45 }), // 确认登录的IP（App端）
+  },
+  (table) => [
+    index('qr_login_requests_request_id_idx').on(table.requestId),
+    index('qr_login_requests_status_idx').on(table.status),
+    index('qr_login_requests_expires_at_idx').on(table.expiresAt),
+    index('qr_login_requests_user_id_idx').on(table.userId),
+  ]
+);
+
+export const qrLoginRequestsRelations = relations(qrLoginRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [qrLoginRequests.userId],
+    references: [users.id],
+  }),
+}));

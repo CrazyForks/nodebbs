@@ -161,6 +161,27 @@ export const authApi = {
     return apiClient.post('/auth/resend-verification');
   },
 
+  // ============= 扫码登录 API =============
+  // 生成扫码登录请求
+  async generateQRLogin() {
+    return apiClient.post('/auth/qr-login/generate');
+  },
+
+  // 查询扫码登录状态
+  async getQRLoginStatus(requestId) {
+    return apiClient.get(`/auth/qr-login/status/${requestId}`);
+  },
+
+  // App端确认扫码登录
+  async confirmQRLogin(requestId) {
+    return apiClient.post('/auth/qr-login/confirm', { requestId });
+  },
+
+  // 取消扫码登录请求
+  async cancelQRLogin(requestId) {
+    return apiClient.post('/auth/qr-login/cancel', { requestId });
+  },
+
   // OAuth 相关
   // 获取 GitHub OAuth 授权链接
   async getGithubAuthUrl() {

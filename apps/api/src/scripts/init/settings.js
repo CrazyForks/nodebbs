@@ -45,6 +45,20 @@ export const SETTING_KEYS = {
     description: '是否启用内容审核（新发布的内容需要审核后才能公开显示）',
     category: 'features',
   },
+  QR_LOGIN_ENABLED: {
+    key: 'qr_login_enabled',
+    value: 'false',
+    valueType: 'boolean',
+    description: '是否启用扫码登录功能',
+    category: 'features',
+  },
+  QR_LOGIN_TIMEOUT: {
+    key: 'qr_login_timeout',
+    value: '300',
+    valueType: 'number',
+    description: '二维码登录请求的有效期（秒），默认5分钟',
+    category: 'features',
+  },
 
   // 用户设置
   ALLOW_USERNAME_CHANGE: {

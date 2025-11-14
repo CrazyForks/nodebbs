@@ -51,6 +51,16 @@ const SETTING_KEYS = {
     accessLevel: ACCESS_LEVEL.MODERATOR,
     category: 'features',
   },
+  QR_LOGIN_ENABLED: {
+    key: 'qr_login_enabled',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'features',
+  },
+  QR_LOGIN_TIMEOUT: {
+    key: 'qr_login_timeout',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+    category: 'features',
+  },
 
   // 用户设置 - 用户名修改
   ALLOW_USERNAME_CHANGE: {

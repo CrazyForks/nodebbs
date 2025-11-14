@@ -13,8 +13,12 @@ import {
   validateUsername,
   normalizeUsername,
 } from '../../utils/validateUsername.js';
+import qrLoginRoutes from './qr-login.js';
 
 export default async function authRoutes(fastify, options) {
+  // 注册扫码登录路由
+  fastify.register(qrLoginRoutes, { prefix: '/qr-login' });
+
   // 注册 OAuth 路由
   // Register
   fastify.post(
