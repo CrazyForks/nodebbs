@@ -458,8 +458,9 @@ export const postApi = {
   },
 
   // 删除帖子
-  async delete(id) {
-    return apiClient.delete(`/posts/${id}`);
+  async delete(id, permanent = false) {
+    const query = permanent ? '?permanent=true' : '';
+    return apiClient.delete(`/posts/${id}${query}`);
   },
 
   // 点赞帖子

@@ -44,6 +44,7 @@ export default function AdminPostsPage() {
   const [total, setTotal] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteType, setDeleteType] = useState('soft'); // 'soft' or 'hard'
   const [deleting, setDeleting] = useState(false);
   const limit = 20;
 
@@ -98,8 +99,9 @@ export default function AdminPostsPage() {
     }
   };
 
-  const handleDeleteClick = (post) => {
+  const handleDeleteClick = (post, type) => {
     setDeleteTarget(post);
+    setDeleteType(type);
     setDeleteDialogOpen(true);
   };
 
@@ -108,12 +110,19 @@ export default function AdminPostsPage() {
 
     setDeleting(true);
     try {
-      await postApi.delete(deleteTarget.id);
-      toast.success('回复已删除');
+      await postApi.delete(deleteTarget.id, deleteType === 'hard');
+      toast.success(deleteType === 'hard' ? '回复已彻底删除' : '回复已删除');
       setDeleteDialogOpen(false);
 
       // 局部更新
       setPosts((prevPosts) => {
+        // 硬删除：直接从列表中移除
+        if (deleteType === 'hard') {
+          setTotal((prev) => Math.max(0, prev - 1));
+          return prevPosts.filter((post) => post.id !== deleteTarget.id);
+        }
+
+        // 软删除：更新状态
         const updatedPosts = prevPosts.map((post) =>
           post.id === deleteTarget.id ? { ...post, isDeleted: true } : post
         );
@@ -258,13 +267,20 @@ export default function AdminPostsPage() {
             <DropdownMenuSeparator />
             {!row.isDeleted && (
               <DropdownMenuItem
-                onClick={() => handleDeleteClick(row)}
-                className='text-destructive'
+                onClick={() => handleDeleteClick(row, 'soft')}
+                className='text-orange-600'
               >
                 <Trash2 className='h-4 w-4' />
-                删除回复
+                软删除
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem
+              onClick={() => handleDeleteClick(row, 'hard')}
+              className='text-destructive'
+            >
+              <Trash2 className='h-4 w-4' />
+              彻底删除
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -317,9 +333,27 @@ export default function AdminPostsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除？</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteType === 'hard' ? '确认彻底删除？' : '确认删除？'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              此操作将删除该回复。删除后回复将不再显示，但数据仍保留在数据库中。
+              {deleteType === 'hard' ? (
+                <>
+                  此操作将
+                  <span className='font-semibold text-destructive'>
+                    彻底删除
+                  </span>
+                  该回复，包括所有点赞和相关数据。
+                  <br />
+                  <span className='font-semibold'>此操作不可恢复！</span>
+                </>
+              ) : (
+                <>
+                  此操作将软删除该回复。
+                  <br />
+                  软删除后回复将不再显示，但数据仍保留在数据库中。
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -327,7 +361,11 @@ export default function AdminPostsPage() {
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={deleting}
-              className='bg-destructive hover:bg-destructive/90'
+              className={
+                deleteType === 'hard'
+                  ? 'bg-destructive hover:bg-destructive/90'
+                  : ''
+              }
             >
               {deleting ? (
                 <>

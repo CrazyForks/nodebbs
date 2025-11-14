@@ -708,7 +708,7 @@ export default async function postRoutes(fastify, options) {
     preHandler: [fastify.authenticate],
     schema: {
       tags: ['posts'],
-      description: '删除帖子（软删除）',
+      description: '删除帖子（软删除或彻底删除）',
       security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
@@ -716,14 +716,21 @@ export default async function postRoutes(fastify, options) {
         properties: {
           id: { type: 'number' }
         }
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          permanent: { type: 'boolean', default: false }
+        }
       }
     }
   }, async (request, reply) => {
     const { id } = request.params;
+    const { permanent = false } = request.query;
 
     const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
 
-    if (!post || post.isDeleted) {
+    if (!post) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
@@ -740,21 +747,51 @@ export default async function postRoutes(fastify, options) {
       return reply.code(403).send({ error: '你没有权限删除该帖子' });
     }
 
-    // Soft delete
-    await db.update(posts).set({
-      isDeleted: true,
-      deletedAt: new Date(),
-      deletedBy: request.user.id,
-      updatedAt: new Date()
-    }).where(eq(posts.id, id));
+    // Only moderators and admins can permanently delete
+    if (permanent && !isModerator) {
+      return reply.code(403).send({ error: '只有版主和管理员可以永久删除回复' });
+    }
 
-    // Update topic post count
-    await db.update(topics).set({
-      postCount: sql`${topics.postCount} - 1`,
-      updatedAt: new Date()
-    }).where(eq(topics.id, post.topicId));
+    if (permanent) {
+      // Hard delete - permanently remove from database
+      // First delete related data
+      await db.delete(likes).where(eq(likes.postId, id));
+      
+      // Delete replies to this post (set replyToPostId to null)
+      await db.update(posts).set({
+        replyToPostId: null,
+        updatedAt: new Date()
+      }).where(eq(posts.replyToPostId, id));
 
-    return { message: '帖子删除成功' };
+      // Then delete the post
+      await db.delete(posts).where(eq(posts.id, id));
+
+      // Update topic post count
+      await db.update(topics).set({
+        postCount: sql`${topics.postCount} - 1`,
+        updatedAt: new Date()
+      }).where(eq(topics.id, post.topicId));
+
+      return { message: '回复已永久删除' };
+    } else {
+      // Soft delete
+      await db.update(posts).set({
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: request.user.id,
+        updatedAt: new Date()
+      }).where(eq(posts.id, id));
+
+      // Update topic post count (only if not already deleted)
+      if (!post.isDeleted) {
+        await db.update(topics).set({
+          postCount: sql`${topics.postCount} - 1`,
+          updatedAt: new Date()
+        }).where(eq(topics.id, post.topicId));
+      }
+
+      return { message: '回复删除成功' };
+    }
   });
 
   // Like post
