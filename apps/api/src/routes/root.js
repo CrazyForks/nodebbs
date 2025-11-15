@@ -1,6 +1,6 @@
 import db from '../db/index.js';
 import { topics, posts, users } from '../db/schema.js';
-import { sql, gte, eq } from 'drizzle-orm';
+import { sql, gte, eq, and, ne } from 'drizzle-orm';
 
 export default async function rootRoutes(fastify, options) {
   // Health check
@@ -63,13 +63,13 @@ export default async function rootRoutes(fastify, options) {
       const [{ count: totalPosts }] = await db
         .select({ count: sql`count(*)` })
         .from(posts)
-        .where(eq(posts.isDeleted, false));
+        .where(and(eq(posts.isDeleted, false), ne(posts.postNumber, 1)));
 
-      // Get total users count (excluding banned)
+      // Get total users count (excluding deleted)
       const [{ count: totalUsers }] = await db
         .select({ count: sql`count(*)` })
         .from(users)
-        .where(eq(users.isBanned, false));
+        .where(eq(users.isDeleted, false));
 
       // Get online users from tracking plugin (if available)
       const onlineStats = await fastify.getOnlineStats();
