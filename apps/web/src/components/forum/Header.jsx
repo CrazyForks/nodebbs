@@ -35,7 +35,7 @@ import ThemeSwitcher from '@/components/forum/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loading } from '../common/Loading';
 
-export default function Header() {
+export default function Header({ settings }) {
   const router = useRouter();
   const { user, isAuthenticated, loading, logout, openLoginDialog } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,7 +78,7 @@ export default function Header() {
                 className='w-7 h-7 transition-transform group-hover:scale-105'
               />
               <span className='text-base font-semibold text-foreground hidden sm:inline'>
-                NodeBBS
+                {settings.site_name?.value || 'NodeBBS'}
               </span>
             </Link>
 

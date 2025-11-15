@@ -11,8 +11,8 @@ import Footer from '@/components/forum/Footer';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 import { request } from '@/lib/server/api';
 
-const $title = 'NodeBBS - GitHub Issue 风格的讨论社区';
-const $description = '一个现代化的技术讨论论坛，采用 GitHub Issue 风格设计';
+const $title = 'NodeBBS';
+const $description = '一个基于 Node.js 和 React 的现代化论坛系统';
 
 export async function generateMetadata({ params }) {
   const settings = await request('/api/settings');
@@ -27,13 +27,14 @@ export async function generateMetadata({ params }) {
   };
 }
 
-function AppLayout({ children }) {
+async function AppLayout({ children }) {
+  const settings = await request('/api/settings');
   return (
     <div className='min-h-screen bg-background flex flex-col'>
-      <Header />
+      <Header settings={settings} />
       <EmailVerificationBanner />
       <div className='flex-1'>{children}</div>
-      <Footer />
+      <Footer settings={settings} />
     </div>
   );
 }

@@ -10,7 +10,7 @@ export const SETTING_KEYS = {
   // 通用设置
   SITE_NAME: {
     key: 'site_name',
-    value: '我的论坛',
+    value: 'NodeBBS',
     valueType: 'string',
     description: '站点名称',
     category: 'general',
