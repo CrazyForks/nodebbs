@@ -275,14 +275,17 @@ export default function NotificationsPage() {
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`bg-card border border-border rounded-lg overflow-hidden hover:shadow-sm transition-all ${
-                !notification.isRead
-                  ? 'border-l-4 border-l-primary bg-primary/5'
-                  : ''
-              }`}
+              className='bg-card border border-border rounded-lg overflow-hidden hover:shadow-sm transition-all'
             >
               <div className='p-4'>
                 <div className='flex items-start space-x-3'>
+                  {/* 未读指示器 */}
+                  <div className='shrink-0 pt-1'>
+                    {!notification.isRead && (
+                      <div className='w-2 h-2 bg-green-500 rounded-full ring-2 ring-green-500/20' />
+                    )}
+                  </div>
+
                   {/* 用户头像 */}
                   <UserAvatar
                     url={notification.triggeredByAvatar}
