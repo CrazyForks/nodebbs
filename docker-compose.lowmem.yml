@@ -71,7 +71,7 @@ services:
       # Node.js 内存限制
       NODE_OPTIONS: "--max-old-space-size=384"
     volumes:
-      - api_uploads:/app/uploads
+      - api_uploads:/app/apps/api/uploads
     healthcheck:
       start_period: 90s  # 低内存环境启动更慢
       interval: 60s

@@ -68,7 +68,7 @@ services:
       APP_URL: ${APP_URL}  # 生产环境实际域名
       NODE_OPTIONS: "--max-old-space-size=512"  # 限制 Node.js 内存使用
     volumes:
-      - api_uploads:/app/uploads  # 生产环境不挂载源代码
+      - api_uploads:/app/apps/api/uploads  # 生产环境不挂载源代码
     healthcheck:
       start_period: 60s
     deploy:

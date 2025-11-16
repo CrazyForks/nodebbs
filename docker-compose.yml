@@ -63,8 +63,8 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3100}
       TZ: Asia/Shanghai
     volumes:
-      - api_uploads:/app/uploads
-      - ./apps/api/src:/app/src:ro
+      - api_uploads:/app/apps/api/uploads
+      - ./apps/api/src:/app/apps/api/src:ro
     ports:
       - "${API_PORT:-7100}:7100"
     depends_on:
