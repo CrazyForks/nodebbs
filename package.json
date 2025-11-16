@@ -3,11 +3,15 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel --filter=nodebbs-api --filter=nodebbs-web",
-    "dev:app": "turbo run dev --parallel --filter=nodebbs-api --filter=nodebbs-app"
+    "dev": "turbo run dev"
   },
   "devDependencies": {
     "turbo": "^2.6.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.5"
+    }
   },
   "packageManager": "pnpm@10.21.0",
   "engines": {
