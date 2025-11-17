@@ -36,24 +36,7 @@ async function authPlugin(fastify) {
     
     // 从数据库查询
     const [user] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        name: users.name,
-        bio: users.bio,
-        avatar: users.avatar,
-        role: users.role,
-        isBanned: users.isBanned,
-        isEmailVerified: users.isEmailVerified,
-        isDeleted: users.isDeleted,
-        messagePermission: users.messagePermission,
-        contentVisibility: users.contentVisibility,
-        usernameChangeCount: users.usernameChangeCount,
-        usernameChangedAt: users.usernameChangedAt,
-        createdAt: users.createdAt,
-        lastSeenAt: users.lastSeenAt,
-      })
+      .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -61,6 +44,8 @@ async function authPlugin(fastify) {
     if (!user) {
       return null;
     }
+
+    delete user.passwordHash;
     
     // 存入 Redis 缓存
     if (fastify.redis) {
