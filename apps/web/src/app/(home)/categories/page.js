@@ -192,10 +192,9 @@ export default function CategoriesPage() {
               {/* 分类项目 */}
               <div className='divide-y divide-border'>
                 {categories.map((category) => (
-                  <Link
+                  <div
                     key={category.id}
-                    href={`/categories/${category.slug}`}
-                    className='block px-4 py-4 hover:bg-accent/50 transition-colors group'
+                    className='px-4 py-4 hover:bg-accent/50 transition-colors group'
                   >
                     <div className='grid grid-cols-12 gap-4 items-center'>
                       {/* 左侧：分类信息 */}
@@ -205,9 +204,12 @@ export default function CategoriesPage() {
                             className='w-3 h-3 rounded-sm shrink-0'
                             style={{ backgroundColor: category.color }}
                           />
-                          <h3 className='font-semibold text-foreground group-hover:text-primary transition-colors'>
+                          <Link
+                            href={`/categories/${category.slug}`}
+                            className='font-semibold text-foreground hover:text-primary transition-colors'
+                          >
                             {category.name}
-                          </h3>
+                          </Link>
                         </div>
                         {category.description && (
                           <p className='text-sm text-muted-foreground line-clamp-2 ml-5'>
@@ -218,24 +220,20 @@ export default function CategoriesPage() {
                         {category.subcategories &&
                           category.subcategories.length > 0 && (
                             <div className='flex items-center gap-2 flex-wrap mt-2 ml-5'>
-                              {category.subcategories.slice(0, 3).map((sub) => (
-                                <Badge
+                              {category.subcategories.map((sub) => (
+                                <Link
                                   key={sub.id}
-                                  variant='outline'
-                                  className='text-xs'
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    window.location.href = `/categories/${sub.slug}`;
-                                  }}
+                                  href={`/categories/${sub.slug}`}
+                                  className='inline-block'
                                 >
-                                  {sub.name}
-                                </Badge>
+                                  <Badge
+                                    variant='outline'
+                                    className='text-xs cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors'
+                                  >
+                                    {sub.name}
+                                  </Badge>
+                                </Link>
                               ))}
-                              {category.subcategories.length > 3 && (
-                                <span className='text-xs text-muted-foreground'>
-                                  +{category.subcategories.length - 3}
-                                </span>
-                              )}
                             </div>
                           )}
                       </div>
@@ -243,8 +241,11 @@ export default function CategoriesPage() {
                       {/* 中间：最新话题 */}
                       <div className='col-span-4 hidden md:block'>
                         {category.latestTopic ? (
-                          <div>
-                            <p className='text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors mb-1'>
+                          <Link
+                            href={`/topic/${category.latestTopic.id}`}
+                            className='block'
+                          >
+                            <p className='text-sm text-foreground line-clamp-1 hover:text-primary transition-colors mb-1'>
                               {category.latestTopic.title}
                             </p>
                             <p className='text-xs text-muted-foreground'>
@@ -253,7 +254,7 @@ export default function CategoriesPage() {
                                 fromNow
                               />
                             </p>
-                          </div>
+                          </Link>
                         ) : (
                           <p className='text-sm text-muted-foreground'>
                             暂无话题
@@ -281,7 +282,7 @@ export default function CategoriesPage() {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
