@@ -4,6 +4,48 @@
 
 简体中文 | [English](./README.en.md)
 
+## ✨ 功能预览
+
+### 前台界面
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="./docs/screens/1.png" alt="论坛首页" />
+      <p align="center"><b>论坛首页</b> - 话题列表、分类导航</p>
+    </td>
+    <td width="50%">
+      <img src="./docs/screens/2.png" alt="话题详情" />
+      <p align="center"><b>话题详情</b> - Markdown 支持、评论互动</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="./docs/screens/3.png" alt="个人设置" />
+      <p align="center"><b>个人设置</b> - 资料编辑、头像上传</p>
+    </td>
+    <td width="50%">
+      <img src="./docs/screens/4.png" alt="管理后台" />
+      <p align="center"><b>管理后台</b> - 数据统计、内容管理</p>
+    </td>
+  </tr>
+</table>
+
+### 管理后台
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="./docs/screens/5.png" alt="注册设置" />
+      <p align="center"><b>注册设置</b> - 注册模式配置</p>
+    </td>
+    <td width="50%">
+      <img src="./docs/screens/6.png" alt="OAuth登录" />
+      <p align="center"><b>OAuth 登录</b> - 第三方登录集成</p>
+    </td>
+  </tr>
+</table>
+
 ## 📋 技术栈
 
 ### 后端 (API)
