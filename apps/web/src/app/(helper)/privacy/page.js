@@ -7,7 +7,7 @@ const PolicySection = ({ title, children }) => (
     <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 border-l-4 border-primary pl-4">
       {title}
     </h2>
-    <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
+    <div className="prose dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
       {children}
     </div>
   </section>

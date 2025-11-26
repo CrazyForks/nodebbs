@@ -8,7 +8,7 @@ const Section = ({ title, icon, children }) => (
       {icon}
       <span className="border-b-2 border-primary pb-1">{title}</span>
     </h2>
-    <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
+    <div className="prose dark:prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
       {children}
     </div>
   </section>

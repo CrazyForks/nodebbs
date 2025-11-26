@@ -196,7 +196,7 @@ export default function TopicForm({
               ) : (
                 <div className='min-h-[300px] max-h-[calc(100vh-280px)] overflow-y-auto p-4 bg-card rounded-lg'>
                   {formData.content ? (
-                    <article className='prose prose-stone prose-lg dark:prose-invert'>
+                    <article className='prose prose-stone dark:prose-invert'>
                       <MarkdownRender content={formData.content} />
                     </article>
                   ) : (
