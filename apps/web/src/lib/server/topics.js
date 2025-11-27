@@ -118,3 +118,41 @@ export async function getStatsData() {
     };
   }
 }
+
+/**
+ * 服务端获取单个话题数据
+ * @param {number|string} id - 话题ID
+ * @returns {Promise<Object|null>} 话题数据
+ */
+export async function getTopicData(id) {
+  try {
+    const data = await request(`/api/topics/${id}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching topic:', error);
+    return null;
+  }
+}
+
+/**
+ * 服务端获取话题回复数据
+ * @param {number|string} topicId - 话题ID
+ * @param {number} page - 页码
+ * @param {number} limit - 每页数量
+ * @returns {Promise<Object>} 回复列表数据
+ */
+export async function getPostsData(topicId, page = 1, limit = 20) {
+  try {
+    const params = new URLSearchParams({
+      topicId: topicId.toString(),
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+
+    const data = await request(`/api/posts?${params}`);
+    return data || { items: [], total: 0 };
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return { items: [], total: 0 };
+  }
+}

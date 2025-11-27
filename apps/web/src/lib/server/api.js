@@ -17,8 +17,13 @@ export const request = async (endpoint, options = {}) => {
   }
 
   try {
+    const defaultCache = options.method && options.method !== 'GET' ? 'no-store' : undefined;
+
     const response = await fetch(url, {
-      cache: 'no-store', // 确保获取最新数据
+      ...options,
+      // 对于 GET 请求使用默认缓存策略，让 Next.js 自动去重同一渲染周期内的相同请求
+      // 对于其他请求（POST/PUT/DELETE）使用 no-store
+      cache: options.cache ?? defaultCache,
       headers,
     });
 

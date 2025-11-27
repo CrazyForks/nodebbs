@@ -1,35 +1,6 @@
 import { notFound } from 'next/navigation';
 import TopicPageClient from '@/components/topic/TopicPageClient';
-import { request } from '@/lib/server/api';
-
-// 服务端获取话题数据的函数
-async function getTopicData(id) {
-  try {
-    const d = await request(`/api/topics/${id}`);
-    // console.log(d);
-    return d;
-  } catch (error) {
-    console.error('Error fetching topic:', error);
-    return null;
-  }
-}
-
-// 服务端获取回复数据的函数
-async function getPostsData(topicId, page = 1, limit = 20) {
-  try {
-    const params = new URLSearchParams({
-      topicId: topicId.toString(),
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-
-    const d = await request(`/api/posts?${params}`);
-    return d;
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    return { items: [], total: 0 };
-  }
-}
+import { getTopicData, getPostsData } from '@/lib/server/topics';
 
 // 生成页面元数据（SEO优化）
 export async function generateMetadata({ params }) {
