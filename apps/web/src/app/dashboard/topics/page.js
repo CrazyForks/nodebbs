@@ -212,16 +212,18 @@ export default function AdminTopicsPage() {
       key: 'title',
       label: '标题',
       render: (value, row) => (
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2 max-w-xl [&>*:not(:first-child)]:shrink-0'>
           <Link
             href={`/topic/${row.id}`}
-            className='hover:text-primary hover:underline font-medium'
+            className='hover:text-primary hover:underline font-medium line-clamp-2 whitespace-normal text-ellipsis'
             target='_blank'
           >
             {value}
           </Link>
           {row.isPinned && <Pin className='h-3 w-3 text-orange-500' />}
-          {row.isClosed && <Lock className='h-3 w-3 text-muted-foreground' />}
+          {row.isClosed && (
+            <Lock className='h-3 w-3 text-muted-foreground' />
+          )}
           {row.approvalStatus === 'pending' && (
             <Clock className='h-3 w-3 text-chart-5' />
           )}
@@ -263,14 +265,20 @@ export default function AdminTopicsPage() {
         // 优先显示审核状态
         if (row.approvalStatus === 'pending') {
           return (
-            <Badge variant='outline' className='text-chart-5 border-chart-5 text-xs'>
+            <Badge
+              variant='outline'
+              className='text-chart-5 border-chart-5 text-xs'
+            >
               待审核
             </Badge>
           );
         }
         if (row.approvalStatus === 'rejected') {
           return (
-            <Badge variant='outline' className='text-destructive border-destructive text-xs'>
+            <Badge
+              variant='outline'
+              className='text-destructive border-destructive text-xs'
+            >
               已拒绝
             </Badge>
           );

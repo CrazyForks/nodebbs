@@ -156,9 +156,9 @@ export default function AdminPostsPage() {
       key: 'content',
       label: '内容',
       render: (value, row) => (
-        <div className='flex flex-col gap-1'>
-          <div className='text-sm line-clamp-2'>{value}</div>
-          <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+        <div className='flex flex-col gap-1 max-w-xl'>
+          <div className='font-medium line-clamp-2 text-ellipsis whitespace-normal'>{value}</div>
+          <div className='space-x-2 text-muted-foreground line-clamp-1 text-ellipsis'>
             <span>话题:</span>
             <Link
               href={`/topic/${row.topicId}#post-${row.id}`}
