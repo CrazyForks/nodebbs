@@ -3,14 +3,10 @@
  * 统一管理所有邮件模板
  */
 import welcomeTemplate from './welcome.js';
-import passwordResetTemplate from './password-reset.js';
-import emailVerificationTemplate from './email-verification.js';
 import verificationCodeTemplate from './verification-code.js';
 
 const templates = {
   welcome: welcomeTemplate,
-  'password-reset': passwordResetTemplate,
-  'email-verification': emailVerificationTemplate,
   'verification-code': verificationCodeTemplate,
 };
 

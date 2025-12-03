@@ -50,11 +50,10 @@ await fastify.sendEmail({
 
 ### 1. `welcome` - 欢迎邮件
 
-用于新用户注册时发送。
+用于新用户注册成功后发送，介绍平台功能。
 
 **数据参数：**
 - `username` (string) - 用户名
-- `verificationLink` (string) - 邮箱验证链接
 
 **示例：**
 ```javascript
@@ -62,50 +61,31 @@ await fastify.sendEmail({
   to: email,
   template: 'welcome',
   data: {
-    username: 'John',
-    verificationLink: 'https://example.com/verify-email?token=abc123'
+    username: 'John'
   }
 });
 ```
 
-### 2. `password-reset` - 密码重置
+### 2. `verification-code` - 验证码邮件（通用）
 
-用于用户请求密码重置时发送。
+用于所有需要验证码的场景（注册、登录、密码重置、邮箱验证等）。
 
 **数据参数：**
-- `username` (string) - 用户名
-- `resetLink` (string) - 密码重置链接
-- `expiresIn` (string, 可选) - 过期时间，默认 "1小时"
+- `code` (string) - 验证码
+- `type` (string) - 验证类型描述（如：注册验证、密码重置、邮箱验证）
+- `expiryMinutes` (number) - 过期时间（分钟）
+- `identifier` (string) - 接收者标识（邮箱地址）
 
 **示例：**
 ```javascript
 await fastify.sendEmail({
   to: email,
-  template: 'password-reset',
+  template: 'verification-code',
   data: {
-    username: 'John',
-    resetLink: 'https://example.com/reset-password?token=xyz789',
-    expiresIn: '1小时'
-  }
-});
-```
-
-### 3. `email-verification` - 邮箱验证
-
-用于重新发送邮箱验证时。
-
-**数据参数：**
-- `username` (string) - 用户名
-- `verificationLink` (string) - 邮箱验证链接
-
-**示例：**
-```javascript
-await fastify.sendEmail({
-  to: email,
-  template: 'email-verification',
-  data: {
-    username: 'John',
-    verificationLink: 'https://example.com/verify-email?token=def456'
+    code: '123456',
+    type: '密码重置',
+    expiryMinutes: 10,
+    identifier: email
   }
 });
 ```
@@ -154,8 +134,7 @@ import myTemplate from './my-template.js';
 
 const templates = {
   welcome: welcomeTemplate,
-  'password-reset': passwordResetTemplate,
-  'email-verification': emailVerificationTemplate,
+  'verification-code': verificationCodeTemplate,
   'my-template': myTemplate,  // 添加新模板
 };
 ```

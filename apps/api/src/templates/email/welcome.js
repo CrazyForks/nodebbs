@@ -1,9 +1,9 @@
 /**
  * 欢迎邮件模板
  */
-export default function welcomeTemplate({ username, verificationLink }) {
+export default function welcomeTemplate({ username }) {
   return {
-    subject: '欢迎注册 - 请验证您的邮箱',
+    subject: '欢迎加入我们',
     html: `
 <!DOCTYPE html>
 <html>
@@ -21,11 +21,11 @@ export default function welcomeTemplate({ username, verificationLink }) {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center;">
               <h1 style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">
-                欢迎加入我们！
+                🎉 欢迎加入我们！
               </h1>
             </td>
           </tr>
-          
+
           <!-- Content -->
           <tr>
             <td style="padding: 0 40px 40px;">
@@ -33,32 +33,29 @@ export default function welcomeTemplate({ username, verificationLink }) {
                 你好 <strong style="color: #333;">${username}</strong>，
               </p>
               <p style="margin: 0 0 20px; color: #666; font-size: 16px; line-height: 1.6;">
-                感谢你注册我们的平台！为了确保账号安全，请点击下方按钮验证你的邮箱地址。
+                感谢你注册我们的平台！你已经成功创建了账号，现在可以开始探索我们的社区了。
               </p>
-              
-              <!-- Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                <tr>
-                  <td align="center">
-                    <a href="${verificationLink}" 
-                       style="display: inline-block; padding: 14px 40px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 500;">
-                      验证邮箱
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="margin: 20px 0 0; color: #999; font-size: 14px; line-height: 1.6;">
-                如果按钮无法点击，请复制以下链接到浏览器打开：<br>
-                <a href="${verificationLink}" style="color: #007bff; word-break: break-all;">${verificationLink}</a>
-              </p>
-              
-              <p style="margin: 20px 0 0; color: #999; font-size: 14px; line-height: 1.6;">
-                此链接将在 7 天后过期。
+
+              <!-- Features -->
+              <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">
+                <h2 style="margin: 0 0 15px; color: #333; font-size: 18px; font-weight: 600;">
+                  你可以做的事情：
+                </h2>
+                <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 15px; line-height: 1.8;">
+                  <li>浏览和参与热门话题讨论</li>
+                  <li>发表你的想法和见解</li>
+                  <li>关注感兴趣的用户和话题</li>
+                  <li>收藏喜欢的内容</li>
+                  <li>自定义你的个人资料</li>
+                </ul>
+              </div>
+
+              <p style="margin: 20px 0 0; color: #666; font-size: 16px; line-height: 1.6;">
+                如果你有任何问题或建议，欢迎随时与我们联系。祝你在这里度过愉快的时光！
               </p>
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
             <td style="padding: 20px 40px; background-color: #f8f9fa; border-top: 1px solid #e9ecef; border-radius: 0 0 8px 8px;">
@@ -79,11 +76,16 @@ export default function welcomeTemplate({ username, verificationLink }) {
 
 你好 ${username}，
 
-感谢你注册我们的平台！为了确保账号安全，请访问以下链接验证你的邮箱地址：
+感谢你注册我们的平台！你已经成功创建了账号，现在可以开始探索我们的社区了。
 
-${verificationLink}
+你可以做的事情：
+- 浏览和参与热门话题讨论
+- 发表你的想法和见解
+- 关注感兴趣的用户和话题
+- 收藏喜欢的内容
+- 自定义你的个人资料
 
-此链接将在 7 天后过期。
+如果你有任何问题或建议，欢迎随时与我们联系。祝你在这里度过愉快的时光！
 
 如果你没有注册此账号，请忽略此邮件。
     `.trim(),
