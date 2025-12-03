@@ -111,33 +111,6 @@ Content-Type: application/json
 }
 ```
 
-### 4. 发送邮箱验证码
-
-```http
-POST /api/email/send-verification
-Content-Type: application/json
-```
-
-**请求体**：
-```json
-{
-  "email": "user@example.com",
-  "type": "register"
-}
-```
-
-**类型说明**：
-- `register` - 注册验证码
-- `login` - 登录验证码
-- `reset-password` - 密码重置验证码
-
-**响应**：
-```json
-{
-  "message": "验证码已发送，请查收邮件"
-}
-```
-
 ## 使用示例
 
 ### JavaScript/Node.js
@@ -168,17 +141,6 @@ const updateResponse = await fetch('http://localhost:7100/api/email/providers/sm
   }),
 });
 
-// 发送验证码
-const verifyResponse = await fetch('http://localhost:7100/api/email/send-verification', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    email: 'user@example.com',
-    type: 'register',
-  }),
-});
 ```
 
 ### cURL
@@ -209,13 +171,6 @@ curl -X POST http://localhost:7100/api/email/providers/smtp/test \
   -H "Content-Type: application/json" \
   -d '{"testEmail": "test@example.com"}'
 
-# 发送验证码
-curl -X POST http://localhost:7100/api/email/send-verification \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "type": "register"
-  }'
 ```
 
 ## 错误处理
@@ -240,7 +195,6 @@ curl -X POST http://localhost:7100/api/email/send-verification \
 
 - **公开接口**：
   - `GET /api/email/providers` - 只返回已启用的提供商（不含敏感信息）
-  - `POST /api/email/send-verification` - 发送验证码（有限速）
 
 - **管理员接口**：
   - `GET /api/email/providers` - 返回所有提供商的完整配置

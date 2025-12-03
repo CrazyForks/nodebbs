@@ -796,11 +796,6 @@ export const emailConfigApi = {
   async testProvider(provider, testEmail) {
     return apiClient.post(`/email/providers/${provider}/test`, { testEmail });
   },
-
-  // 发送邮箱验证码（公开接口）
-  async sendVerification(email, type) {
-    return apiClient.post('/email/send-verification', { email, type });
-  },
 };
 
 // ============= 管理后台 API =============
