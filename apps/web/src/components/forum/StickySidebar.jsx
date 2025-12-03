@@ -59,7 +59,7 @@ export default function StickySidebar({ children, className, enabled = true }) {
           </DrawerTitle>
         </DrawerHeader>
         {/* 移动端覆盖样式 */}
-        <div className={cn(className, 'p-4 static')}>{children}</div>
+        <div className={cn(className, 'p-4 static overflow-y-auto')}>{children}</div>
       </DrawerContent>
     </Drawer>
   );
