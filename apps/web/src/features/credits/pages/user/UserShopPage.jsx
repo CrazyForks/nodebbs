@@ -1,0 +1,94 @@
+'use client';
+
+import { useState } from 'react';
+import { ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { shopApi } from '@/lib/api';
+import { toast } from 'sonner';
+import { useCreditsBalance } from '../../hooks/useCreditsBalance';
+import { useShopItems } from '../../hooks/useShopItems';
+import { BalanceCard } from '../../components/user/BalanceCard';
+import { ItemTypeSelector } from '../../components/shared/ItemTypeSelector';
+import { ShopItemGrid } from '../../components/user/ShopItemGrid';
+import { PurchaseDialog } from '../../components/user/PurchaseDialog';
+
+export default function UserShopPage() {
+  const { isAuthenticated } = useAuth();
+  const [itemType, setItemType] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
+
+  const { balance, refetch: refetchBalance } = useCreditsBalance();
+  const { items, loading, refetch: refetchItems } = useShopItems({ type: itemType });
+
+  const handleBuyClick = (item) => {
+    if (!isAuthenticated) {
+      toast.error('请先登录');
+      return;
+    }
+    setSelectedItem(item);
+    setBuyDialogOpen(true);
+  };
+
+  const handleBuy = async () => {
+    if (!selectedItem) return;
+
+    setIsBuying(true);
+    try {
+      await shopApi.buyItem(selectedItem.id);
+      toast.success('购买成功！');
+
+      await refetchBalance();
+      await refetchItems();
+
+      setBuyDialogOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      toast.error(error.message || '购买失败');
+    } finally {
+      setIsBuying(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
+            <ShoppingCart className="h-6 w-6" />
+            积分商城
+          </h1>
+          <p className="text-muted-foreground">使用积分购买专属装扮</p>
+        </div>
+
+        {/* Balance Display */}
+        {isAuthenticated && balance?.balance !== undefined && balance?.balance !== null && (
+          <BalanceCard balance={balance.balance} />
+        )}
+      </div>
+
+      {/* Item Type Selector & Grid */}
+      <ItemTypeSelector value={itemType} onChange={setItemType}>
+        <ShopItemGrid
+          items={items}
+          userBalance={balance?.balance ?? null}
+          onPurchase={handleBuyClick}
+          isAuthenticated={isAuthenticated}
+          loading={loading}
+        />
+      </ItemTypeSelector>
+
+      {/* Purchase Dialog */}
+      <PurchaseDialog
+        open={buyDialogOpen}
+        item={selectedItem}
+        userBalance={balance?.balance ?? null}
+        onConfirm={handleBuy}
+        onCancel={() => setBuyDialogOpen(false)}
+        purchasing={isBuying}
+      />
+    </div>
+  );
+}
