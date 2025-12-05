@@ -870,3 +870,4 @@ export const qrLoginRequestsRelations = relations(qrLoginRequests, ({ one }) => 
 
 // ============ Credit System (Imported from Plugin) ============
 export * from '../features/credits/schema.js';
+export * from '../features/shop/schema.js';
