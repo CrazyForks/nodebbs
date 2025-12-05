@@ -34,7 +34,7 @@ import MarkdownRender from '../common/MarkdownRender';
 
 import { RewardListDialog } from '@/features/credits/components/RewardListDialog';
 
-export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isCreditEnabled, rewardStats }) {
+export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isCreditEnabled, rewardStats, onRewardSuccess }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
   const [likingPostIds, setLikingPostIds] = useState(new Set());
   const [deletingPostId, setDeletingPostId] = useState(null);
@@ -535,11 +535,9 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isC
         onOpenChange={setRewardDialogOpen}
         postId={localReply.id}
         postAuthor={localReply.userName || localReply.userUsername}
-        onSuccess={() => {
-          // 打赏成功后刷新打赏统计
-          if (typeof window !== 'undefined' && window.__refreshRewards) {
-            window.__refreshRewards();
-          }
+        onSuccess={(amount) => {
+          // 局部更新打赏统计，无需重新调用批量接口
+          onRewardSuccess?.(localReply.id, amount);
         }}
         onViewHistory={() => {
           setRewardDialogOpen(false);

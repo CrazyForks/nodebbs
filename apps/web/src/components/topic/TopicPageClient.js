@@ -65,30 +65,19 @@ export default function TopicPageClient({
     fetchRewardStats();
   }, [isCreditEnabled, posts, topic.firstPostId]);
 
-  // 刷新打赏统计的全局方法
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.__refreshRewards = async () => {
-        if (!isCreditEnabled) return;
-        
-        try {
-          const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
-          if (postIds.length > 0) {
-            const stats = await creditsApi.getBatchPostRewards(postIds);
-            setRewardStats(stats);
-          }
-        } catch (error) {
-          console.error('刷新打赏统计失败:', error);
-        }
+  // 更新单个帖子的打赏统计（局部更新，无需重新调用批量接口）
+  const handleRewardSuccess = (postId, amount) => {
+    setRewardStats((prev) => {
+      const currentStats = prev[postId] || { totalAmount: 0, totalCount: 0 };
+      return {
+        ...prev,
+        [postId]: {
+          totalAmount: currentStats.totalAmount + amount,
+          totalCount: currentStats.totalCount + 1,
+        },
       };
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        delete window.__refreshRewards;
-      }
-    };
-  }, [isCreditEnabled, posts, topic.firstPostId]);
+    });
+  };
 
   // 更新话题状态的回调
   const handleTopicUpdate = (updates) => {
@@ -166,6 +155,7 @@ export default function TopicPageClient({
             topic={topic} 
             isCreditEnabled={isCreditEnabled}
             rewardStats={rewardStats[topic.firstPostId] || { totalAmount: 0, totalCount: 0 }}
+            onRewardSuccess={handleRewardSuccess}
           />
 
           {/* 回复区域（列表+表单） */}
@@ -182,6 +172,7 @@ export default function TopicPageClient({
             isCreditEnabled={isCreditEnabled}
             rewardStatsMap={rewardStats}
             onPostsChange={setPosts}
+            onRewardSuccess={handleRewardSuccess}
           />
         </div>
 

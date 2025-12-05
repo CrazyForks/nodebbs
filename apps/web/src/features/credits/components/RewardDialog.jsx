@@ -79,9 +79,9 @@ export function RewardDialog({ open, onOpenChange, postId, postAuthor, onSuccess
       // 刷新余额
       await fetchBalance();
 
-      // 调用成功回调
+      // 调用成功回调，传递打赏金额用于局部更新
       if (onSuccess) {
-        onSuccess();
+        onSuccess(rewardAmount);
       }
 
       // 重置表单

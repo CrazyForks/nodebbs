@@ -17,6 +17,7 @@ const ReplyList = forwardRef(function ReplyList(
     isCreditEnabled,
     rewardStatsMap = {}, // 新增：打赏统计 Map
     onPostsChange, // 新增：posts 变化回调
+    onRefreshRewards, // 新增：刷新打赏统计回调
   },
   ref
 ) {
@@ -91,6 +92,7 @@ const ReplyList = forwardRef(function ReplyList(
           onReplyAdded={handleReplyAdded}
           isCreditEnabled={isCreditEnabled}
           rewardStats={rewardStatsMap[reply.id] || { totalAmount: 0, totalCount: 0 }}
+          onRefreshRewards={onRefreshRewards}
         />
       ))}
 

@@ -24,7 +24,7 @@ import { RewardListDialog } from '@/features/credits/components/RewardListDialog
 import { creditsApi } from '@/lib/api';
 import { Coins } from 'lucide-react';
 
-export default function TopicContent({ topic, isCreditEnabled, rewardStats }) {
+export default function TopicContent({ topic, isCreditEnabled, rewardStats, onRewardSuccess }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
   const [likingPostIds, setLikingPostIds] = useState(new Set());
   const [likeState, setLikeState] = useState({
@@ -305,11 +305,9 @@ export default function TopicContent({ topic, isCreditEnabled, rewardStats }) {
           onOpenChange={setRewardDialogOpen}
           postId={topic.firstPostId}
           postAuthor={topic.userName || topic.username}
-          onSuccess={() => {
-            // 使用全局刷新方法
-            if (typeof window !== 'undefined' && window.__refreshRewards) {
-              window.__refreshRewards();
-            }
+          onSuccess={(amount) => {
+            // 局部更新打赏统计，无需重新调用批量接口
+            onRewardSuccess?.(topic.firstPostId, amount);
           }}
           onViewHistory={() => {
             setRewardDialogOpen(false);
