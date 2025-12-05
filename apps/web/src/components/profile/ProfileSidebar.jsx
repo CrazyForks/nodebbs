@@ -99,7 +99,7 @@ export default function ProfileSidebar() {
     },
     ...(creditEnabled ? [{
       key: 'credits-shop',
-      label: '积分与商城',
+      label: '积分系统',
       icon: Store,
       children: [
         {

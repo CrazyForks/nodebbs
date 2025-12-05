@@ -4,8 +4,9 @@
 
 export { CreditsStats } from './CreditsStats';
 export { TransactionTable } from './TransactionTable';
-export { UserSearchInput } from './UserSearchInput';
-export { GrantCreditsDialog } from './GrantCreditsDialog';
-export { DeductCreditsDialog } from './DeductCreditsDialog';
+export { CreditsStats } from './CreditsStats';
+export { CreditsOperationDialog } from './CreditsOperationDialog';
+export { TransactionTable } from './TransactionTable';
 export { ShopItemTable } from './ShopItemTable';
 export { ShopItemFormDialog } from './ShopItemFormDialog';
+export { UserSearchInput } from './UserSearchInput';

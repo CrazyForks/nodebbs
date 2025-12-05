@@ -48,7 +48,7 @@ export default function DashboardSidebar() {
     { href: '/dashboard/invitation-rules', icon: Shield, label: '邀请码规则' },
     {
       key: 'credits-shop',
-      label: '积分与商城',
+      label: '积分系统',
       icon: Store,
       children: [
         { href: '/dashboard/shop', icon: ShoppingCart, label: '商城管理' },

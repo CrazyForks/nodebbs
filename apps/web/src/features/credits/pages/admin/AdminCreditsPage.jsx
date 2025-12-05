@@ -7,15 +7,14 @@ import { creditsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { CreditsStats } from '../../components/admin/CreditsStats';
 import { TransactionTable } from '../../components/admin/TransactionTable';
-import { GrantCreditsDialog } from '../../components/admin/GrantCreditsDialog';
-import { DeductCreditsDialog } from '../../components/admin/DeductCreditsDialog';
+import { CreditsOperationDialog } from '../../components/admin/CreditsOperationDialog';
 
 export default function AdminCreditsPage() {
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showGrantDialog, setShowGrantDialog] = useState(false);
-  const [showDeductDialog, setShowDeductDialog] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogMode, setDialogMode] = useState('grant'); // 'grant' or 'deduct'
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({
@@ -63,33 +62,22 @@ export default function AdminCreditsPage() {
     }
   };
 
-  const handleGrant = async (userId, amount, description) => {
+  const handleCreditsOperation = async (userId, amount, description) => {
     setSubmitting(true);
     try {
-      await creditsApi.admin.grant(userId, amount, description);
-      toast.success('积分发放成功');
-      setShowGrantDialog(false);
+      if (dialogMode === 'grant') {
+        await creditsApi.admin.grant(userId, amount, description);
+        toast.success('积分发放成功');
+      } else {
+        await creditsApi.admin.deduct(userId, amount, description);
+        toast.success('积分扣除成功');
+      }
+      setShowDialog(false);
       fetchStats();
       fetchTransactions();
     } catch (error) {
-      console.error('发放积分失败:', error);
-      toast.error(error.message || '发放积分失败');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeduct = async (userId, amount, description) => {
-    setSubmitting(true);
-    try {
-      await creditsApi.admin.deduct(userId, amount, description);
-      toast.success('积分扣除成功');
-      setShowDeductDialog(false);
-      fetchStats();
-      fetchTransactions();
-    } catch (error) {
-      console.error('扣除积分失败:', error);
-      toast.error(error.message || '扣除积分失败');
+      console.error('操作失败:', error);
+      toast.error(error.message || '操作失败');
     } finally {
       setSubmitting(false);
     }
@@ -107,12 +95,12 @@ export default function AdminCreditsPage() {
           <p className="text-muted-foreground">查看积分系统统计和管理用户积分</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowGrantDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => { setDialogMode('grant'); setShowDialog(true); }}>
+            <Plus className="h-4 w-4" />
             发放积分
           </Button>
-          <Button variant="destructive" onClick={() => setShowDeductDialog(true)}>
-            <Minus className="mr-2 h-4 w-4" />
+          <Button variant="destructive" onClick={() => { setDialogMode('deduct'); setShowDialog(true); }}>
+            <Minus className="h-4 w-4" />
             扣除积分
           </Button>
         </div>
@@ -141,19 +129,13 @@ export default function AdminCreditsPage() {
         onSearch={fetchTransactions}
       />
 
-      {/* Dialogs */}
-      <GrantCreditsDialog
-        open={showGrantDialog}
-        onOpenChange={setShowGrantDialog}
-        onSubmit={handleGrant}
+      {/* Dialog */}
+      <CreditsOperationDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onSubmit={handleCreditsOperation}
         submitting={submitting}
-      />
-
-      <DeductCreditsDialog
-        open={showDeductDialog}
-        onOpenChange={setShowDeductDialog}
-        onSubmit={handleDeduct}
-        submitting={submitting}
+        mode={dialogMode}
       />
     </div>
   );

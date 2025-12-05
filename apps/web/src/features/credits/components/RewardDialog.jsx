@@ -76,8 +76,10 @@ export function RewardDialog({ open, onOpenChange, postId, postAuthor, onSuccess
       await creditsApi.reward(postId, rewardAmount, message || undefined);
       toast.success(`成功打赏 ${rewardAmount} 积分！`);
 
-      // 刷新余额
-      await fetchBalance();
+      // 本地更新余额（减去打赏金额），无需重新调用接口
+      if (balance !== null) {
+        setBalance(balance - rewardAmount);
+      }
 
       // 调用成功回调，传递打赏金额用于局部更新
       if (onSuccess) {

@@ -16,7 +16,7 @@
 - ✅ 创建了数据库迁移文件：`drizzle/0002_credit_system.sql`
 
 #### 2. 后端 API
-- ✅ 创建了积分服务模块：`services/creditService.js`
+- ✅ 创建了积分服务模块：`features/credits/services/creditService.js`
   - 获取/创建用户积分账户
   - 发放/扣除积分
   - 转账积分（打赏）
@@ -25,23 +25,25 @@
   - 获取排行榜
   - 配置管理
 
-- ✅ 创建了积分路由：`routes/credits/index.js`
+- ✅ 创建了积分路由：`features/credits/routes/index.js`
   - `GET /api/credits/balance` - 获取余额
   - `POST /api/credits/check-in` - 每日签到
   - `GET /api/credits/transactions` - 交易记录
   - `POST /api/credits/reward` - 打赏帖子
   - `GET /api/credits/rewards/:postId` - 获取打赏列表
+  - `POST /api/credits/rewards/batch` - 批量获取打赏统计
   - `GET /api/credits/rank` - 积分排行榜
   - 管理员接口（统计、发放、扣除、配置管理）
 
 #### 3. 前端页面
-- ✅ 扩展了 API 客户端：`lib/api.js`
-  - 添加了 `creditsApi` 模块
+- ✅ 创建了积分 API 客户端：`features/credits/api/index.js`
+  - 完整的 `creditsApi` 模块
 
-- ✅ 创建了积分中心页面：`app/profile/credits/page.js`
+- ✅ 创建了积分中心页面：`features/credits/pages/user/UserCreditsPage.jsx`
   - 积分余额展示（当前/累计获得/累计消费）
   - 签到功能（显示连续签到天数）
   - 积分交易记录列表（分页）
+  - 路由：`app/profile/credits/page.js`
 
 - ✅ 更新了个人中心侧边栏
   - 添加了"积分中心"菜单项
@@ -125,24 +127,24 @@ PUT    /api/credits/admin/config/:key - 更新配置
 ### Phase 2: 积分流通（预计 1-2周）
 
 #### 任务清单：
-1. 在发帖接口中集成积分奖励
+1. 在发帖接口中集成积分奖励 ✅
    - 文件：`apps/api/src/routes/topics/index.js`
    - 发布话题时自动发放积分
 
-2. 在回复接口中集成积分奖励
+2. 在回复接口中集成积分奖励 ✅
    - 文件：`apps/api/src/routes/posts/index.js`
    - 发布回复时自动发放积分
 
-3. 在点赞接口中集成积分奖励
+3. 在点赞接口中集成积分奖励 ✅
    - 文件：`apps/api/src/routes/posts/index.js`
    - 获得点赞时自动发放积分给被点赞者
 
-4. 创建打赏功能 UI 组件
-   - 创建打赏弹窗组件
-   - 在帖子卡片中添加打赏按钮
-   - 显示帖子的打赏列表
+4. 创建打赏功能 UI 组件 ✅
+   - 打赏弹窗：`features/credits/components/RewardDialog.jsx`
+   - 打赏记录：`features/credits/components/RewardListDialog.jsx`
+   - 在帖子中集成打赏按钮
 
-5. 创建积分排行榜页面
+5. 创建积分排行榜页面 ✅
    - 路径：`apps/web/src/app/rank/page.js`
    - 展示积分排名前 50 用户
 
@@ -230,32 +232,93 @@ A: 将配置项 `system_enabled` 设置为 `false`
 
 ## 文件结构
 
+### 后端结构 (Feature-based)
 ```
-project/
-├── apps/
-│   ├── api/
-│   │   └── src/
-│   │       ├── db/
-│   │       │   └── schema.js              ✅ 新增表定义
-│   │       ├── drizzle/
-│   │       │   └── 0002_credit_system.sql ✅ 迁移脚本
-│   │       ├── routes/
-│   │       │   └── credits/
-│   │       │       └── index.js           ✅ 积分接口
-│   │       └── services/
-│   │           └── creditService.js       ✅ 积分服务
-│   └── web/
-│       └── src/
-│           ├── lib/
-│           │   └── api.js                 ✅ 扩展 API 客户端
-│           ├── app/
-│           │   └── profile/
-│           │       └── credits/
-│           │           └── page.js        ✅ 积分中心页面
-│           └── components/
-│               └── profile/
-│                   └── ProfileSidebar.jsx ✅ 更新侧边栏
+apps/api/src/
+└── features/
+    └── credits/
+        ├── schema.js                    ✅ 积分系统数据表定义
+        ├── services/
+        │   └── creditService.js         ✅ 积分业务逻辑服务
+        └── routes/
+            ├── index.js                 ✅ 积分核心路由
+            └── shop.js                  ✅ 商城路由
 ```
+
+### 前端结构 (Feature-based)
+```
+apps/web/src/
+└── features/
+    └── credits/
+        ├── api/
+        │   └── index.js                 ✅ 积分 API 客户端
+        ├── components/
+        │   ├── RewardDialog.jsx         ✅ 打赏弹窗
+        │   ├── RewardListDialog.jsx     ✅ 打赏记录弹窗
+        │   ├── AutoCheckIn.jsx          ✅ 自动签到组件
+        │   ├── admin/                   ✅ 管理后台组件
+        │   │   ├── CreditsStats.jsx
+        │   │   ├── CreditsOperationDialog.jsx
+        │   │   ├── TransactionTable.jsx
+        │   │   ├── ShopItemTable.jsx
+        │   │   └── ShopItemFormDialog.jsx
+        │   ├── user/                    ✅ 用户端组件
+        │   │   ├── BalanceCard.jsx
+        │   │   ├── BalanceOverview.jsx
+        │   │   ├── CheckInStatus.jsx
+        │   │   ├── TransactionHistory.jsx
+        │   │   ├── ShopItemCard.jsx
+        │   │   ├── ShopItemGrid.jsx
+        │   │   ├── ItemInventoryCard.jsx
+        │   │   ├── ItemInventoryGrid.jsx
+        │   │   └── PurchaseDialog.jsx
+        │   └── shared/                  ✅ 共享组件
+        │       ├── CreditsBadge.jsx
+        │       ├── TransactionTypeBadge.jsx
+        │       ├── ItemTypeBadge.jsx
+        │       └── ItemTypeIcon.jsx
+        ├── hooks/                       ✅ 自定义 Hooks
+        │   ├── useCreditsBalance.js
+        │   ├── useCreditsTransactions.js
+        │   ├── useShopItems.js
+        │   ├── useUserItems.js
+        │   └── useItemActions.js
+        ├── pages/                       ✅ 页面组件
+        │   ├── user/
+        │   │   ├── UserCreditsPage.jsx  (用于 /profile/credits)
+        │   │   ├── UserShopPage.jsx     (用于 /profile/shop)
+        │   │   └── UserItemsPage.jsx    (用于 /profile/items)
+        │   └── admin/
+        │       ├── AdminCreditsPage.jsx (用于 /dashboard/credits)
+        │       └── AdminShopPage.jsx    (用于 /dashboard/shop)
+        └── utils/                       ✅ 工具函数
+            ├── formatters.js
+            └── validators.js
+```
+
+### 路由集成
+```
+apps/web/src/app/
+├── profile/
+│   ├── credits/
+│   │   └── page.js                  → 导入 UserCreditsPage
+│   ├── shop/
+│   │   └── page.js                  → 导入 UserShopPage
+│   └── items/
+│       └── page.js                  → 导入 UserItemsPage
+├── dashboard/
+│   ├── credits/
+│   │   └── page.js                  → 导入 AdminCreditsPage
+│   ├── shop/
+│   │   └── page.js                  → 导入 AdminShopPage
+│   └── settings/
+│       ├── page.js                  → 集成 CreditSystemSettings
+│       └── components/
+│           └── CreditSystemSettings.jsx
+└── rank/
+    └── page.js                      ✅ 积分排行榜
+```
+
 
 ## 技术栈
 
@@ -284,22 +347,23 @@ project/
 
 ### 创建的文件
 ```
-apps/web/src/
-├── components/credits/
-│   ├── RewardDialog.jsx      ✅ 打赏弹窗
-│   └── RewardList.jsx         ✅ 打赏列表
+apps/web/src/features/credits/
+├── components/
+│   ├── RewardDialog.jsx         ✅ 打赏弹窗
+│   └── RewardListDialog.jsx     ✅ 打赏记录弹窗
 └── app/rank/
-    └── page.js                ✅ 排行榜页面
+    └── page.js                  ✅ 排行榜页面
 ```
 
 ### 修改的文件
 ```
 apps/api/src/routes/
-├── topics/index.js            ✅ 话题发布奖励
-└── posts/index.js             ✅ 回复发布奖励 + 点赞奖励
+├── topics/index.js              ✅ 话题发布奖励
+└── posts/index.js               ✅ 回复发布奖励 + 点赞奖励
 
 apps/web/src/components/topic/
-└── ReplyItem.js               ✅ 添加打赏按钮和对话框
+├── TopicContent.js              ✅ 添加打赏功能
+└── ReplyItem.js                 ✅ 添加打赏按钮和对话框
 ```
 
 ### 积分自动发放规则
@@ -342,10 +406,10 @@ apps/web/src/components/topic/
 4. ✅ **管理后台** - 商品管理页面
 
 ### 创建的文件
-- `apps/api/src/routes/shop/index.js` - 商城 API
-- `apps/web/src/app/profile/shop/page.js` - 商城页面
-- `apps/web/src/app/profile/items/page.js` - 我的道具页面
-- `apps/web/src/app/dashboard/shop/page.js` - 商城管理页面
+- `apps/api/src/features/credits/routes/shop.js` - 商城 API
+- `apps/web/src/features/credits/pages/user/UserShopPage.jsx` - 商城页面
+- `apps/web/src/features/credits/pages/user/UserItemsPage.jsx` - 我的道具页面
+- `apps/web/src/features/credits/pages/admin/AdminShopPage.jsx` - 商城管理页面
 
 ---
 
@@ -361,10 +425,12 @@ apps/web/src/components/topic/
 
 ### 创建的文件
 - `apps/web/src/app/dashboard/settings/components/CreditSystemSettings.jsx` - 配置组件
-- `apps/web/src/app/dashboard/credits/page.js` - 积分管理页面
+- `apps/web/src/features/credits/pages/admin/AdminCreditsPage.jsx` - 积分管理页面
+- `apps/web/src/features/credits/components/admin/*` - 管理后台组件
 
 ### 修改的文件
 - `apps/web/src/app/dashboard/settings/page.js` - 添加积分系统 Tab
+- `apps/web/src/app/dashboard/credits/page.js` - 导入 AdminCreditsPage
 - `apps/web/src/components/forum/DashboardSidebar.jsx` - 添加导航链接
 
 ---

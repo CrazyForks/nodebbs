@@ -66,8 +66,6 @@
 - ✅ 没有打赏时自动隐藏
 
 **技术亮点**：
-- 使用 `date-fns` 格式化时间
-- 支持全局刷新机制 (`window.__refreshRewards`)
 - 响应式布局设计
 
 #### 💝 打赏按钮集成 (ReplyItem.js)

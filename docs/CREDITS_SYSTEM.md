@@ -264,7 +264,6 @@
       <ReplyButton />
       <RewardButton />  {/* 新增 */}
     </PostActions>
-    <RewardList />  {/* 显示打赏列表 */}
   </PostCard>
 
   5.3 用户资料卡片增强
