@@ -39,9 +39,7 @@ export default function AutoCheckIn() {
       } catch (error) {
         // 如果是"今天已经签到过了"，则静默失败，不打扰用户
         // 其他错误也不需要特别提示，避免影响用户体验
-        if (error.message !== '今天已经签到过了') {
-          console.error('自动签到失败:', error);
-        }
+        console.error('自动签到失败:', error);
       }
     };
 

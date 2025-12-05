@@ -458,7 +458,9 @@ export async function checkIn(userId) {
         lastCheckIn.setHours(0, 0, 0, 0);
 
         if (lastCheckIn.getTime() === today.getTime()) {
-          throw new Error('今天已经签到过了');
+          // 今日已签到静默处理，返回成功
+          return {message: 'done'};
+          // throw new Error('今天已经签到过了');
         }
       }
 

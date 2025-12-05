@@ -94,10 +94,6 @@ export default async function creditsRoutes(fastify, options) {
       const result = await checkIn(request.user.id);
       return result;
     } catch (error) {
-      if (error.message === '今天已经签到过了') {
-        // return reply.code(400).send({ error: error.message });
-        return reply.code(200).send({ message: error.message });
-      }
       if (error.message === '积分系统未启用') {
         return reply.code(403).send({ error: error.message });
       }
