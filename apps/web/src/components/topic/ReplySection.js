@@ -15,6 +15,8 @@ export default function ReplySection({
   isDeleted,
   onTopicUpdate,
   isCreditEnabled,
+  rewardStatsMap = {}, // 新增：打赏统计 Map
+  onPostsChange, // 新增：posts 变化回调
 }) {
   const replyListRef = useRef(null);
 
@@ -37,6 +39,8 @@ export default function ReplySection({
         currentPage={currentPage}
         limit={limit}
         isCreditEnabled={isCreditEnabled}
+        rewardStatsMap={rewardStatsMap}
+        onPostsChange={onPostsChange}
       />
 
       {/* 回复表单 */}

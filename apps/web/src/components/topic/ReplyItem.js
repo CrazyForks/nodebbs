@@ -34,7 +34,7 @@ import MarkdownRender from '../common/MarkdownRender';
 
 import { RewardListDialog } from '@/features/credits/components/RewardListDialog';
 
-export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isCreditEnabled }) {
+export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isCreditEnabled, rewardStats }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
   const [likingPostIds, setLikingPostIds] = useState(new Set());
   const [deletingPostId, setDeletingPostId] = useState(null);
@@ -52,28 +52,9 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isC
 
   // 本地状态
   const [localReply, setLocalReply] = useState(reply);
-  const [rewardStats, setRewardStats] = useState({
-    totalAmount: 0,
-    totalCount: 0
-  });
 
-  // 获取打赏统计
-  const fetchRewardStats = async () => {
-    try {
-      const data = await creditsApi.getPostRewards(localReply.id);
-      setRewardStats({
-        totalAmount: data.totalAmount || 0,
-        totalCount: data.total || 0
-      });
-    } catch (error) {
-      console.error('获取打赏统计失败:', error);
-    }
-  };
-
-  // 初始化获取打赏统计
-  useEffect(() => {
-    fetchRewardStats();
-  }, [localReply.id]);
+  // 移除 fetchRewardStats 和相关 useEffect
+  // 直接使用从 props 传入的 rewardStats
 
   // 检查审核状态
   const isPending = localReply.approvalStatus === 'pending';
@@ -555,8 +536,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isC
         postId={localReply.id}
         postAuthor={localReply.userName || localReply.userUsername}
         onSuccess={() => {
-          // 打赏成功后刷新打赏列表和统计
-          fetchRewardStats();
+          // 打赏成功后刷新打赏统计
           if (typeof window !== 'undefined' && window.__refreshRewards) {
             window.__refreshRewards();
           }

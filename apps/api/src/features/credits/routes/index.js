@@ -14,7 +14,7 @@ import {
 } from '../services/creditService.js';
 import db from '../../../db/index.js';
 import { posts, users, creditSystemConfig, userCredits, creditTransactions, postRewards } from '../../../db/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, inArray, and, count, sum } from 'drizzle-orm';
 
 export default async function creditsRoutes(fastify, options) {
   // ============ 公开接口 ============
@@ -274,6 +274,101 @@ export default async function creditsRoutes(fastify, options) {
       return reply.code(500).send({ error: '查询失败' });
     }
   });
+
+  // 批量获取多个帖子的打赏统计
+  fastify.post('/rewards/batch', {
+    preHandler: [fastify.optionalAuth],
+    schema: {
+      tags: ['credits'],
+      description: '批量获取多个帖子的打赏统计',
+      body: {
+        type: 'object',
+        required: ['postIds'],
+        properties: {
+          postIds: {
+            type: 'array',
+            items: { type: 'integer' },
+            minItems: 1,
+            maxItems: 100, // 限制最多 100 个
+          },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              totalAmount: { type: 'number' },
+              totalCount: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { postIds } = request.body;
+
+      if (!postIds || postIds.length === 0) {
+        return reply.code(400).send({ error: '请提供帖子ID列表' });
+      }
+
+      // 批量查询打赏统计
+      console.log('批量查询打赏统计 - 输入 postIds:', postIds);
+      
+      const stats = await db
+        .select({
+          postId: postRewards.postId,
+          totalAmount: sql`COALESCE(SUM(${postRewards.amount}), 0)`,
+          totalCount: count(),
+        })
+        .from(postRewards)
+        .where(inArray(postRewards.postId, postIds))
+        .groupBy(postRewards.postId);
+
+      console.log('批量查询打赏统计 - 查询结果:', stats);
+
+      // 转换为 Map 格式方便前端使用
+      const statsMap = {};
+      
+      // 确保 stats 是数组
+      if (Array.isArray(stats)) {
+        stats.forEach(stat => {
+          if (stat && stat.postId) {
+            statsMap[stat.postId] = {
+              totalAmount: parseInt(stat.totalAmount) || 0,
+              totalCount: parseInt(stat.totalCount) || 0,
+            };
+          }
+        });
+      }
+
+      // 为没有打赏的帖子补充默认值
+      if (Array.isArray(postIds)) {
+        postIds.forEach(postId => {
+          if (!statsMap[postId]) {
+            statsMap[postId] = {
+              totalAmount: 0,
+              totalCount: 0,
+            };
+          }
+        });
+      }
+
+      console.log('批量查询打赏统计 - 最终结果:', statsMap);
+      return statsMap;
+    } catch (error) {
+      console.log('批量打赏统计错误详情:', {
+        message: error.message,
+        stack: error.stack,
+        postIds: request.body?.postIds,
+      });
+      fastify.log.error('[批量打赏统计] 查询失败:', error);
+      return reply.code(500).send({ error: '查询失败: ' + error.message });
+    }
+  });
+
 
   // 获取积分排行榜
   fastify.get('/rank', {

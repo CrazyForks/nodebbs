@@ -15,6 +15,8 @@ const ReplyList = forwardRef(function ReplyList(
     currentPage,
     limit,
     isCreditEnabled,
+    rewardStatsMap = {}, // 新增：打赏统计 Map
+    onPostsChange, // 新增：posts 变化回调
   },
   ref
 ) {
@@ -28,6 +30,13 @@ const ReplyList = forwardRef(function ReplyList(
     setPosts(initialPosts);
     setTotalPosts(initialTotalPosts);
   }, [initialPosts, initialTotalPosts]);
+
+  // 通知父组件 posts 变化
+  useEffect(() => {
+    if (onPostsChange) {
+      onPostsChange(posts);
+    }
+  }, [posts, onPostsChange]);
 
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
@@ -81,6 +90,7 @@ const ReplyList = forwardRef(function ReplyList(
           onDeleted={handlePostDeleted}
           onReplyAdded={handleReplyAdded}
           isCreditEnabled={isCreditEnabled}
+          rewardStats={rewardStatsMap[reply.id] || { totalAmount: 0, totalCount: 0 }}
         />
       ))}
 

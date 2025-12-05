@@ -32,6 +32,14 @@ export const creditsApi = {
     return apiClient.get(`/credits/rewards/${postId}`, params);
   },
 
+  // 批量获取多个帖子的打赏统计
+  async getBatchPostRewards(postIds) {
+    if (!postIds || postIds.length === 0) {
+      return {};
+    }
+    return apiClient.post('/credits/rewards/batch', { postIds });
+  },
+
   // 获取积分排行榜
   async getRanking(params = {}) {
     return apiClient.get('/credits/rank', params);

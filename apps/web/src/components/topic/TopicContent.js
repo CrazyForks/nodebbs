@@ -24,7 +24,7 @@ import { RewardListDialog } from '@/features/credits/components/RewardListDialog
 import { creditsApi } from '@/lib/api';
 import { Coins } from 'lucide-react';
 
-export default function TopicContent({ topic, isCreditEnabled }) {
+export default function TopicContent({ topic, isCreditEnabled, rewardStats }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
   const [likingPostIds, setLikingPostIds] = useState(new Set());
   const [likeState, setLikeState] = useState({
@@ -35,30 +35,9 @@ export default function TopicContent({ topic, isCreditEnabled }) {
   // 打赏相关状态
   const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [rewardListOpen, setRewardListOpen] = useState(false);
-  const [rewardStats, setRewardStats] = useState({
-    totalAmount: 0,
-    totalCount: 0
-  });
 
-  // 获取打赏统计
-  const fetchRewardStats = async () => {
-    if (topic.firstPostId) {
-      try {
-        const data = await creditsApi.getPostRewards(topic.firstPostId);
-        setRewardStats({
-          totalAmount: data.totalAmount || 0,
-          totalCount: data.total || 0
-        });
-      } catch (error) {
-        console.error('获取打赏统计失败:', error);
-      }
-    }
-  };
-
-  // 初始化获取打赏统计
-  useEffect(() => {
-    fetchRewardStats();
-  }, [topic.firstPostId]);
+  // 移除 fetchRewardStats 和相关 useEffect
+  // 直接使用从 props 传入的 rewardStats
 
   // 切换首帖点赞状态
   const handleTogglePostLike = async (postId, isLiked) => {
@@ -327,7 +306,10 @@ export default function TopicContent({ topic, isCreditEnabled }) {
           postId={topic.firstPostId}
           postAuthor={topic.userName || topic.username}
           onSuccess={() => {
-            fetchRewardStats();
+            // 使用全局刷新方法
+            if (typeof window !== 'undefined' && window.__refreshRewards) {
+              window.__refreshRewards();
+            }
           }}
           onViewHistory={() => {
             setRewardDialogOpen(false);

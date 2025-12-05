@@ -19,9 +19,11 @@ export default function TopicPageClient({
 }) {
   const router = useRouter();
   const [isCreditEnabled, setIsCreditEnabled] = useState(false);
+  const [rewardStats, setRewardStats] = useState({}); // 打赏统计 Map
 
   // 统一管理话题状态
   const [topic, setTopic] = useState(initialTopic);
+  const [posts, setPosts] = useState(initialPosts);
 
   // 获取积分系统状态
   useEffect(() => {
@@ -35,6 +37,58 @@ export default function TopicPageClient({
     };
     fetchCreditStatus();
   }, []);
+
+  // 批量获取打赏统计
+  useEffect(() => {
+    if (!isCreditEnabled) return;
+
+    const fetchRewardStats = async () => {
+      try {
+        // 收集所有帖子 ID（包括首帖）
+        const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
+        
+        console.log('批量获取打赏统计 - postIds:', postIds);
+        
+        if (postIds.length > 0) {
+          const stats = await creditsApi.getBatchPostRewards(postIds);
+          console.log('批量获取打赏统计 - 成功:', stats);
+          setRewardStats(stats);
+        }
+      } catch (error) {
+        console.error('获取打赏统计失败 - 详情:', {
+          message: error.message,
+          error: error,
+        });
+      }
+    };
+
+    fetchRewardStats();
+  }, [isCreditEnabled, posts, topic.firstPostId]);
+
+  // 刷新打赏统计的全局方法
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__refreshRewards = async () => {
+        if (!isCreditEnabled) return;
+        
+        try {
+          const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
+          if (postIds.length > 0) {
+            const stats = await creditsApi.getBatchPostRewards(postIds);
+            setRewardStats(stats);
+          }
+        } catch (error) {
+          console.error('刷新打赏统计失败:', error);
+        }
+      };
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete window.__refreshRewards;
+      }
+    };
+  }, [isCreditEnabled, posts, topic.firstPostId]);
 
   // 更新话题状态的回调
   const handleTopicUpdate = (updates) => {
@@ -108,12 +162,16 @@ export default function TopicPageClient({
         {/* 主要内容区域 */}
         <div className='flex-1'>
           {/* 话题内容 */}
-          <TopicContent topic={topic} isCreditEnabled={isCreditEnabled} />
+          <TopicContent 
+            topic={topic} 
+            isCreditEnabled={isCreditEnabled}
+            rewardStats={rewardStats[topic.firstPostId] || { totalAmount: 0, totalCount: 0 }}
+          />
 
           {/* 回复区域（列表+表单） */}
           <ReplySection
             topicId={topic.id}
-            initialPosts={initialPosts}
+            initialPosts={posts}
             totalPosts={totalPosts}
             totalPages={totalPages}
             currentPage={currentPage}
@@ -122,6 +180,8 @@ export default function TopicPageClient({
             isDeleted={topic.isDeleted}
             onTopicUpdate={handleTopicUpdate}
             isCreditEnabled={isCreditEnabled}
+            rewardStatsMap={rewardStats}
+            onPostsChange={setPosts}
           />
         </div>
 
