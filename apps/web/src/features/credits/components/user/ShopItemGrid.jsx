@@ -34,7 +34,7 @@ export function ShopItemGrid({ items, userBalance, onPurchase, isAuthenticated, 
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
         <ShopItemCard
           key={item.id}
