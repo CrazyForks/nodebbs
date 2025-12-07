@@ -4,6 +4,7 @@ import {
   userItems,
   userCredits,
   creditTransactions,
+  users,
 } from '../../../db/schema.js';
 import { eq, and, desc, sql, asc } from 'drizzle-orm';
 import { grantBadge } from '../../badges/services/badgeService.js';
@@ -503,4 +504,157 @@ export async function deleteShopItem(id) {
 
   await db.delete(shopItems).where(eq(shopItems.id, id));
   return { message: '删除成功' };
+}
+
+/**
+ * 赠送商品
+ * @param {number} senderId - 发送者ID
+ * @param {number} receiverId - 接收者ID
+ * @param {number} itemId - 商品ID
+ * @param {string} message - 赠言
+ * @returns {Promise<Object>}
+ */
+export async function giftItem(senderId, receiverId, itemId, message) {
+  try {
+    return await db.transaction(async (tx) => {
+      // 1. 获取商品信息
+      const [item] = await tx
+        .select()
+        .from(shopItems)
+        .where(eq(shopItems.id, itemId))
+        .limit(1);
+
+      if (!item) throw new Error('商品不存在');
+      if (!item.isActive) throw new Error('商品已下架');
+      if (item.stock !== null && item.stock <= 0) throw new Error('商品库存不足');
+
+      if (senderId === receiverId) {
+        throw new Error('不能赠送给自己，请直接购买');
+      }
+
+      // 1.5 获取接收者信息
+      const [receiver] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, receiverId))
+        .limit(1);
+      
+      if (!receiver) throw new Error('接收用户不存在');
+
+      // 2. 检查发送者余额
+      let [senderCredit] = await tx
+         .select()
+         .from(userCredits)
+         .where(eq(userCredits.userId, senderId))
+         .limit(1);
+
+      if (!senderCredit) {
+        // 如果没有积分账户，尝试创建
+        [senderCredit] = await tx
+          .insert(userCredits)
+          .values({ userId: senderId })
+          .returning();
+      }
+
+      if (senderCredit.balance < item.price) {
+        throw new Error(`积分不足，需要 ${item.price} 积分`);
+      }
+
+      // 3. 检查接收者是否已拥有
+      const [existingItem] = await tx
+        .select()
+        .from(userItems)
+        .where(and(eq(userItems.userId, receiverId), eq(userItems.itemId, itemId)))
+        .limit(1);
+
+      if (existingItem) {
+        throw new Error('对方已经拥有该商品');
+      }
+      
+      // 4. 扣除发送者积分
+      const newBalance = senderCredit.balance - item.price;
+      const newTotalSpent = senderCredit.totalSpent + item.price;
+      
+      await tx
+        .update(userCredits)
+        .set({
+          balance: newBalance,
+          totalSpent: newTotalSpent,
+          updatedAt: new Date(),
+        })
+        .where(eq(userCredits.userId, senderId));
+
+      // 5. 记录交易日志 (发送者)
+      await tx.insert(creditTransactions).values({
+        userId: senderId,
+        amount: -item.price,
+        balance: newBalance,
+        type: 'gift_sent',
+        relatedUserId: receiverId,
+        relatedItemId: itemId,
+        description: `赠送给 ${receiver.username || '用户'}: ${item.name}`,
+        metadata: JSON.stringify({
+          receiverId,
+          itemId,
+          message,
+          giftedAt: new Date().toISOString()
+        })
+      });
+
+      // 6. 发放商品给接收者
+      const metadata = JSON.stringify({
+        fromUserId: senderId,
+        message,
+        giftedAt: new Date().toISOString(),
+      });
+
+      const [userItem] = await tx
+        .insert(userItems)
+        .values({
+          userId: receiverId,
+          itemId,
+          isEquipped: false,
+          metadata,
+        })
+        .returning();
+
+      // 7. 处理特殊商品 (勋章)
+      if (item.type === 'badge') {
+        let badgeId = null;
+        try {
+          let meta = item.metadata ? JSON.parse(item.metadata) : {};
+          // double-encoding check
+          if (typeof meta === 'string') {
+             try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
+          }
+          badgeId = meta.badgeId;
+        } catch (e) {
+          console.error('[商城] 解析勋章商品 metadata 失败', e);
+        }
+
+        if (badgeId) {
+           try {
+             // 注意：receiveId 是接收者
+             await grantBadge(receiverId, badgeId, 'shop_gift');
+           } catch (err) {
+             console.error('[商城] 赠送勋章虽然商品已发放但勋章授予失败:', err);
+             throw new Error('勋章授予失败，赠送取消');
+           }
+        }
+      }
+
+      // 8. 扣减库存
+      if (item.stock !== null) {
+        await tx
+          .update(shopItems)
+          .set({ stock: item.stock - 1, updatedAt: new Date() })
+          .where(eq(shopItems.id, itemId));
+      }
+
+      return { message: '赠送成功', balance: newBalance };
+    });
+  } catch (error) {
+    console.error('[商城] 赠送失败:', error);
+    throw error;
+  }
 }

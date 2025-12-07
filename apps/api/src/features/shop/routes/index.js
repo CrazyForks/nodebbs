@@ -9,6 +9,7 @@ import {
   createShopItem,
   updateShopItem,
   deleteShopItem,
+  giftItem,
 } from '../services/shopService.js';
 import db from '../../../db/index.js';
 import { users } from '../../../db/schema.js';
@@ -95,6 +96,45 @@ export default async function shopRoutes(fastify, options) {
       }
       fastify.log.error('[商城] 购买失败:', error);
       return reply.code(500).send({ error: '购买失败' });
+    }
+
+  });
+
+  // 赠送商品
+  fastify.post('/items/:itemId/gift', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['shop'],
+      description: '赠送商品',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['itemId'],
+        properties: {
+          itemId: { type: 'integer' },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['receiverId'],
+        properties: {
+          receiverId: { type: 'integer' },
+          message: { type: 'string', maxLength: 200 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { itemId } = request.params;
+      const { receiverId, message } = request.body;
+      const result = await giftItem(request.user.id, receiverId, itemId, message);
+      return result;
+    } catch (error) {
+      if (error.message.includes('积分不足') || error.message.includes('已经拥有') || error.message.includes('库存不足')) {
+        return reply.code(400).send({ error: error.message });
+      }
+      fastify.log.error('[商城] 赠送失败:', error);
+      return reply.code(500).send({ error: '赠送失败' });
     }
   });
 

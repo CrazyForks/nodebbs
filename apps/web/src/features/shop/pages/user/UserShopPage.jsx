@@ -36,12 +36,26 @@ export default function UserShopPage() {
     setBuyDialogOpen(true);
   };
 
-  const handleBuy = async () => {
+  const handleBuy = async (data = {}) => {
     if (!selectedItem) return;
+    const { isGift, receiverId, message } = data;
 
     setIsBuying(true);
     try {
-      await shopApi.buyItem(selectedItem.id);
+      if (isGift) {
+        await shopApi.giftItem(selectedItem.id, receiverId, message);
+        toast.success('赠送成功！');
+      } else {
+        await shopApi.buyItem(selectedItem.id);
+        
+        // Show success feedback
+        if (selectedItem.type === 'badge') {
+          setUnlockedBadge(selectedItem);
+          setShowUnlockDialog(true);
+        } else {
+          toast.success('购买成功！');
+        }
+      }
       
       // Close buy dialog
       setBuyDialogOpen(false);
@@ -49,14 +63,6 @@ export default function UserShopPage() {
       // Update data
       await refetchBalance();
       await refetchItems();
-
-      // Show success feedback
-      if (selectedItem.type === 'badge') {
-        setUnlockedBadge(selectedItem);
-        setShowUnlockDialog(true);
-      } else {
-        toast.success('购买成功！');
-      }
 
       setSelectedItem(null);
     } catch (error) {

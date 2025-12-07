@@ -94,6 +94,11 @@ export const shopApi = {
     return apiClient.post(`/shop/items/${itemId}/buy`);
   },
 
+  // 赠送商品
+  async giftItem(itemId, receiverId, message) {
+    return apiClient.post(`/shop/items/${itemId}/gift`, { receiverId, message });
+  },
+
   // 获取我的商品列表
   async getMyItems(params = {}) {
     return apiClient.get('/shop/my-items', params);

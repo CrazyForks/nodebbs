@@ -72,6 +72,7 @@ export const userItems = pgTable(
       .references(() => shopItems.id, { onDelete: 'cascade' }),
     isEquipped: boolean('is_equipped').notNull().default(false), // 是否装备中
     expiresAt: timestamp('expires_at', { withTimezone: true }), // 过期时间（null=永久）
+    metadata: text('metadata'), // 储存赠送信息等 { fromUserId, message, giftedAt }
   },
   (table) => [
     index('user_items_user_idx').on(table.userId),
