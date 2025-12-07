@@ -13,6 +13,9 @@ export const badgesApi = {
 
   // Admin API
   admin: {
+    getAll(params = {}) {
+      return apiClient.get('/badges/admin', params);
+    },
     create(data) {
       return apiClient.post('/badges/admin', data);
     },

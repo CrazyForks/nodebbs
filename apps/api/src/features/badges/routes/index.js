@@ -13,14 +13,16 @@ export default async function badgeRoutes(fastify, options) {
       querystring: {
         type: 'object',
         properties: {
+          page: { type: 'integer', default: 1 },
+          limit: { type: 'integer', default: 20 },
           category: { type: 'string' }
         }
       }
     }
   }, async (request, reply) => {
-    const { category } = request.query;
-    const includeDisabled = request.user && request.user.role === 'admin';
-    const allBadges = await getBadges(category, includeDisabled);
+    const { page, limit, category } = request.query;
+    // Public endpoint: always active badges only
+    const result = await getBadges({ page, limit, category, includeInactive: false });
 
     if (request.user) {
         // 获取用户已拥有的勋章信息
@@ -29,8 +31,6 @@ export default async function badgeRoutes(fastify, options) {
         const ownershipInfo = new Map();
         
         userOwned.forEach(ub => {
-            // 注意：getUserBadges 返回的是 join 后的对象，结构包含 badge 关联
-            // 我们只需要标记拥有的 badge ID 和相关信息
             const bid = ub.badge ? ub.badge.id : ub.badgeId;
             ownershipInfo.set(bid, {
                 isOwned: true,
@@ -39,19 +39,46 @@ export default async function badgeRoutes(fastify, options) {
             });
         });
 
+        const enrichedItems = result.items.map(badge => {
+            const info = ownershipInfo.get(badge.id);
+            if (info) {
+                return { ...badge, ...info };
+            }
+            return { ...badge, isOwned: false };
+        });
+
         return {
-            items: allBadges.map(badge => {
-                const info = ownershipInfo.get(badge.id);
-                if (info) {
-                    return { ...badge, ...info };
-                }
-                return { ...badge, isOwned: false };
-            })
+            ...result,
+            items: enrichedItems
         };
     }
 
     // 未登录用户，直接返回基础列表
-    return { items: allBadges.map(b => ({ ...b, isOwned: false })) };
+    return { 
+        ...result,
+        items: result.items.map(b => ({ ...b, isOwned: false })) 
+    };
+  });
+
+  // 管理员：获取所有勋章列表 (包含下架)
+  fastify.get('/admin', {
+    preHandler: [fastify.authenticate, fastify.requireAdmin],
+    schema: {
+        tags: ['badges', 'admin'],
+        description: '获取所有勋章列表（管理员），包含下架勋章',
+        querystring: {
+            type: 'object',
+            properties: {
+                page: { type: 'integer', default: 1 },
+                limit: { type: 'integer', default: 20 },
+                category: { type: 'string' }
+            }
+        }
+    }
+  }, async (request, reply) => {
+      const { page, limit, category } = request.query;
+      const result = await getBadges({ page, limit, category, includeInactive: true });
+      return result;
   });
 
   // Route removed: /users/:userId (Data consolidated into /api/users/:username)

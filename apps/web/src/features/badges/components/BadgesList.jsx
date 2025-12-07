@@ -9,7 +9,7 @@ export default function BadgesList({ userId }) {
   useEffect(() => {
     async function fetchData() {
       try {
-        const badgesRes = await badgesApi.getAll();
+        const badgesRes = await badgesApi.getAll({ limit: 100 });
         setAllBadges(badgesRes.items || []);
       } catch (error) {
         console.error('Failed to fetch badges', error);

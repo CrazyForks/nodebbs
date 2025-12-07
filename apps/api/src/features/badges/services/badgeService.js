@@ -37,13 +37,19 @@ export async function grantBadge(userId, badgeId, source = 'system') {
 
 /**
  * Get all badges (optionally filtered by category)
- * @param {string|null} category - Filter by category
- * @param {boolean} includeDisabled - Whether to include inactive badges (default: false)
+ * @param {Object} options
+ * @param {number} options.page - Page number
+ * @param {number} options.limit - Items per page
+ * @param {string} [options.category] - Filter by category
+ * @param {boolean} [options.includeInactive] - Whether to include inactive badges (default: false)
  */
-export async function getBadges(category = null, includeDisabled = false) {
+export async function getBadges(options = {}) {
+  const { page = 1, limit = 20, category = null, includeInactive = false } = options;
+  const offset = (page - 1) * limit;
+
   const conditions = [];
   
-  if (!includeDisabled) {
+  if (!includeInactive) {
     conditions.push(eq(badges.isActive, true));
   }
   
@@ -52,11 +58,27 @@ export async function getBadges(category = null, includeDisabled = false) {
   }
   
   let query = db.select().from(badges);
+  let countQuery = db.select({ count: sql`count(*)` }).from(badges);
+
   if (conditions.length > 0) {
-    query = query.where(and(...conditions));
+    const condition = and(...conditions);
+    query = query.where(condition);
+    countQuery = countQuery.where(condition);
   }
   
-  return await query.orderBy(badges.displayOrder);
+  const items = await query
+    .orderBy(badges.displayOrder)
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count }] = await countQuery;
+  
+  return {
+    items,
+    page,
+    limit,
+    total: Number(count)
+  };
 }
 
 /**

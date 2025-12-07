@@ -33,7 +33,7 @@ export default function AdminBadgesPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { items } = await badgesApi.getAll({});
+      const { items } = await badgesApi.admin.getAll({ limit: 100 });
       setItems(items || []);
     } catch (error) {
       console.error('Failed to fetch badges:', error);
