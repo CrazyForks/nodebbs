@@ -19,7 +19,8 @@ export default async function badgeRoutes(fastify, options) {
     }
   }, async (request, reply) => {
     const { category } = request.query;
-    const allBadges = await getBadges(category);
+    const includeDisabled = request.user && request.user.role === 'admin';
+    const allBadges = await getBadges(category, includeDisabled);
 
     if (request.user) {
         // 获取用户已拥有的勋章信息

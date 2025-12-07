@@ -37,15 +37,24 @@ export async function grantBadge(userId, badgeId, source = 'system') {
 
 /**
  * Get all badges (optionally filtered by category)
+ * @param {string|null} category - Filter by category
+ * @param {boolean} includeDisabled - Whether to include inactive badges (default: false)
  */
-export async function getBadges(category = null) {
-  const conditions = [eq(badges.isActive, true)];
+export async function getBadges(category = null, includeDisabled = false) {
+  const conditions = [];
+  
+  if (!includeDisabled) {
+    conditions.push(eq(badges.isActive, true));
+  }
   
   if (category) {
     conditions.push(eq(badges.category, category));
   }
   
-  let query = db.select().from(badges).where(and(...conditions));
+  let query = db.select().from(badges);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
   
   return await query.orderBy(badges.displayOrder);
 }
