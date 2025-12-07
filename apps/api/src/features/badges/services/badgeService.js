@@ -39,11 +39,13 @@ export async function grantBadge(userId, badgeId, source = 'system') {
  * Get all badges (optionally filtered by category)
  */
 export async function getBadges(category = null) {
-  let query = db.select().from(badges).where(eq(badges.isActive, true));
+  const conditions = [eq(badges.isActive, true)];
   
   if (category) {
-    query = query.where(eq(badges.category, category));
+    conditions.push(eq(badges.category, category));
   }
+  
+  let query = db.select().from(badges).where(and(...conditions));
   
   return await query.orderBy(badges.displayOrder);
 }

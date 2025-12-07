@@ -545,14 +545,16 @@ export async function getUserTransactions(userId, options = {}) {
   const offset = (page - 1) * limit;
 
   try {
+    const conditions = [eq(creditTransactions.userId, userId)];
+
+    if (type) {
+      conditions.push(eq(creditTransactions.type, type));
+    }
+
     let query = db
       .select()
       .from(creditTransactions)
-      .where(eq(creditTransactions.userId, userId));
-
-    if (type) {
-      query = query.where(eq(creditTransactions.type, type));
-    }
+      .where(and(...conditions));
 
     const items = await query
       .orderBy(desc(creditTransactions.createdAt))
@@ -612,16 +614,22 @@ export async function getAllTransactions(options = {}) {
       .from(creditTransactions)
       .innerJoin(users, eq(creditTransactions.userId, users.id));
 
+    const conditions = [];
+
     if (userId) {
-      query = query.where(eq(creditTransactions.userId, userId));
+      conditions.push(eq(creditTransactions.userId, userId));
     }
 
     if (username) {
-      query = query.where(ilike(users.username, `%${username}%`));
+      conditions.push(ilike(users.username, `%${username}%`));
     }
 
     if (type) {
-      query = query.where(eq(creditTransactions.type, type));
+      conditions.push(eq(creditTransactions.type, type));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     const items = await query
@@ -634,19 +642,14 @@ export async function getAllTransactions(options = {}) {
       .select({ count: sql`count(*)` })
       .from(creditTransactions);
 
-    if (userId) {
-      countQuery = countQuery.where(eq(creditTransactions.userId, userId));
-    }
-
+    // 如果有用户名筛选，或者主查询用了 innerJoin (虽然 count 不一定需要 innerJoin 用户表除非是为了过滤，
+    // 但这里 username 过滤依赖 users 表，所以必须 join)
     if (username) {
-      // 如果按用户名搜索，需要关联用户表来计算总数
-      countQuery = countQuery
-        .innerJoin(users, eq(creditTransactions.userId, users.id))
-        .where(ilike(users.username, `%${username}%`));
+      countQuery = countQuery.innerJoin(users, eq(creditTransactions.userId, users.id));
     }
 
-    if (type) {
-      countQuery = countQuery.where(eq(creditTransactions.type, type));
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions));
     }
 
     const [{ count }] = await countQuery;
