@@ -13,7 +13,8 @@ export const request = async (endpoint, options = {}) => {
   const cks = await cookies();
   const token = cks.get('auth_token')?.value;
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    // headers['Authorization'] = `Bearer ${token}`;
+    headers['Cookie'] = `auth_token=${token}`;
   }
 
   try {
@@ -39,4 +40,17 @@ export const request = async (endpoint, options = {}) => {
     console.error('Error fetching:', error);
     return null;
   }
+};
+
+// 获取当前登录用户 (SSR专用)
+// 优化：只有在存在 auth_token cookie 时才发请求
+export const getCurrentUser = async () => {
+  const cookieStore = await cookies();
+  const hasToken = cookieStore.has('auth_token');
+
+  if (!hasToken) {
+    return null;
+  }
+
+  return request('/api/auth/me');
 };

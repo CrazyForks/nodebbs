@@ -55,7 +55,8 @@ export function QRLoginTab({ onSuccess }) {
           clearInterval(pollingRef.current);
 
           // 保存 token 和用户信息
-          setAuthData(data.token, data.user);
+          // 注意：Cookie 已经由后端 Set-Cookie 设置，这里只需要更新 Context 状态
+          setAuthData(data.user);
 
           toast.success('扫码登录成功！');
 

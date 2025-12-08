@@ -6,21 +6,25 @@ import LoginDialog from '@/components/forum/LoginDialog';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children, initialUser }) {
+  // 如果 initialUser 被传递（无论是 null 还是对象），说明服务端已经检查过了
+  // 我们直接使用该状态，且不需要 loading
+  const isHydrated = initialUser !== undefined;
+  
+  const [user, setUser] = useState(initialUser || null);
+  const [loading, setLoading] = useState(!isHydrated);
   const [error, setError] = useState(null);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
-  // 初始化时检查是否已登录
+  // 初始化检查
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      setLoading(false);
-      return;
+    // 如果已经由服务端 Hydrate，且有用户，则不需要再次检查
+    // 如果没有 Hydrate (SPA 导航/降级情况)，或者想双重确认，可以检查
+    // 这里我们选择：只有当未 Hydrate 时才检查
+    if (!isHydrated) {
+      checkAuth();
     }
-    checkAuth();
-
+    
     // 监听未授权事件
     const handleUnauthorized = () => {
       setUser(null);
@@ -103,10 +107,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 设置认证数据（用于扫码登录等外部认证成功后）
-  const setAuthData = useCallback((token, userData) => {
-    // 设置 token 到 apiClient 和 localStorage
-    const { default: apiClient } = require('@/lib/api');
-    apiClient.setToken(token);
+  const setAuthData = useCallback((userData) => {
     // 设置用户数据
     setUser(userData);
     // 关闭登录对话框

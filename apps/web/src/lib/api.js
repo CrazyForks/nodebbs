@@ -4,29 +4,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7100';
 class ApiClient {
   constructor() {
     this.baseURL = API_BASE_URL + '/api';
-    this.token = null;
-
-    // 初始化时从 localStorage 读取 token
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token');
-    }
-  }
-
-  setToken(token) {
-    this.token = token;
-    if (typeof window !== 'undefined') {
-      if (token) {
-        localStorage.setItem('auth_token', token);
-        document.cookie = `auth_token=${token}; path=/;`;
-      } else {
-        localStorage.removeItem('auth_token');
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
-      }
-    }
-  }
-
-  getToken() {
-    return this.token;
   }
 
   async request(endpoint, options = {}) {
@@ -36,14 +13,12 @@ class ApiClient {
       ...options.headers,
     };
 
-    // 添加认证 token
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
+    // Cookie 自动处理认证，无需手动添加 Authorization 头
 
     const config = {
       ...options,
       headers,
+      credentials: 'include', // 允许跨域请求携带 Cookie
     };
 
     try {
@@ -51,7 +26,6 @@ class ApiClient {
 
       // 处理 401 未授权
       if (response.status === 401) {
-        this.setToken(null);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('unauthorized'));
         }
@@ -115,25 +89,22 @@ const apiClient = new ApiClient();
 export const authApi = {
   // 注册
   async register(data) {
-    const response = await apiClient.post('/auth/register', data);
-    if (response.token) {
-      apiClient.setToken(response.token);
-    }
-    return response;
+    return apiClient.post('/auth/register', data);
   },
 
   // 登录（支持用户名或邮箱）
   async login(identifier, password) {
-    const response = await apiClient.post('/auth/login', { identifier, password });
-    if (response.token) {
-      apiClient.setToken(response.token);
-    }
-    return response;
+    return apiClient.post('/auth/login', { identifier, password });
   },
 
   // 登出
-  logout() {
-    apiClient.setToken(null);
+  async logout() {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (e) {
+      console.error('登出失败:', e);
+    }
+    // Cookie 会被后端清除，无需前端操作
   },
 
   // 获取当前用户
@@ -200,29 +171,17 @@ export const authApi = {
 
   // GitHub OAuth 回调处理
   async githubCallback(code, state) {
-    const response = await apiClient.post('/oauth/github/callback', { code, state });
-    if (response.token) {
-      apiClient.setToken(response.token);
-    }
-    return response;
+    return apiClient.post('/oauth/github/callback', { code, state });
   },
 
   // Google OAuth 回调处理
   async googleCallback(code, state) {
-    const response = await apiClient.post('/oauth/google/callback', { code, state });
-    if (response.token) {
-      apiClient.setToken(response.token);
-    }
-    return response;
+    return apiClient.post('/oauth/google/callback', { code, state });
   },
 
   // Apple OAuth 回调处理
   async appleCallback(code, state) {
-    const response = await apiClient.post('/oauth/apple/callback', { code, state });
-    if (response.token) {
-      apiClient.setToken(response.token);
-    }
-    return response;
+    return apiClient.post('/oauth/apple/callback', { code, state });
   },
 
   // 获取关联的 OAuth 账号
@@ -269,13 +228,15 @@ export const userApi = {
     formData.append('file', file);
 
     const url = `${apiClient.baseURL}/users/me/upload-avatar`;
-    const headers = {
-      'Authorization': `Bearer ${apiClient.token}`,
-    };
+    // const headers = {
+    //   'Authorization': `Bearer ${apiClient.token}`,
+    // };
 
     const response = await fetch(url, {
       method: 'POST',
-      headers,
+      // headers, // Multipart form data 不需要手动设置 Content-Type? 需要验证 fetch 对 FormData 的处理
+      // 这里只需要 credentials 用于认证
+      credentials: 'include',
       body: formData,
     });
 

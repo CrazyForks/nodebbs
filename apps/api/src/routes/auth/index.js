@@ -19,6 +19,7 @@ import {
 } from '../../utils/validateUsername.js';
 import { checkSpammer, formatSpamCheckMessage } from '../../utils/stopforumspam.js';
 import qrLoginRoutes from './qr-login.js';
+import { isDev } from '../../utils/env.js';
 
 export default async function authRoutes(fastify, options) {
   // 注册扫码登录路由
@@ -219,8 +220,8 @@ export default async function authRoutes(fastify, options) {
         await markInvitationCodeAsUsed(invitationCode.trim(), newUser.id);
       }
 
-      // Generate JWT token (只包含用户ID，其他信息从数据库实时获取)
-      const token = fastify.jwt.sign({
+      // 生成 Token 并设置 Cookie
+      const token = reply.generateAuthToken({
         id: newUser.id,
       });
 
@@ -309,8 +310,8 @@ export default async function authRoutes(fastify, options) {
         .set({ lastSeenAt: new Date() })
         .where(eq(users.id, user.id));
 
-      // Generate JWT token (只包含用户ID，其他信息从数据库实时获取)
-      const token = fastify.jwt.sign({
+      // 生成 Token 并设置 Cookie
+      const token = reply.generateAuthToken({
         id: user.id,
       });
 
@@ -368,6 +369,30 @@ export default async function authRoutes(fastify, options) {
       delete user.passwordHash;
 
       return user;
+    }
+  );
+
+  // Logout
+  fastify.post(
+    '/logout',
+    {
+      schema: {
+        tags: ['auth'],
+        description: '用户登出',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      // 清除 Cookie
+      reply.clearCookie('auth_token', { path: '/', domain: process.env.COOKIE_DOMAIN || undefined });
+      return { message: '登出成功' };
     }
   );
 
@@ -738,7 +763,7 @@ export default async function authRoutes(fastify, options) {
             );
 
             // 开发环境下返回验证码（生产环境删除此段）
-            if (process.env.NODE_ENV === 'development') {
+            if (isDev) {
               return {
                 message: `验证码已生成（开发模式）: ${code}`,
                 expiresIn: config.expiryMinutes,
@@ -753,7 +778,7 @@ export default async function authRoutes(fastify, options) {
         } catch (error) {
           fastify.log.error(`[发送验证码] 发送失败: ${error.message}`);
           // 开发环境下，在日志中显示验证码
-          if (process.env.NODE_ENV === 'development') {
+          if (isDev) {
             fastify.log.info(
               `[发送验证码] 验证码: ${code}, 过期时间: ${expiresAt}`
             );

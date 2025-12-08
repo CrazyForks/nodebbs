@@ -15,7 +15,7 @@ import {
 import Header from '@/components/forum/Header';
 import Footer from '@/components/forum/Footer';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
-import { request } from '@/lib/server/api';
+import { request, getCurrentUser } from '@/lib/server/api';
 
 // 强制动态渲染，因为需要读取 cookies
 export const dynamic = 'force-dynamic';
@@ -91,7 +91,7 @@ async function AppLayout({ children }) {
   );
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   // 从配置中提取需要的数据
   const themeClasses = THEMES.filter(t => t.class).map(t => t.class);
   const fontSizeClasses = FONT_SIZES.map(f => f.class);
@@ -129,6 +129,9 @@ export default function RootLayout({ children }) {
     })();
   `;
 
+  // 获取当前用户 (SSR)
+  const user = await getCurrentUser();
+
   return (
     <html lang='en' suppressHydrationWarning className='overflow-y-scroll'>
       <head>
@@ -136,7 +139,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialUser={user}>
             <SettingsProvider>
               <AppLayout>{children}</AppLayout>
               <Toaster position='top-right' richColors />
