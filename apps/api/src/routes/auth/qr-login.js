@@ -139,6 +139,10 @@ export default async function qrLoginRoutes(fastify, options) {
 
         if (user) {
           delete user.passwordHash;
+          
+          // 设置 Auth Cookie
+          reply.setAuthCookie(loginRequest.token);
+
           return {
             status: 'confirmed',
             token: loginRequest.token,

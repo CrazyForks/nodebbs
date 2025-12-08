@@ -4,11 +4,47 @@ import bcrypt from 'bcryptjs';
 import db from '../db/index.js';
 import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import ms from 'ms';
+import { isProd } from '../utils/env.js';
 
 async function authPlugin(fastify) {
-  // Register JWT plugin
+  // 注册 Cookie 插件
+  await fastify.register(import('@fastify/cookie'), {
+    secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'cookie-secret-change-this',
+    parseOptions: {} 
+  });
+
+  // 设置 Auth Cookie 的辅助函数
+  fastify.decorateReply('setAuthCookie', function(token) {
+    const expiresIn = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '7d';
+    
+    this.setCookie('auth_token', token, {
+      path: '/',
+      httpOnly: true,
+      // 开发环境：
+      // - Secure: false (允许 HTTP)
+      // - SameSite: Lax (localhost 不同端口视为同站，允许发送)
+      secure: isProd,
+      sameSite: 'lax',
+      domain: process.env.COOKIE_DOMAIN || undefined, // 生产环境如果是子域名部署，需要设置主域名 (如 .example.com)
+      maxAge: ms(expiresIn) / 1000,
+    });
+  });
+
+  // 生成 Token 并设置 Cookie
+  fastify.decorateReply('generateAuthToken', function(payload) {
+    const token = fastify.jwt.sign(payload);
+    this.setAuthCookie(token);
+    return token;
+  });
+
+  // 注册 JWT 插件
   await fastify.register(jwt, {
     secret: process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
+    cookie: {
+      cookieName: 'auth_token',
+      signed: false,
+    },
     sign: {
       expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '7d'
     }

@@ -562,7 +562,12 @@ export default async function oauthRoutes(fastify, options) {
           }
         );
 
-        return result;
+        // 生成 Token 并设置 Cookie
+        const authToken = reply.generateAuthToken({
+          id: result.user.id,
+        });
+
+        return { ...result, token: authToken };
       } catch (error) {
         fastify.log.error(error);
         return reply.code(400).send({ error: error.message });
@@ -680,7 +685,12 @@ export default async function oauthRoutes(fastify, options) {
           }
         );
 
-        return result;
+        // 生成 Token 并设置 Cookie
+        const authToken = reply.generateAuthToken({
+          id: result.user.id,
+        });
+
+        return { ...result, token: authToken };
       } catch (error) {
         fastify.log.error(error);
         return reply.code(400).send({ error: error.message });
@@ -793,7 +803,12 @@ export default async function oauthRoutes(fastify, options) {
           }
         );
 
-        return result;
+        // 生成 Token 并设置 Cookie
+        const authToken = reply.generateAuthToken({
+          id: result.user.id,
+        });
+
+        return { ...result, token: authToken };
       } catch (error) {
         fastify.log.error(error);
         return reply.code(400).send({ error: error.message });
@@ -985,10 +1000,10 @@ async function handleOAuthLogin(
     throw new Error('账号已被封禁');
   }
 
-  // 生成 JWT token (只包含用户ID，其他信息从数据库实时获取)
-  const token = fastify.jwt.sign({
-    id: user.id,
-  });
+  // 生成 Token (不再生成，由调用方处理)
+  // const token = fastify.jwt.sign({
+  //   id: user.id,
+  // });
 
   return {
     user: {
@@ -1000,6 +1015,6 @@ async function handleOAuthLogin(
       role: user.role,
       isEmailVerified: user.isEmailVerified,
     },
-    token,
+    // token, // 不再返回 token
   };
 }

@@ -16,7 +16,7 @@ import Header from '@/components/forum/Header';
 import Footer from '@/components/forum/Footer';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 import AutoCheckIn from '@/features/credits/components/AutoCheckIn';
-import { request } from '@/lib/server/api';
+import { request, getCurrentUser } from '@/lib/server/api';
 
 // 强制动态渲染，因为需要读取 cookies
 export const dynamic = 'force-dynamic';
@@ -43,12 +43,12 @@ export async function generateMetadata({ params }) {
   return {
     title: {
       template: `%s | ${name}`,
-      default: $title, // a default is required when creating a template
+      default: name, // a default is required when creating a template
     },
     description,
-    applicationName: $title,
+    applicationName: name,
     appleWebApp: {
-      title: $title,
+      title: name,
     },
     icons: {
       icon: '/logo.svg',
@@ -57,7 +57,7 @@ export async function generateMetadata({ params }) {
     openGraph: {
       title: {
         template: `%s | ${name}`,
-        default: $title,
+        default: name,
       },
       description,
       siteName: name,
@@ -92,7 +92,7 @@ async function AppLayout({ children }) {
   );
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   // 从配置中提取需要的数据
   const themeClasses = THEMES.filter(t => t.class).map(t => t.class);
   const fontSizeClasses = FONT_SIZES.map(f => f.class);
@@ -130,6 +130,9 @@ export default function RootLayout({ children }) {
     })();
   `;
 
+  // 获取当前用户 (SSR)
+  const user = await getCurrentUser();
+
   return (
     <html lang='en' suppressHydrationWarning className='overflow-y-scroll'>
       <head>
@@ -137,7 +140,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialUser={user}>
             <SettingsProvider>
               <AppLayout>{children}</AppLayout>
               <AutoCheckIn />
