@@ -85,11 +85,6 @@ export default function ProfileSidebar() {
           icon: MessageCircle,
           label: '我的回复',
         },
-        {
-          href: '/profile/favorites',
-          icon: Star,
-          label: '我的收藏',
-        },
       ],
     },
     {
