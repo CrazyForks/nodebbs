@@ -479,7 +479,10 @@ export default async function topicRoutes(fastify, options) {
       // Increment view count (only for approved topics or when accessed by author/moderator)
       await db
         .update(topics)
-        .set({ viewCount: sql`${topics.viewCount} + 1` })
+        .set({ 
+          viewCount: sql`${topics.viewCount} + 1`,
+          updatedAt: sql`${topics.updatedAt}`
+        })
         .where(eq(topics.id, id));
 
       // Get the first post (topic content)

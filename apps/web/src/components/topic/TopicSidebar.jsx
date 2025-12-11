@@ -215,18 +215,18 @@ export default function TopicSidebar({
             <span className='text-muted-foreground'>浏览数</span>
             <span className='font-semibold'>{topic.viewCount}</span>
           </div>
-          <div className='flex items-center justify-between pt-2 border-t border-border'>
-            <span className='text-muted-foreground'>创建时间</span>
-            <span className='text-xs'>
-              <Time date={topic.createdAt} />
-            </span>
-          </div>
-          {topic.updatedAt !== topic.createdAt && (
+          {topic.editedAt && (
             <div className='flex items-center justify-between'>
-              <span className='text-muted-foreground'>更新时间</span>
+              <span className='text-muted-foreground'>最后编辑</span>
               <span className='text-xs'>
-                <Time date={topic.updatedAt} />
+                <Time date={topic.editedAt} fromNow />
               </span>
+            </div>
+          )}
+          {topic.editCount > 0 && (
+            <div className='flex items-center justify-between'>
+              <span className='text-muted-foreground'>编辑次数</span>
+              <span className='font-semibold'>{topic.editCount}</span>
             </div>
           )}
         </div>
