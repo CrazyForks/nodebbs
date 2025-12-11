@@ -149,7 +149,7 @@ export default function TopicPageClient({
     <div className='container mx-auto px-4 py-6 flex-1'>
       <main className='flex flex-col-reverse md:flex-col lg:flex-row gap-6'>
         {/* 主要内容区域 */}
-        <div className='flex-1'>
+        <div className='flex-1 min-w-0'>
           {/* 话题内容 */}
           <TopicContent 
             topic={topic} 
