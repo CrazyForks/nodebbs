@@ -218,6 +218,7 @@ export default async function topicRoutes(fastify, options) {
           categoryColor: categories.color,
           userId: topics.userId,
           username: users.username,
+          userName: users.name,
           userAvatar: users.avatar,
           viewCount: topics.viewCount,
           // 注意：likeCount 已从 topics 表移除，如需显示请从第一条帖子获取

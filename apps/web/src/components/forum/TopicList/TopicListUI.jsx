@@ -73,7 +73,7 @@ export function TopicItem({ topic }) {
           <Link href={`/users/${topic.username}`} prefetch={false}>
             <UserAvatar
               url={topic.userAvatar}
-              name={topic.username}
+              name={topic.userName || topic.username}
               size='md'
               className='ring-2 ring-transparent group-hover:ring-primary/20 transition-all'
               frameMetadata={topic.userAvatarFrame?.itemMetadata}
@@ -126,7 +126,7 @@ export function TopicItem({ topic }) {
               prefetch={false}
               className='font-medium text-muted-foreground hover:text-primary transition-colors'
             >
-              {topic.username}
+              {topic.userName || topic.username}
             </Link>
 
             <span className='text-muted-foreground/50'>·</span>

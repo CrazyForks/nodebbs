@@ -49,7 +49,8 @@ export default async function notificationRoutes(fastify, options) {
         triggeredByAvatar: users.avatar,
         topicId: notifications.topicId,
         topicTitle: topics.title,
-        postId: notifications.postId
+        postId: notifications.postId,
+        triggeredByName: users.name
       })
       .from(notifications)
       .leftJoin(users, eq(notifications.triggeredByUserId, users.id))
