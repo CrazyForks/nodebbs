@@ -209,7 +209,7 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
                 })()}
                 onValueChange={handleBadgeSelect}
               >
-                <SelectTrigger>
+                <SelectTrigger className='bg-background'>
                   <SelectValue placeholder="选择一个现有勋章..." />
                 </SelectTrigger>
                 <SelectContent>
