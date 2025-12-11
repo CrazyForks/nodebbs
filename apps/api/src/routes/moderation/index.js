@@ -676,14 +676,14 @@ export default async function moderationRoutes(fastify, options) {
       // 批准话题
       const [updated] = await db
         .update(topics)
-        .set({ approvalStatus: 'approved', updatedAt: new Date() })
+        .set({ approvalStatus: 'approved' })
         .where(eq(topics.id, id))
         .returning();
 
       // 同时批准话题的第一条回复（话题内容）
       await db
         .update(posts)
-        .set({ approvalStatus: 'approved', updatedAt: new Date() })
+        .set({ approvalStatus: 'approved' })
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志
@@ -761,14 +761,14 @@ export default async function moderationRoutes(fastify, options) {
       // 拒绝话题
       const [updated] = await db
         .update(topics)
-        .set({ approvalStatus: 'rejected', updatedAt: new Date() })
+        .set({ approvalStatus: 'rejected' })
         .where(eq(topics.id, id))
         .returning();
 
       // 同时拒绝话题的第一条回复（话题内容）
       await db
         .update(posts)
-        .set({ approvalStatus: 'rejected', updatedAt: new Date() })
+        .set({ approvalStatus: 'rejected' })
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志

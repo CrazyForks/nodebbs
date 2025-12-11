@@ -157,14 +157,6 @@ export default function TopicContent({ topic }) {
               <span className='opacity-70'>
                 发布于 <TimeAgo date={topic.createdAt} />
               </span>
-              {topic.editCount > 0 && (
-                <>
-                  <span className='opacity-50'>•</span>
-                  <span className='opacity-70'>
-                    编辑 {topic.editCount} 次
-                  </span>
-                </>
-              )}
               {topic.approvalStatus === 'pending' && (
                 <>
                   <span className='opacity-50'>•</span>

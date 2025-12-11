@@ -628,7 +628,7 @@ export default async function postRoutes(fastify, options) {
       postCount: sql`${topics.postCount} + 1`,
       lastPostAt: new Date(),
       lastPostUserId: request.user.id,
-      updatedAt: new Date()
+      updatedAt: sql`${topics.updatedAt}` // Explicitly keep same to avoid $onUpdate trigger
     }).where(eq(topics.id, topicId));
 
     // Create notification for topic owner if not replying to own topic
@@ -896,7 +896,7 @@ export default async function postRoutes(fastify, options) {
       if (!post.isDeleted) {
         await db.update(topics).set({
           postCount: sql`${topics.postCount} - 1`,
-          updatedAt: new Date()
+          updatedAt: sql`${topics.updatedAt}`
         }).where(eq(topics.id, post.topicId));
       }
 
@@ -914,7 +914,7 @@ export default async function postRoutes(fastify, options) {
       if (!post.isDeleted) {
         await db.update(topics).set({
           postCount: sql`${topics.postCount} - 1`,
-          updatedAt: new Date()
+          updatedAt: sql`${topics.updatedAt}`
         }).where(eq(topics.id, post.topicId));
       }
 
