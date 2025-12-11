@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
+import { FormDialog } from '@/components/common/FormDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,15 +91,40 @@ export function PurchaseDialog({ open, item, userBalance, onConfirm, onCancel, p
   };
 
   return (
-    <Dialog open={open} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>购买商品</DialogTitle>
-          <DialogDescription>
-             {item.name}
-          </DialogDescription>
-        </DialogHeader>
-
+    <FormDialog
+      open={open}
+      onOpenChange={onCancel}
+      maxWidth="sm:max-w-[425px]"
+      title="购买商品"
+      description={item.name}
+      footer={
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={purchasing}
+          >
+            取消
+          </Button>
+          <Button 
+            onClick={handleConfirm} 
+            disabled={purchasing || !canAfford || (mode === 'gift' && !receiver)}
+          >
+            {purchasing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                处理中...
+              </>
+            ) : (
+              <>
+                {mode === 'gift' ? <Gift className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
+                {mode === 'gift' ? '确认赠送' : '确认购买'}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      }
+    >
         <Tabs value={mode} onValueChange={setMode} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="buy">自用购买</TabsTrigger>
@@ -229,33 +250,6 @@ export function PurchaseDialog({ open, item, userBalance, onConfirm, onCancel, p
             
           </div>
         </Tabs>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            disabled={purchasing}
-          >
-            取消
-          </Button>
-          <Button 
-            onClick={handleConfirm} 
-            disabled={purchasing || !canAfford || (mode === 'gift' && !receiver)}
-          >
-            {purchasing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                处理中...
-              </>
-            ) : (
-              <>
-                {mode === 'gift' ? <Gift className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                {mode === 'gift' ? '确认赠送' : '确认购买'}
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

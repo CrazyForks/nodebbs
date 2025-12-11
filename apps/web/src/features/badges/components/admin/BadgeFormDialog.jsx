@@ -1,24 +1,18 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
+import { FormDialog } from '@/components/common/FormDialog';
 
 export function BadgeFormDialog({ open, onOpenChange, mode, initialData, onSubmit }) {
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm({
@@ -110,15 +104,15 @@ export function BadgeFormDialog({ open, onOpenChange, mode, initialData, onSubmi
 
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? '新建勋章' : '编辑勋章'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === 'create' ? '新建勋章' : '编辑勋章'}
+      maxWidth="max-w-lg max-h-[90vh] overflow-y-auto"
+      submitText={mode === 'create' ? '创建' : '保存'}
+      onSubmit={handleSubmit(onFormSubmit)}
+    >
+        <form className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">名称</Label>
@@ -270,17 +264,7 @@ export function BadgeFormDialog({ open, onOpenChange, mode, initialData, onSubmi
               />
             </div>
           </div>
-
-          <div className="flex justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="mr-2">
-              取消
-            </Button>
-            <Button type="submit">
-              {mode === 'create' ? '创建' : '保存'}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

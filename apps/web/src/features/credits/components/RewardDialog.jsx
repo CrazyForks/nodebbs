@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { FormDialog } from '@/components/common/FormDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,10 +103,12 @@ export function RewardDialog({ open, onOpenChange, postId, postAuthor, onSuccess
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      maxWidth="sm:max-w-[425px]"
+      title={
+        <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <Heart className="h-5 w-5 text-red-500" />
               打赏 {postAuthor}
@@ -124,12 +123,30 @@ export function RewardDialog({ open, onOpenChange, postId, postAuthor, onSuccess
                 查看记录
               </Button>
             )}
-          </DialogTitle>
-          <DialogDescription>
-            向优质内容的创作者表示感谢
-          </DialogDescription>
-        </DialogHeader>
-
+        </div>
+      }
+      description="向优质内容的创作者表示感谢"
+      footer={
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+            取消
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !amount}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                打赏中...
+              </>
+            ) : (
+              <>
+                <Heart className="mr-2 h-4 w-4" />
+                确认打赏
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      }
+    >
         <div className="space-y-4 py-4">
           {/* 余额显示 */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -192,26 +209,6 @@ export function RewardDialog({ open, onOpenChange, postId, postAuthor, onSuccess
             </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
-            取消
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !amount}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                打赏中...
-              </>
-            ) : (
-              <>
-                <Heart className="mr-2 h-4 w-4" />
-                确认打赏
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

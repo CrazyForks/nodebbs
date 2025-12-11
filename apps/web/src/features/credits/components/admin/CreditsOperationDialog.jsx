@@ -1,18 +1,10 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Minus } from 'lucide-react';
 import { UserSearchInput } from './UserSearchInput';
+import { FormDialog } from '@/components/common/FormDialog';
 
 /**
  * 用于发放或扣除积分的统一对话框
@@ -77,13 +69,21 @@ export function CreditsOperationDialog({ open, onOpenChange, onSubmit, submittin
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{currentConfig.title}</DialogTitle>
-          <DialogDescription>{currentConfig.description}</DialogDescription>
-        </DialogHeader>
-
+    <FormDialog
+      open={open}
+      onOpenChange={handleClose}
+      title={currentConfig.title}
+      description={currentConfig.description}
+      submitText={
+        <>
+            {currentConfig.buttonText}
+        </>
+      }
+      loading={submitting}
+      onSubmit={handleSubmit}
+      disabled={!formData.user || formData.amount <= 0}
+      submitClassName={currentConfig.buttonVariant === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}
+    >
         <div className="space-y-4">
           <UserSearchInput
             selectedUser={formData.user}
@@ -121,30 +121,6 @@ export function CreditsOperationDialog({ open, onOpenChange, onSubmit, submittin
             </div>
           )}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={submitting}>
-            取消
-          </Button>
-          <Button
-            variant={currentConfig.buttonVariant}
-            onClick={handleSubmit}
-            disabled={submitting || !formData.user || formData.amount <= 0}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {currentConfig.loadingText}
-              </>
-            ) : (
-              <>
-                <Icon className="h-4 w-4" />
-                {currentConfig.buttonText}
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

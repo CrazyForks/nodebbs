@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormDialog } from '@/components/common/FormDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import UserAvatar from '@/components/forum/UserAvatar';
 import { creditsApi } from '@/lib/api';
@@ -62,10 +57,12 @@ export function RewardListDialog({ open, onOpenChange, postId }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      maxWidth="sm:max-w-[425px]"
+      title={
+        <div className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-yellow-600" />
             打赏记录
             {totalCount > 0 && (
@@ -73,9 +70,10 @@ export function RewardListDialog({ open, onOpenChange, postId }) {
                 (共 {totalCount} 次, {totalAmount} 积分)
               </span>
             )}
-          </DialogTitle>
-        </DialogHeader>
-
+        </div>
+      }
+      footer={null}
+    >
         <ScrollArea className="h-[300px] pr-4">
           {loading && page === 1 ? (
             <div className="flex justify-center items-center h-full py-8">
@@ -145,7 +143,6 @@ export function RewardListDialog({ open, onOpenChange, postId }) {
             </div>
           )}
         </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -25,6 +16,7 @@ import { ITEM_TYPES, getItemTypeLabel } from '../../utils/itemTypes';
 import { badgesApi } from '@/features/badges/api';
 import UserAvatar from '@/components/forum/UserAvatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { FormDialog } from '@/components/common/FormDialog';
 
 /**
  * 创建/编辑商品的表单对话框
@@ -121,17 +113,17 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? '新建商品' : '编辑商品'}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create' ? '创建一个新的商城商品' : '修改商品信息'}
-          </DialogDescription>
-        </DialogHeader>
-
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === 'create' ? '新建商品' : '编辑商品'}
+      description={mode === 'create' ? '创建一个新的商城商品' : '修改商品信息'}
+      maxWidth="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
+      submitText={mode === 'create' ? '创建' : '更新'}
+      loading={submitting}
+      onSubmit={handleSubmit}
+      disabled={!formData.name.trim()}
+    >
         <div className="space-y-4 py-4">
           {/* 商品类型 */}
           <div className="space-y-2">
@@ -390,29 +382,6 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
             />
           </div>
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            取消
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !formData.name.trim()}>
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === 'create' ? '创建中...' : '更新中...'}
-              </>
-            ) : mode === 'create' ? (
-              '创建'
-            ) : (
-              '更新'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }
