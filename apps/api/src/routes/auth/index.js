@@ -213,12 +213,35 @@ export default async function authRoutes(fastify, options) {
       // 然后使用 /auth/verify-email-with-code 验证邮箱
       fastify.log.info(`[注册] 用户 ${email} 注册成功，等待邮箱验证`);
 
-      // 如果使用了邀请码，标记为已使用
+      // 如果使用了邀请码，标记为已使用并处理奖励
       if (registrationMode === 'invitation' && invitationCode) {
         const { markInvitationCodeAsUsed } = await import(
           '../../utils/invitation.js'
         );
-        await markInvitationCodeAsUsed(invitationCode.trim(), newUser.id);
+        const usedInvitation = await markInvitationCodeAsUsed(invitationCode.trim(), newUser.id);
+        
+        // 给邀请人发放积分奖励
+        if (usedInvitation && usedInvitation.createdBy) {
+          try {
+            const { grantCredits, getCreditConfig } = await import('../../extensions/credits/services/creditService.js');
+            const rewardAmount = await getCreditConfig('invite_reward_amount', 10);
+            
+            if (rewardAmount > 0) {
+              await grantCredits({
+                userId: usedInvitation.createdBy,
+                amount: Number(rewardAmount),
+                type: 'invite_user',
+                relatedUserId: newUser.id,
+                description: `邀请新用户注册：${newUser.username}`,
+              });
+              
+              fastify.log.info(`[积分系统] 已给邀请人 ${usedInvitation.createdBy} 发放邀请奖励 ${rewardAmount} 积分`);
+            }
+          } catch (creditError) {
+             fastify.log.error(creditError, `[积分系统] 邀请奖励发放失败: Inviter=${usedInvitation.createdBy}, NewUser=${newUser.id}`);
+             // 不阻断注册流程
+          }
+        }
       }
 
       // 生成 Token 并设置 Cookie

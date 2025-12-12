@@ -69,6 +69,26 @@ export default async function invitationsRoutes(fastify) {
           );
         }
 
+        // 积分扣除检查
+        if (rule.pointsCost > 0) {
+          const { getUserBalance, deductCredits } = await import('../../extensions/credits/services/creditService.js');
+          const totalCost = rule.pointsCost * count;
+          const balance = await getUserBalance(userId);
+
+          if (balance < totalCost) {
+            throw new Error(`积分不足，需要 ${totalCost} 积分 (当前余额: ${balance})`);
+          }
+
+          // 扣除积分
+          await deductCredits({
+            userId,
+            amount: totalCost,
+            type: 'generate_invitation',
+            description: `生成 ${count} 个邀请码`,
+            metadata: { count, costPerCode: rule.pointsCost }
+          });
+        }
+
         // 批量生成邀请码
         const invitations = [];
         for (let i = 0; i < count; i++) {
