@@ -866,7 +866,9 @@ export const invitationsApi = {
 
 // ============= 积分系统 API =============
 // ============= 积分系统 API (Imported from Feature) =============
-export { creditsApi, shopApi } from '../extensions/credits/api';
+export { rewardsApi } from '../extensions/rewards/api';
+export { shopApi } from '../extensions/shop/api';
+export { ledgerApi } from '../extensions/ledger/api';
 
 // 导出 API 客户端实例
 export default apiClient;

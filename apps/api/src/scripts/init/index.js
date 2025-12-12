@@ -24,8 +24,9 @@ import {
 import { initOAuthProviders, listOAuthProviders } from './oauth.js';
 import { initInvitationRules, listInvitationRules } from './invitation.js';
 import { initEmailProviders, listEmailProviders } from './email.js';
-import { initCreditConfigs, listCreditConfigs } from './credits.js';
+import { initRewardConfigs, listRewardConfigs, cleanRewards } from './rewards.js';
 import { initBadges, listBadges, cleanBadges } from './badges.js';
+import { initLedger, listCurrencies, cleanLedger } from './ledger.js';
 import { initShopItems, cleanShopItems } from './shop.js';
 
 const { Pool } = pg;
@@ -61,7 +62,8 @@ function showHelp() {
   - 初始化 OAuth 提供商配置（GitHub、Google、Apple）
   - 初始化邮件服务提供商配置（SMTP、SendGrid、Resend、阿里云）
   - 初始化邀请规则配置（user、vip、moderator、admin）
-  - 初始化积分系统配置（系统开关、获取规则、消费规则）
+  - 初始化奖励系统配置（系统开关、获取规则、消费规则）
+  - 初始化 Ledger 系统（默认货币）
 
 示例:
   # 添加缺失的配置（不覆盖现有配置）
@@ -83,7 +85,8 @@ function listAllSettings() {
   listOAuthProviders();
   listEmailProviders();
   listInvitationRules();
-  listCreditConfigs();
+  listRewardConfigs();
+  listCurrencies();
   listBadges();
 }
 
@@ -112,10 +115,14 @@ async function initAllSettings(reset = false) {
     // 4. 初始化邀请规则配置
     const invitationResult = await initInvitationRules(db, reset);
 
-    // 5. 初始化积分系统配置
-    const creditsResult = await initCreditConfigs(db, reset);
+    // 5. 初始化奖励系统配置
+    const rewardsResult = await initRewardConfigs(db, reset);
 
-    // 6. 初始化勋章数据
+    // 6. 初始化 Ledger 系统 (货币)
+    // 必须在 Shop 和 Rewards 之前 (如果它们依赖货币 ID，虽目前 Rewards config 不依赖，但 Shop buy item 依赖)
+    const ledgerResult = await initLedger(db, reset);
+
+    // 7. 初始化勋章数据
     const badgesResult = await initBadges(db, reset);
 
     // 7. 初始化商城数据
@@ -165,15 +172,25 @@ async function initAllSettings(reset = false) {
     }
     console.log(`  - 总计: ${invitationResult.total} 个规则\n`);
 
-    // 积分系统配置统计
-    console.log(`积分系统配置统计:`);
+    // 奖励系统配置统计
+    console.log(`奖励系统配置统计:`);
     if (reset) {
-      console.log(`  - 重置: ${creditsResult.updatedCount} 个配置`);
+      console.log(`  - 重置: ${rewardsResult.updatedCount} 个配置`);
     } else {
-      console.log(`  - 新增: ${creditsResult.addedCount} 个配置`);
-      console.log(`  - 跳过: ${creditsResult.skippedCount} 个配置（已存在）`);
+      console.log(`  - 新增: ${rewardsResult.addedCount} 个配置`);
+      console.log(`  - 跳过: ${rewardsResult.skippedCount} 个配置（已存在）`);
     }
-    console.log(`  - 总计: ${creditsResult.total} 个配置\n`);
+    console.log(`  - 总计: ${rewardsResult.total} 个配置\n`);
+
+    // Ledger 系统统计
+    console.log(`Ledger 系统统计:`);
+    if (reset) {
+      console.log(`  - 重置: ${ledgerResult.updatedCount} 个货币`);
+    } else {
+      console.log(`  - 新增: ${ledgerResult.addedCount} 个货币`);
+      console.log(`  - 跳过: ${ledgerResult.skippedCount} 个货币（已存在）`);
+    }
+    console.log(`  - 总计: ${ledgerResult.total} 个货币\n`);
 
     // 勋章数据统计
     console.log(`勋章数据统计:`);
@@ -232,6 +249,10 @@ async function main() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const db = drizzle(pool);
     try {
+      // 0. Clean Transactions/Ledger/Rewards first (foreign keys)
+      await cleanRewards(db);
+      await cleanLedger(db);
+
       // 1. Clean Shop Items (and User Items)
       await cleanShopItems(db);
       // 2. Clean Badges (and User Badges)

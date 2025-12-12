@@ -6,7 +6,7 @@ import StickySidebar from '@/components/forum/StickySidebar';
 import TopicContent from '@/components/topic/TopicContent';
 import ReplySection from '@/components/topic/ReplySection';
 import TopicSidebarWrapper from '@/components/topic/TopicSidebarWrapper';
-import { postApi, creditsApi } from '@/lib/api';
+import { topicApi, postApi, userApi, rewardsApi, moderationApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function TopicPageClient({
@@ -16,54 +16,24 @@ export default function TopicPageClient({
   totalPages,
   currentPage,
   limit,
+  initialRewardStats = {},
+  initialIsRewardEnabled = false,
 }) {
   const router = useRouter();
-  const [isCreditEnabled, setIsCreditEnabled] = useState(false);
-  const [rewardStats, setRewardStats] = useState({}); // 打赏统计 Map
+  const isRewardEnabled = initialIsRewardEnabled;
+  const [rewardStats, setRewardStats] = useState(initialRewardStats); // 打赏统计 Map
+
+  // 监听 initialRewardStats 变化（例如翻页时）并同步到内部状态
+  useEffect(() => {
+    setRewardStats(initialRewardStats);
+  }, [initialRewardStats]);
 
   // 统一管理话题状态
   const [topic, setTopic] = useState(initialTopic);
   const [posts, setPosts] = useState(initialPosts);
 
-  // 获取积分系统状态
-  useEffect(() => {
-    const fetchCreditStatus = async () => {
-      try {
-        const { enabled } = await creditsApi.getStatus();
-        setIsCreditEnabled(enabled);
-      } catch (error) {
-        console.error('Failed to fetch credit status:', error);
-      }
-    };
-    fetchCreditStatus();
-  }, []);
-
-  // 批量获取打赏统计
-  useEffect(() => {
-    if (!isCreditEnabled) return;
-
-    const fetchRewardStats = async () => {
-      try {
-        // 收集所有帖子 ID（包括首帖）
-        const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
-        
-        console.log('批量获取打赏统计 - postIds:', postIds);
-        
-        if (postIds.length > 0) {
-          const stats = await creditsApi.getBatchPostRewards(postIds);
-          console.log('批量获取打赏统计 - 成功:', stats);
-          setRewardStats(stats);
-        }
-      } catch (error) {
-        console.error('获取打赏统计失败 - 详情:', {
-          message: error.message,
-          error: error,
-        });
-      }
-    };
-
-    fetchRewardStats();
-  }, [isCreditEnabled, posts, topic.firstPostId]);
+  // 之前的 useEffect 已移除，数据现在由服务端传入
+  // 如果需要客户端再次检查更新，可以保留 swr 或类似的逻辑，但对于详情页 ssr 数据通常足够
 
   // 更新单个帖子的打赏统计（局部更新，无需重新调用批量接口）
   const handleRewardSuccess = (postId, amount) => {
@@ -153,7 +123,7 @@ export default function TopicPageClient({
           {/* 话题内容 */}
           <TopicContent 
             topic={topic} 
-            isCreditEnabled={isCreditEnabled}
+            isRewardEnabled={isRewardEnabled}
             rewardStats={rewardStats[topic.firstPostId] || { totalAmount: 0, totalCount: 0 }}
             onRewardSuccess={handleRewardSuccess}
           />
@@ -169,7 +139,7 @@ export default function TopicPageClient({
             isClosed={topic.isClosed}
             isDeleted={topic.isDeleted}
             onTopicUpdate={handleTopicUpdate}
-            isCreditEnabled={isCreditEnabled}
+            isRewardEnabled={isRewardEnabled}
             rewardStatsMap={rewardStats}
             onPostsChange={setPosts}
             onRewardSuccess={handleRewardSuccess}

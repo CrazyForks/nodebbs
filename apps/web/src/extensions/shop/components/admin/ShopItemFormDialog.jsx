@@ -14,6 +14,7 @@ import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { ITEM_TYPES, getItemTypeLabel } from '../../utils/itemTypes';
 import { badgesApi } from '@/extensions/badges/api';
+import { ledgerApi } from '@/extensions/ledger/api';
 import UserAvatar from '@/components/forum/UserAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { FormDialog } from '@/components/common/FormDialog';
@@ -40,9 +41,11 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
     displayOrder: 0,
     isActive: true,
     metadata: '',
+    currencyCode: 'credits',
   });
 
   const { user } = useAuth();
+  const [currencies, setCurrencies] = useState([]);
   const [badges, setBadges] = useState([]);
   const [loadingBadges, setLoadingBadges] = useState(false);
 
@@ -78,6 +81,17 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
     }
   };
 
+  // Fetch currencies on mount/open
+  useEffect(() => {
+    if (open) {
+      ledgerApi.admin.getCurrencies()
+        .then(items => {
+           setCurrencies(items.filter(c => c.isActive));
+        })
+        .catch(console.error);
+    }
+  }, [open]);
+
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       setFormData({
@@ -85,6 +99,7 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
         name: initialData.name,
         description: initialData.description || '',
         price: initialData.price,
+        currencyCode: initialData.currencyCode || 'credits',
         imageUrl: initialData.imageUrl || '',
         stock: initialData.stock,
         displayOrder: initialData.displayOrder || 0,
@@ -97,6 +112,7 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
         name: '',
         description: '',
         price: 0,
+        currencyCode: 'credits',
         imageUrl: '',
         stock: null,
         displayOrder: 0,
@@ -269,9 +285,9 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
 
           {/* 数值网格 */}
           <div className="grid grid-cols-3 gap-4">
-            {/* 价格 */}
-            <div className="space-y-2">
-              <Label htmlFor="price">价格（积分）*</Label>
+            {/* 价格与货币 */}
+            <div className="col-span-1 space-y-2">
+              <Label htmlFor="price">价格</Label>
               <Input
                 id="price"
                 type="number"
@@ -282,6 +298,30 @@ export function ShopItemFormDialog({ open, onOpenChange, mode, initialData, onSu
                 }
                 placeholder="0"
               />
+            </div>
+
+             <div className="col-span-1 space-y-2">
+              <Label htmlFor="currency">货币</Label>
+              <Select
+                value={formData.currencyCode}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, currencyCode: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择货币" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name}
+                    </SelectItem>
+                  ))}
+                  {currencies.length === 0 && (
+                      <SelectItem value="credits">🪙 积分</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 库存 */}

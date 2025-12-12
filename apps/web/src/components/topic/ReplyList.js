@@ -14,7 +14,7 @@ const ReplyList = forwardRef(function ReplyList(
     totalPages,
     currentPage,
     limit,
-    isCreditEnabled,
+    isRewardEnabled,
     rewardStatsMap = {}, // 新增：打赏统计 Map
     onPostsChange, // 新增：posts 变化回调
     onRefreshRewards, // 新增：刷新打赏统计回调
@@ -90,7 +90,7 @@ const ReplyList = forwardRef(function ReplyList(
           topicId={topicId}
           onDeleted={handlePostDeleted}
           onReplyAdded={handleReplyAdded}
-          isCreditEnabled={isCreditEnabled}
+          isRewardEnabled={isRewardEnabled}
           rewardStats={rewardStatsMap[reply.id] || { totalAmount: 0, totalCount: 0 }}
           onRefreshRewards={onRefreshRewards}
         />

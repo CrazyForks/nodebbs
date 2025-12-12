@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { shopApi } from '@/lib/api';
+import { shopApi, rewardsApi, ledgerApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { useCreditsBalance } from '@/extensions/credits/hooks/useCreditsBalance';
+import { useRewardsBalance } from '@/extensions/rewards/hooks/useRewardsBalance';
 import { useShopItems } from '@/extensions/shop/hooks/useShopItems';
-import { BalanceCard } from '@/extensions/credits/components/user/BalanceCard';
+import { BalanceCard } from '@/extensions/rewards/components/user/BalanceCard';
 import { ItemTypeSelector } from '@/extensions/shop/components/shared/ItemTypeSelector';
-import { ShopItemGrid } from '@/extensions/credits/components/user/ShopItemGrid';
-import { PurchaseDialog } from '@/extensions/credits/components/user/PurchaseDialog';
-import { BadgeUnlockDialog } from '@/extensions/credits/components/user/BadgeUnlockDialog';
+import { ShopItemGrid } from '@/extensions/rewards/components/user/ShopItemGrid';
+import { PurchaseDialog } from '@/extensions/rewards/components/user/PurchaseDialog';
+import { BadgeUnlockDialog } from '@/extensions/rewards/components/user/BadgeUnlockDialog';
 
 export default function UserShopPage() {
   const { isAuthenticated } = useAuth();
@@ -24,8 +24,24 @@ export default function UserShopPage() {
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
 
-  const { balance, refetch: refetchBalance } = useCreditsBalance();
+  // const { balance, refetch: refetchBalance } = useRewardsBalance(); // Deprecated for multi-currency
+  const [accounts, setAccounts] = useState([]);
   const { items, loading, refetch: refetchItems } = useShopItems({ type: itemType });
+  
+  const fetchAccounts = async () => {
+    try {
+      if (isAuthenticated) {
+        const data = await ledgerApi.getAccounts();
+        setAccounts(data);
+      }
+    } catch (error) {
+       console.error('Failed to fetch accounts', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [isAuthenticated]);
 
   const handleBuyClick = (item) => {
     if (!isAuthenticated) {
@@ -60,9 +76,11 @@ export default function UserShopPage() {
       // Close buy dialog
       setBuyDialogOpen(false);
       
-      // Update data
-      await refetchBalance();
-      await refetchItems();
+      // Refresh data
+      await Promise.all([
+          fetchAccounts(),
+          refetchItems()
+      ]);
 
       setSelectedItem(null);
     } catch (error) {
@@ -71,6 +89,8 @@ export default function UserShopPage() {
       setIsBuying(false);
     }
   };
+
+  const currentPointsBalance = accounts.find(a => a.currency.code === 'credits')?.balance || 0;
 
   return (
     <div className="space-y-6">
@@ -84,9 +104,9 @@ export default function UserShopPage() {
           <p className="text-muted-foreground">使用积分购买专属装扮</p>
         </div>
 
-        {/* Balance Display */}
-        {isAuthenticated && balance?.balance !== undefined && balance?.balance !== null && (
-          <BalanceCard balance={balance.balance} />
+        {/* Balance Display - Defaults to Credits for Header, or maybe list all? For now keep Credits */}
+        {isAuthenticated && (
+          <BalanceCard balance={currentPointsBalance} />
         )}
       </div>
 
@@ -94,7 +114,7 @@ export default function UserShopPage() {
       <ItemTypeSelector value={itemType} onChange={setItemType} excludedTypes={[]}>
         <ShopItemGrid
           items={items}
-          userBalance={balance?.balance ?? null}
+          accounts={accounts}
           onPurchase={handleBuyClick}
           isAuthenticated={isAuthenticated}
           loading={loading}
@@ -105,9 +125,10 @@ export default function UserShopPage() {
       <PurchaseDialog
         open={buyDialogOpen}
         item={selectedItem}
-        userBalance={balance?.balance ?? null}
+        accounts={accounts}
         onConfirm={handleBuy}
         onCancel={() => setBuyDialogOpen(false)}
+
         purchasing={isBuying}
       />
 

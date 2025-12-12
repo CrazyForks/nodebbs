@@ -42,6 +42,7 @@ export const shopItems = pgTable(
     name: varchar('name', { length: 100 }).notNull(), // 商品名称
     description: text('description'), // 商品描述
     price: integer('price').notNull(), // 价格（积分）
+    currencyCode: varchar('currency_code', { length: 20 }).notNull().default('credits'), // 货币类型
     imageUrl: varchar('image_url', { length: 500 }), // 商品图片
     stock: integer('stock'), // 库存（null=无限）
     isActive: boolean('is_active').notNull().default(true), // 是否上架

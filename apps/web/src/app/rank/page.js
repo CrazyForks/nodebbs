@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { creditsApi } from '@/lib/api';
+import { rewardsApi } from '@/lib/api';
 import { Trophy, Coins, TrendingUp, Medal } from 'lucide-react';
 import { Loading } from '@/components/common/Loading';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ export default function RankPage() {
   const fetchRanking = async () => {
     setIsLoading(true);
     try {
-      const data = await creditsApi.getRanking({ limit: 50, type: rankType });
+      const data = await rewardsApi.getRanking({ limit: 50, type: rankType });
       setRanking(data.items || []);
     } catch (error) {
       console.error('获取排行榜失败:', error);

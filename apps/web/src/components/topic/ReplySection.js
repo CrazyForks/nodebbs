@@ -14,7 +14,7 @@ export default function ReplySection({
   isClosed,
   isDeleted,
   onTopicUpdate,
-  isCreditEnabled,
+  isRewardEnabled,
   rewardStatsMap = {}, // 新增：打赏统计 Map
   onPostsChange, // 新增：posts 变化回调
   onRewardSuccess, // 新增：打赏成功回调（局部更新）
@@ -39,7 +39,7 @@ export default function ReplySection({
         totalPages={totalPages}
         currentPage={currentPage}
         limit={limit}
-        isCreditEnabled={isCreditEnabled}
+        isRewardEnabled={isRewardEnabled}
         rewardStatsMap={rewardStatsMap}
         onPostsChange={onPostsChange}
         onRefreshRewards={onRewardSuccess}

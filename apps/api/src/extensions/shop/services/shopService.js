@@ -2,11 +2,10 @@ import db from '../../../db/index.js';
 import {
   shopItems,
   userItems,
-  userCredits,
-  creditTransactions,
   users,
   notifications,
 } from '../../../db/schema.js';
+import { sysAccounts, sysTransactions, sysCurrencies } from '../../ledger/schema.js';
 import { eq, and, desc, sql, asc } from 'drizzle-orm';
 import { grantBadge } from '../../badges/services/badgeService.js';
 
@@ -110,7 +109,6 @@ export async function buyItem(userId, itemId) {
       }
 
       // 2. 检查用户是否已拥有（对于非消耗品，如头像框，通常只能拥有一个）
-      // TODO: 如果未来支持消耗品 (如改名卡)，需要调整此逻辑
       const [existingItem] = await tx
         .select()
         .from(userItems)
@@ -121,45 +119,54 @@ export async function buyItem(userId, itemId) {
         throw new Error('您已经拥有该商品');
       }
 
-      // 3. 检查用户积分余额
-      let [credit] = await tx
+      // 3. 检查用户积分余额 (Ledger: sys_accounts)
+      const currencyCode = item.currencyCode;
+      
+      let [account] = await tx
         .select()
-        .from(userCredits)
-        .where(eq(userCredits.userId, userId))
+        .from(sysAccounts)
+        .where(and(eq(sysAccounts.userId, userId), eq(sysAccounts.currencyCode, currencyCode)))
         .limit(1);
 
-      if (!credit) {
-        // 如果没有积分账户，尝试创建（通常在注册或首次访问积分中心时创建，这里做个兜底）
-        [credit] = await tx
-          .insert(userCredits)
-          .values({ userId })
-          .returning();
+      if (!account) {
+         // Create account if not exists
+         [account] = await tx.insert(sysAccounts).values({
+             userId,
+             currencyCode,
+             balance: 0,
+             totalEarned: 0,
+             totalSpent: 0
+         }).returning();
       }
 
-      if (credit.balance < item.price) {
-        throw new Error(`积分不足，需要 ${item.price} 积分`);
+      const currencySymbol = (await tx.select({ symbol: sysCurrencies.symbol }).from(sysCurrencies).where(eq(sysCurrencies.code, currencyCode)).limit(1))[0]?.symbol || '';
+
+      if (account.balance < item.price) {
+        throw new Error(`余额不足，需要 ${item.price} ${currencySymbol}`);
       }
 
       // 4. 扣除积分
-      const newBalance = credit.balance - item.price;
-      const newTotalSpent = credit.totalSpent + item.price;
+      const newBalance = Number(account.balance) - item.price;
+      const newTotalSpent = Number(account.totalSpent) + item.price;
 
       await tx
-        .update(userCredits)
+        .update(sysAccounts)
         .set({
           balance: newBalance,
           totalSpent: newTotalSpent,
           updatedAt: new Date(),
         })
-        .where(eq(userCredits.userId, userId));
+        .where(eq(sysAccounts.id, account.id));
 
-      // 5. 记录交易日志
-      await tx.insert(creditTransactions).values({
+      // 5. 记录交易日志 (sys_transactions)
+      await tx.insert(sysTransactions).values({
         userId,
+        currencyCode,
         amount: -item.price,
-        balance: newBalance,
+        balanceAfter: newBalance,
         type: 'shop_purchase',
-        relatedItemId: itemId,
+        referenceType: 'shop_item',
+        referenceId: String(itemId),
         description: `购买商品: ${item.name}`,
         metadata: JSON.stringify({
           itemId: item.id,
@@ -183,7 +190,6 @@ export async function buyItem(userId, itemId) {
         let badgeId = null;
         try {
           // 尝试从 metadata 解析 badgeId
-          // 容错处理：防止 metadata 被双重 JSON 编码 (creates a string of a JSON string)
           let meta = item.metadata ? JSON.parse(item.metadata) : {};
           if (typeof meta === 'string') {
              try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
@@ -194,18 +200,10 @@ export async function buyItem(userId, itemId) {
         }
 
         if (badgeId) {
-          // 调用 badgeService 授予勋章
-           // 注意：这里我们是在 shop 的 transaction 中，但 grantBadge 内部目前可能也是独立事务或直接调用 db
-           // 为了保持一致性，理想情况下 grantBadge 应该接受 tx 参数，但目前未重构 badgeService。
-           // 鉴于 shop 事务主要保证积分扣除和库存记录，勋章授予如果失败（极少情况），
-           // 也就是用户买了商品但没拿到勋章记录，可以通过重试解决。
-           // 也可以选择在这里 await grantBadge，如果失败则抛出错误回滚整个交易。
            try {
              await grantBadge(userId, badgeId, 'shop_buy');
            } catch (err) {
              console.error('[商城] 授予勋章失败:', err);
-             // 根据业务需求，这里可以选择抛出错误回滚，或者仅记录日志。
-             // 考虑到用户花了钱，必须给东西，所以最好回滚。
              throw new Error('勋章授予失败，交易取消');
            }
         } else {
@@ -358,8 +356,6 @@ export async function equipItem(userId, userItemId) {
       }
 
       // 2. 如果是互斥类型（如头像框），先卸下同类型其他已装备物品
-      // 假设所有类型目前都是单一装备的 (一个用户只能有一个头像框，一个背景等)
-      // 如果将来支持多装备 (如勋章可以佩戴多个)，需根据 type 修改逻辑
       if (['avatar_frame', 'profile_bg'].includes(userItem.type)) {
          // 找到所有已装备的同类型物品
          const equippedSameType = await tx
@@ -434,15 +430,8 @@ export async function unequipItem(userId, userItemId) {
  * @param {Object} data
  * @returns
  */
-/**
- * 创建商品
- * @param {Object} data
- * @returns
- */
 export async function createShopItem(data) {
   let metadata = data.metadata;
-  // 防止 double-encoding: 如果已经是字符串 (来自 API 的 JSON string)，则直接存。
-  // 如果是对象，则 stringify。
   if (metadata && typeof metadata !== 'string') {
     metadata = JSON.stringify(metadata);
   }
@@ -471,7 +460,6 @@ export async function updateShopItem(id, data) {
     if (updateData.metadata && typeof updateData.metadata !== 'string') {
       updateData.metadata = JSON.stringify(updateData.metadata);
     }
-    // 如果是 null/空字符串，且不是 undefined，则保持原样或置空
     if (updateData.metadata === '') updateData.metadata = null;
   }
 
@@ -494,13 +482,9 @@ export async function updateShopItem(id, data) {
 }
 
 /**
- * 删除商品 (由于有关联交易，建议软删除，即下架)
- * 这里实现物理删除，如果有外键约束会报错，前端应提示先下架
- * 或者直接改为 toggle active 状态
+ * 删除商品
  */
 export async function deleteShopItem(id) {
-
-
   await db.delete(shopItems).where(eq(shopItems.id, id));
   return { message: '删除成功' };
 }
@@ -541,22 +525,25 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       if (!receiver) throw new Error('接收用户不存在');
 
       // 2. 检查发送者余额
-      let [senderCredit] = await tx
+      const currencyCode = item.currencyCode;
+      
+      let [senderAccount] = await tx
          .select()
-         .from(userCredits)
-         .where(eq(userCredits.userId, senderId))
+         .from(sysAccounts)
+         .where(and(eq(sysAccounts.userId, senderId), eq(sysAccounts.currencyCode, currencyCode)))
          .limit(1);
 
-      if (!senderCredit) {
-        // 如果没有积分账户，尝试创建
-        [senderCredit] = await tx
-          .insert(userCredits)
-          .values({ userId: senderId })
+      if (!senderAccount) {
+        [senderAccount] = await tx
+          .insert(sysAccounts)
+          .values({ userId: senderId, currencyCode, balance: 0, totalEarned: 0, totalSpent: 0 })
           .returning();
       }
 
-      if (senderCredit.balance < item.price) {
-        throw new Error(`积分不足，需要 ${item.price} 积分`);
+      const currencySymbol = (await tx.select({ symbol: sysCurrencies.symbol }).from(sysCurrencies).where(eq(sysCurrencies.code, currencyCode)).limit(1))[0]?.symbol || '';
+
+      if (senderAccount.balance < item.price) {
+        throw new Error(`余额不足，需要 ${item.price} ${currencySymbol}`);
       }
 
       // 3. 检查接收者是否已拥有
@@ -571,26 +558,28 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       }
       
       // 4. 扣除发送者积分
-      const newBalance = senderCredit.balance - item.price;
-      const newTotalSpent = senderCredit.totalSpent + item.price;
+      const newBalance = Number(senderAccount.balance) - item.price;
+      const newTotalSpent = Number(senderAccount.totalSpent) + item.price;
       
       await tx
-        .update(userCredits)
+        .update(sysAccounts)
         .set({
           balance: newBalance,
           totalSpent: newTotalSpent,
           updatedAt: new Date(),
         })
-        .where(eq(userCredits.userId, senderId));
+        .where(eq(sysAccounts.id, senderAccount.id));
 
       // 5. 记录交易日志 (发送者)
-      await tx.insert(creditTransactions).values({
+      await tx.insert(sysTransactions).values({
         userId: senderId,
+        currencyCode,
         amount: -item.price,
-        balance: newBalance,
+        balanceAfter: newBalance,
         type: 'gift_sent',
+        referenceType: 'shop_item',
+        referenceId: String(itemId), // Using itemId as ref
         relatedUserId: receiverId,
-        relatedItemId: itemId,
         description: `赠送给 ${receiver.username || '用户'}: ${item.name}`,
         metadata: JSON.stringify({
           receiverId,
@@ -603,7 +592,7 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       // 6. 发放商品给接收者
       const metadata = JSON.stringify({
         fromUserId: senderId,
-        fromUsername: senderCredit?.username || (await tx.select({ username: users.username }).from(users).where(eq(users.id, senderId)).then(r => r[0]?.username)),
+        fromUsername: await tx.select({ username: users.username }).from(users).where(eq(users.id, senderId)).then(r => r[0]?.username),
         message,
         giftedAt: new Date().toISOString(),
       });
@@ -626,9 +615,6 @@ export async function giftItem(senderId, receiverId, itemId, message) {
           itemId: item.id,
           itemName: item.name,
           message,
-          senderName: senderCredit?.username // senderCredit 没有 username，如果需要可以跳过或获取 sender。
-          // Actually senderId is enough for notification 'triggeredByUserId' usually, but let's keep it simple.
-          // 注意：'triggeredByUserId' 已设置，前端可以解析用户。
         })
       });
 
@@ -637,7 +623,6 @@ export async function giftItem(senderId, receiverId, itemId, message) {
         let badgeId = null;
         try {
           let meta = item.metadata ? JSON.parse(item.metadata) : {};
-          // 二次编码检查
           if (typeof meta === 'string') {
              try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
           }
@@ -648,12 +633,9 @@ export async function giftItem(senderId, receiverId, itemId, message) {
 
         if (badgeId) {
            try {
-             // 注意：receiveId 是接收者
              await grantBadge(receiverId, badgeId, 'shop_gift');
            } catch (err) {
              console.error('[商城] 赠送勋章虽然商品已发放但勋章授予失败:', err);
-              // 这里不抛出错误，以避免如果勋章授予失败回滚礼物本身
-              // (取决于策略，但通常忽略次要影响是安全的)
            }
         }
       }

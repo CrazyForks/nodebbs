@@ -26,15 +26,15 @@ import {
 import UserAvatar from '@/components/forum/UserAvatar';
 import TimeAgo from '@/components/forum/TimeAgo';
 import ReportDialog from '@/components/moderation/ReportDialog';
-import { RewardDialog } from '@/extensions/credits/components/RewardDialog';
+import { RewardDialog } from '@/extensions/rewards/components/RewardDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { postApi, creditsApi } from '@/lib/api';
+import { postApi, rewardsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import MarkdownRender from '../common/MarkdownRender';
 
-import { RewardListDialog } from '@/extensions/credits/components/RewardListDialog';
+import { RewardListDialog } from '@/extensions/rewards/components/RewardListDialog';
 
-export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isCreditEnabled, rewardStats, onRewardSuccess }) {
+export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isRewardEnabled, rewardStats, onRewardSuccess }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
   const [likingPostIds, setLikingPostIds] = useState(new Set());
   const [deletingPostId, setDeletingPostId] = useState(null);
@@ -346,7 +346,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isC
               </Button>
 
               {/* 打赏按钮 */}
-              {(isCreditEnabled && !isOwnReply && canInteract) && (
+              {(isRewardEnabled && !isOwnReply && canInteract) && (
                 <Button
                   variant='ghost'
                   size='sm'
@@ -370,7 +370,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isC
               )}
               
               {/* 如果是作者且有打赏记录，显示查看记录按钮（仅图标） */}
-              {(isCreditEnabled && isOwnReply && localRewardStats.totalCount > 0) && (
+              {(isRewardEnabled && isOwnReply && localRewardStats.totalCount > 0) && (
                  <Button
                   variant='ghost'
                   size='sm'

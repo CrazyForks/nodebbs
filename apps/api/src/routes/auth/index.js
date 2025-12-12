@@ -223,20 +223,10 @@ export default async function authRoutes(fastify, options) {
         // 给邀请人发放积分奖励
         if (usedInvitation && usedInvitation.createdBy) {
           try {
-            const { grantCredits, getCreditConfig } = await import('../../extensions/credits/services/creditService.js');
-            const rewardAmount = await getCreditConfig('invite_reward_amount', 10);
-            
-            if (rewardAmount > 0) {
-              await grantCredits({
-                userId: usedInvitation.createdBy,
-                amount: Number(rewardAmount),
-                type: 'invite_user',
-                relatedUserId: newUser.id,
-                description: `邀请新用户注册：${newUser.username}`,
-              });
-              
-              fastify.log.info(`[积分系统] 已给邀请人 ${usedInvitation.createdBy} 发放邀请奖励 ${rewardAmount} 积分`);
-            }
+            const { grantReward } = await import('../../extensions/rewards/services/rewardService.js');
+            // grantReward(fastify, userId, actionKey, description, referenceId, metadata)
+            await grantReward(fastify, usedInvitation.createdBy, 'invite_user', `邀请新用户注册：${newUser.username}`, newUser.id, { invitedUserId: newUser.id, invitedUsername: newUser.username });
+            fastify.log.info(`[奖励系统] 已给邀请人 ${usedInvitation.createdBy} 发放邀请奖励`);
           } catch (creditError) {
              fastify.log.error(creditError, `[积分系统] 邀请奖励发放失败: Inviter=${usedInvitation.createdBy}, NewUser=${newUser.id}`);
              // 不阻断注册流程

@@ -84,11 +84,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   usedInvitations: many(invitationCodes, { relationName: 'usedInvitations' }),
   // Credit System Relations
-  creditAccount: one(userCredits),
-  creditTransactions: many(creditTransactions),
-  sentRewards: many(postRewards, { relationName: 'sentRewards' }),
-  receivedRewards: many(postRewards, { relationName: 'receivedRewards' }),
-  userItems: many(userItems),
+  // Credit/Reward System Relations - Removed to avoid circular deps. Access via extension schemas.
+  // userItems: many(userItems),
 }));
 
 // ============ Categories ============
@@ -227,7 +224,6 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   replies: many(posts, { relationName: 'replies' }),
   likes: many(likes),
-  rewards: many(postRewards),
 }));
 
 // ============ Tags ============
@@ -869,6 +865,9 @@ export const qrLoginRequestsRelations = relations(qrLoginRequests, ({ one }) => 
 }));
 
 // ============ Credit System (Imported from Plugin) ============
-export * from '../extensions/credits/schema.js';
+export * from '../extensions/rewards/schema.js';
 export * from '../extensions/shop/schema.js';
 export * from '../extensions/badges/schema.js';
+
+// ============ Ledger System ============
+export * from '../extensions/ledger/schema.js';

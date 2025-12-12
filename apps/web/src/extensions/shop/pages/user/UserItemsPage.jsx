@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { Package } from 'lucide-react';
-import { useUserItems } from '@/extensions/credits/hooks/useUserItems';
-import { useItemActions } from '@/extensions/credits/hooks/useItemActions';
+import { useUserItems } from '@/extensions/rewards/hooks/useUserItems';
+import { useItemActions } from '@/extensions/rewards/hooks/useItemActions';
 import { ItemTypeSelector } from '@/extensions/shop/components/shared/ItemTypeSelector';
-import { ItemInventoryGrid } from '@/extensions/credits/components/user/ItemInventoryGrid';
+import { ItemInventoryGrid } from '@/extensions/rewards/components/user/ItemInventoryGrid';
 
 export default function UserItemsPage() {
   const [itemType, setItemType] = useState('all');

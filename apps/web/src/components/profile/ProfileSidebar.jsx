@@ -19,28 +19,29 @@ import {
   ChevronRight,
   Store,
   Medal,
+  Wallet,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { messageApi, creditsApi } from '@/lib/api';
+import { messageApi, rewardsApi } from '@/lib/api'; // Restore Import
 import { cn } from '@/lib/utils';
 
 export default function ProfileSidebar() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [creditEnabled, setCreditEnabled] = useState(false);
+  const [rewardEnabled, setRewardEnabled] = useState(false); // Restore State
   const [openMenus, setOpenMenus] = useState({
     'content': true,
     'messages': true,
-    'credits-shop': true,
+    'rewards-shop': true,
     'account': true,
   });
 
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchUnreadCount();
-      fetchCreditStatus();
+      fetchCreditStatus(); // Restore Call
     }
   }, [isAuthenticated, user]);
 
@@ -53,10 +54,10 @@ export default function ProfileSidebar() {
     }
   };
 
-  const fetchCreditStatus = async () => {
+  const fetchCreditStatus = async () => { // Restore Function
     try {
-      const { enabled } = await creditsApi.getStatus();
-      setCreditEnabled(enabled);
+      const { enabled } = await rewardsApi.getStatus();
+      setRewardEnabled(enabled);
     } catch (err) {
       console.error('获取积分系统状态失败:', err);
     }
@@ -105,16 +106,17 @@ export default function ProfileSidebar() {
         },
       ],
     },
-    ...(creditEnabled ? [{
-      key: 'credits-shop',
+    ...(rewardEnabled ? [{
+      key: 'rewards-shop',
       label: '社区互动',
       icon: Store,
       children: [
         {
-          href: '/profile/credits',
-          icon: Coins,
-          label: '积分中心',
+          href: '/profile/wallet',
+          icon: Wallet,
+          label: '我的钱包',
         },
+
         {
           href: '/profile/shop',
           icon: ShoppingCart,

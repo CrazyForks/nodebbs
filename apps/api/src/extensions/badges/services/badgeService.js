@@ -1,6 +1,7 @@
 import db from '../../../db/index.js';
 import { badges, userBadges } from '../schema.js';
-import { users, topics, posts, userCredits, shopItems } from '../../../db/schema.js';
+import { userCheckIns } from '../../rewards/schema.js';
+import { users, topics, posts, shopItems } from '../../../db/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 
 /**
@@ -159,9 +160,9 @@ export async function checkBadgeConditions(userId) {
 
   // 获取签到连胜
   const [creditInfo] = await db
-    .select({ streak: userCredits.checkInStreak })
-    .from(userCredits)
-    .where(eq(userCredits.userId, userId));
+    .select({ streak: userCheckIns.checkInStreak })
+    .from(userCheckIns)
+    .where(eq(userCheckIns.userId, userId));
   const checkinStreak = creditInfo ? creditInfo.streak : 0;
 
   // 计算注册天数

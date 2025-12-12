@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import TopicPageClient from '@/components/topic/TopicPageClient';
-import { getTopicData, getPostsData } from '@/lib/server/topics';
+import { getTopicData, getPostsData, getTopicRewardData } from '@/lib/server/topics';
 
 // 生成页面元数据（SEO优化）
 export async function generateMetadata({ params }) {
@@ -53,6 +53,9 @@ export default async function TopicDetailPage({ params, searchParams }) {
   const totalPosts = postsData.total || 0;
   const totalPages = Math.ceil(totalPosts / LIMIT);
 
+  // 获取积分系统状态和打赏数据 (服务端封装)
+  const { isRewardEnabled, initialRewardStats } = await getTopicRewardData(topic, posts);
+
   return (
     <TopicPageClient
       topic={topic}
@@ -61,6 +64,8 @@ export default async function TopicDetailPage({ params, searchParams }) {
       totalPages={totalPages}
       currentPage={currentPage}
       limit={LIMIT}
+      initialRewardStats={initialRewardStats}
+      initialIsRewardEnabled={isRewardEnabled}
     />
   );
 }

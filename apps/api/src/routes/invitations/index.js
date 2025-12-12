@@ -71,21 +71,29 @@ export default async function invitationsRoutes(fastify) {
 
         // 积分扣除检查
         if (rule.pointsCost > 0) {
-          const { getUserBalance, deductCredits } = await import('../../extensions/credits/services/creditService.js');
           const totalCost = rule.pointsCost * count;
-          const balance = await getUserBalance(userId);
-
-          if (balance < totalCost) {
-            throw new Error(`积分不足，需要 ${totalCost} 积分 (当前余额: ${balance})`);
+          // Use Ledger for balance check (assuming 'credits' currency)
+          if (!fastify.ledger) {
+             throw new Error('Ledger system not available');
+          }
+          
+          // Check balance first
+          const account = await fastify.ledger.getAccount(request.user.id, 'credits');
+          const currentBalance = account ? Number(account.balance) : 0;
+          
+          if (currentBalance < totalCost) {
+              return reply.code(400).send({ error: `积分不足，需要 ${totalCost} 积分 (当前余额: ${currentBalance})` });
           }
 
-          // 扣除积分
-          await deductCredits({
-            userId,
-            amount: totalCost,
-            type: 'generate_invitation',
-            description: `生成 ${count} 个邀请码`,
-            metadata: { count, costPerCode: rule.pointsCost }
+          // Deduct credits
+          await fastify.ledger.transfer({
+               fromUserId: request.user.id,
+               toUserId: null, // Burn
+               currency: 'credits',
+               amount: totalCost,
+               type: 'invite_create',
+               description: `生成 ${count} 个邀请码`,
+               metadata: { count, costPerCode: rule.pointsCost }
           });
         }
 

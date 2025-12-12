@@ -158,3 +158,35 @@ export async function getPostsData(topicId, page = 1, limit = 20) {
     return { items: [], total: 0 };
   }
 }
+
+/**
+ * 服务端获取话题的打赏数据
+ * @param {Object} topic - 话题对像
+ * @param {Array} posts - 帖子列表
+ * @returns {Promise<Object>} { isRewardEnabled, rewardStats }
+ */
+export async function getTopicRewardData(topic, posts) {
+  let initialRewardStats = {};
+  let isRewardEnabled = false;
+
+  try {
+    const { rewardsApi } = await import('@/lib/api');
+    
+    // 1. 获取系统状态
+    const status = await rewardsApi.getStatus();
+    isRewardEnabled = status.enabled;
+
+    // 2. 如果启用了积分系统，批量获取打赏统计
+    if (isRewardEnabled) {
+      const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
+      if (postIds.length > 0) {
+        initialRewardStats = await rewardsApi.getBatchPostRewards(postIds);
+      }
+    }
+  } catch (error) {
+    console.error('服务端获取打赏数据失败:', error);
+    // 不抛出错误，以免影响主页面渲染
+  }
+
+  return { isRewardEnabled, initialRewardStats };
+}
