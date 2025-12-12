@@ -74,6 +74,8 @@ async function rewardsPlugin(fastify, options) {
             slug: badgeSchema.slug,
             iconUrl: badgeSchema.iconUrl,
             description: badgeSchema.description,
+            metadata: badgeSchema.metadata,
+            unlockCondition: badgeSchema.unlockCondition,
             isDisplayed: userBadges.isDisplayed,
             earnedAt: userBadges.earnedAt
           })

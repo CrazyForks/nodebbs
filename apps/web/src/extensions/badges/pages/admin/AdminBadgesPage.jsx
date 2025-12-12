@@ -143,7 +143,7 @@ export default function AdminBadgesPage() {
             <AlertDialogDescription>
               此操作<span className="font-bold text-red-500">不可撤销</span>。
               <br/>
-              1. 所有拥有该勋章的用户将<span className="font-bold">永久失去</span>及其佩戴权益。
+              1. 所有拥有该勋章的用户将<span className="font-bold">永久失去</span>及其佩戴效果。
               <br/>
               2. 任何关联此勋章的商店商品将被<span className="font-bold">自动下架</span>。
             </AlertDialogDescription>

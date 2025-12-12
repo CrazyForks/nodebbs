@@ -8,7 +8,7 @@ import SendMessageButton from '@/components/user/SendMessageButton';
 import BlockUserButton from '@/components/user/BlockUserButton';
 import ReportUserButton from '@/components/user/ReportUserButton';
 import UserProfileClient from '@/components/user/UserProfileClient';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Badge from '@/extensions/badges/components/Badge';
 export default function UserProfileSidebar({ user }) {
   const avatarFrame = user.avatarFrame;
   const badges = user.badges || [];
@@ -34,35 +34,17 @@ export default function UserProfileSidebar({ user }) {
               {/* 勋章展示 */}
               {badges.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
-                  <TooltipProvider>
-                    {badges.map((userBadge) => {
-                      const badge = userBadge.badge || userBadge; // Handle potential nested structure
-                      return (
-                        <Tooltip key={badge.id}>
-                          <TooltipTrigger>
-                            <div className="relative w-6 h-6">
-                              <img 
-                                src={badge.iconUrl} 
-                                alt={badge.name} 
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-semibold">{badge.name}</p>
-                            {badge.description && (
-                              <p className="text-xs text-muted-foreground max-w-[200px]">{badge.description}</p>
-                            )}
-                             {userBadge.earnedAt && (
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                  获得于: <Time date={userBadge.earnedAt} format="YYYY-MM-DD" />
-                                </p>
-                             )}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </TooltipProvider>
+                  {badges.map((userBadge) => {
+                    const badge = userBadge.badge || userBadge;
+                    return (
+                      <Badge 
+                        key={badge.id}
+                        badge={badge}
+                        userBadge={userBadge}
+                        size="xl" // 24px matches previous w-6 h-6
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>

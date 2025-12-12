@@ -247,19 +247,19 @@ export default async function userRoutes(fastify, options) {
             },
             badges: {
               type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'number' },
-                  badgeId: { type: 'number' },
-                  name: { type: 'string' },
-                  slug: { type: 'string' },
-                  iconUrl: { type: 'string' },
-                  description: { type: ['string', 'null'] },
-                  isDisplayed: { type: 'boolean' },
-                  earnedAt: { type: ['string', 'null'] }
-                }
-              }
+              // items: {
+              //   type: 'object',
+              //   properties: {
+              //     id: { type: 'number' },
+              //     badgeId: { type: 'number' },
+              //     name: { type: 'string' },
+              //     slug: { type: 'string' },
+              //     iconUrl: { type: 'string' },
+              //     description: { type: ['string', 'null'] },
+              //     isDisplayed: { type: 'boolean' },
+              //     earnedAt: { type: ['string', 'null'] }
+              //   }
+              // }
             }
           }
         }

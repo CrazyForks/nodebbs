@@ -37,12 +37,12 @@ export default function BadgeCard({ badge, isUnlocked = false }) {
     return (
       <div className="space-y-1 mt-2">
         <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
-           <Zap className="w-3 h-3" /> 佩戴权益
+           <Zap className="w-3 h-3" /> 佩戴效果
         </div>
         <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside pl-1">
-          {effects.checkInBonus > 0 && <li>签到额外 +{effects.checkInBonus} 分</li>}
-          {effects.checkInBonusPercent > 0 && <li>签到积分 +{effects.checkInBonusPercent}%</li>}
-          {effects.replyCostReductionPercent > 0 && <li>回复扣费 -{effects.replyCostReductionPercent}%</li>}
+          {effects.checkInBonus > 0 && <li>签到奖励 +{effects.checkInBonus} 积分</li>}
+          {effects.checkInBonusPercent > 0 && <li>签到奖励 +{effects.checkInBonusPercent}%</li>}
+          {effects.replyCostReductionPercent > 0 && <li>回复消耗 -{effects.replyCostReductionPercent}%</li>}
         </ul>
       </div>
     );
