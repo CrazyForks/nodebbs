@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Coins, Plus, Minus } from 'lucide-react';
+import { Coins, Plus, Minus, Settings, List } from 'lucide-react';
 import { creditsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { CreditsStats } from '../../components/admin/CreditsStats';
 import { TransactionTable } from '../../components/admin/TransactionTable';
 import { CreditsOperationDialog } from '../../components/admin/CreditsOperationDialog';
+import { CreditSystemSettings } from '../../components/admin/CreditSystemSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminCreditsPage() {
   const [stats, setStats] = useState(null);
@@ -85,49 +87,68 @@ export default function AdminCreditsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
             <Coins className="h-6 w-6" />
             积分管理
           </h1>
-          <p className="text-muted-foreground">查看积分系统统计和管理用户积分</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => { setDialogMode('grant'); setShowDialog(true); }}>
-            <Plus className="h-4 w-4" />
-            发放积分
-          </Button>
-          <Button variant="destructive" onClick={() => { setDialogMode('deduct'); setShowDialog(true); }}>
-            <Minus className="h-4 w-4" />
-            扣除积分
-          </Button>
+          <p className="text-muted-foreground">查看积分系统统计、管理用户积分及配置规则</p>
         </div>
       </div>
 
-      {/* Statistics */}
-      <CreditsStats stats={stats} loading={!stats} />
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview" className="gap-2">
+            <List className="h-4 w-4" />
+            概览与交易
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="h-4 w-4" />
+            系统配置
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Transactions */}
-      <TransactionTable
-        transactions={transactions}
-        loading={loading}
-        pagination={{
-          page: pagination.page,
-          total: pagination.total,
-          limit: pagination.limit,
-          onPageChange: (newPage) => {
-            setPagination((prev) => ({
-              ...prev,
-              page: newPage,
-            }));
-          },
-        }}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearch={fetchTransactions}
-      />
+        <TabsContent value="overview" className="space-y-6">
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => { setDialogMode('grant'); setShowDialog(true); }}>
+              <Plus className="h-4 w-4" />
+              发放积分
+            </Button>
+            <Button variant="destructive" onClick={() => { setDialogMode('deduct'); setShowDialog(true); }}>
+              <Minus className="h-4 w-4" />
+              扣除积分
+            </Button>
+          </div>
+
+          {/* Statistics */}
+          <CreditsStats stats={stats} loading={!stats} />
+
+          {/* Transactions */}
+          <TransactionTable
+            transactions={transactions}
+            loading={loading}
+            pagination={{
+              page: pagination.page,
+              total: pagination.total,
+              limit: pagination.limit,
+              onPageChange: (newPage) => {
+                setPagination((prev) => ({
+                  ...prev,
+                  page: newPage,
+                }));
+              },
+            }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearch={fetchTransactions}
+          />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <CreditSystemSettings />
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog */}
       <CreditsOperationDialog

@@ -20,7 +20,7 @@ import { FeatureSettings } from './components/FeatureSettings';
 import { OAuthSettings } from './components/OAuthProviderCard';
 import { EmailSettings } from './components/EmailProviderCard';
 import { RateLimitSettings } from './components/RateLimitSettings';
-import { CreditSystemSettings } from './components/CreditSystemSettings';
+
 
 // Tab 配置
 const tabItems = [
@@ -54,12 +54,7 @@ const tabItems = [
     shortLabel: '限速',
     icon: Gauge,
   },
-  {
-    value: 'credits',
-    label: '积分系统',
-    shortLabel: '积分',
-    icon: Coins,
-  },
+
 ];
 
 export default function SystemSettingsPage() {
@@ -205,10 +200,7 @@ export default function SystemSettingsPage() {
           />
         </TabsContent>
 
-        {/* 积分系统 Tab */}
-        <TabsContent value='credits'>
-          <CreditSystemSettings />
-        </TabsContent>
+
       </Tabs>
     </div>
   );

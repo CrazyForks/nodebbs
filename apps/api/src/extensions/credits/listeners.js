@@ -1,4 +1,7 @@
-import { grantCredits } from './services/creditService.js';
+import { grantCredits, getCreditConfig } from './services/creditService.js';
+import db from '../../db/index.js';
+import { creditTransactions } from '../../db/schema.js';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Register credit system event listeners
@@ -17,13 +20,17 @@ export async function registerCreditListeners(fastify) {
     try {
       fastify.log.debug(`[积分系统] 处理话题创建奖励: TopicID=${topic.id}, UserID=${topic.userId}`);
       
-      await grantCredits({
-        userId: topic.userId,
-        amount: 5, // TODO: Read from config
-        type: 'post_topic',
-        relatedTopicId: topic.id,
-        description: `发布话题：${topic.title}`,
-      });
+      const amount = await getCreditConfig('post_topic_amount', 5);
+
+      if (amount > 0) {
+        await grantCredits({
+          userId: topic.userId,
+          amount: Number(amount),
+          type: 'post_topic',
+          relatedTopicId: topic.id,
+          description: `发布话题：${topic.title}`,
+        });
+      }
     } catch (error) {
       fastify.log.error(error, `[积分系统] 发放话题创建奖励失败: TopicID=${topic.id}`);
     }
@@ -38,10 +45,6 @@ export async function registerCreditListeners(fastify) {
       fastify.log.debug(`[积分系统] 处理回复创建奖励: PostID=${post.id}, UserID=${post.userId}`);
 
       // 读取配置
-      // Note: getCreditConfig comes from services, we need to import it.
-      // Assuming getCreditConfig is available or we use fastify context if properly decorated, 
-      // but simpler to just import.
-      const { getCreditConfig } = await import('./services/creditService.js');
       const replyAmount = await getCreditConfig('post_reply_amount', 2);
 
       if (replyAmount > 0) {
@@ -71,14 +74,36 @@ export async function registerCreditListeners(fastify) {
 
       fastify.log.debug(`[积分系统] 处理点赞奖励: PostID=${postId}, ToUserID=${postAuthorId}`);
 
-      await grantCredits({
-        userId: postAuthorId, // 给帖子作者加分
-        amount: 1, // TODO: Read from config
-        type: 'receive_like',
-        relatedPostId: postId,
-        relatedUserId: userId,
-        description: '获得点赞奖励',
-      });
+      // 检查是否已经奖励过 (防止重复点赞/取消点赞刷分)
+      const [existing] = await db
+        .select()
+        .from(creditTransactions)
+        .where(
+          and(
+            eq(creditTransactions.type, 'receive_like'),
+            eq(creditTransactions.relatedPostId, postId),
+            eq(creditTransactions.relatedUserId, userId)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        fastify.log.debug(`[积分系统] 重复点赞，跳过奖励: PostID=${postId}, LikerID=${userId}`);
+        return;
+      }
+
+      const amount = await getCreditConfig('receive_like_amount', 1);
+
+      if (amount > 0) {
+        await grantCredits({
+          userId: postAuthorId, // 给帖子作者加分
+          amount: Number(amount),
+          type: 'receive_like',
+          relatedPostId: postId,
+          relatedUserId: userId,
+          description: '获得点赞奖励',
+        });
+      }
     } catch (error) {
       fastify.log.error(error, `[积分系统] 发放点赞奖励失败: PostID=${postId}`);
     }
