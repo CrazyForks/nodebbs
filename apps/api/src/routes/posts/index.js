@@ -32,7 +32,7 @@ async function isBlocked(userId1, userId2) {
 }
 
 export default async function postRoutes(fastify, options) {
-  // Get posts (by topic or by user, or all for admin)
+  // 获取帖子（按话题或用户，或管理员获取所有）
   fastify.get('/', {
     preHandler: [fastify.optionalAuth],
     schema: {
@@ -81,7 +81,7 @@ export default async function postRoutes(fastify, options) {
       return reply.code(403).send({ error: '无权限使用管理员参数' });
     }
 
-    // If topicId provided, verify topic exists
+    // 如果提供了 topicId，验证话题是否存在
     if (topicId) {
       const [topic] = await db.select().from(topics).where(eq(topics.id, topicId)).limit(1);
 
@@ -95,7 +95,7 @@ export default async function postRoutes(fastify, options) {
       }
     }
 
-    // Build query conditions
+    // 构建查询条件
     let whereConditions = [];
 
     // 管理员模式的特殊处理
@@ -220,7 +220,7 @@ export default async function postRoutes(fastify, options) {
       whereConditions.push(like(posts.content, `%${search.trim()}%`));
     }
 
-    // Get posts
+    // 获取帖子
     const selectFields = {
       id: posts.id,
       topicId: posts.topicId,
@@ -307,7 +307,7 @@ export default async function postRoutes(fastify, options) {
       });
     }
 
-    // Check which posts current user has liked
+    // 检查当前用户点赞了哪些帖子
     if (request.user) {
       const postIds = postsList.map(p => p.id);
       if (postIds.length > 0) {
@@ -325,7 +325,7 @@ export default async function postRoutes(fastify, options) {
       }
     }
 
-    // Get reply-to post information for posts that have replyToPostId
+    // 获取有 replyToPostId 的帖子的被回复帖子信息
     const replyToPostIds = postsList
       .filter(p => p.replyToPostId)
       .map(p => p.replyToPostId);
@@ -362,10 +362,10 @@ export default async function postRoutes(fastify, options) {
       });
     }
 
-    // Fetch avatar frames for all related users (authors and reply-to users)
+    // 获取所有相关用户（作者和被回复用户）的头像框
     const usersToEnrichMap = new Map();
     
-    // Helper to add user to enrichment list
+    // 添加用户到充实列表的辅助函数
     const addUserToEnrich = (userId) => {
         if (!userId) return;
         if (!usersToEnrichMap.has(userId)) {
@@ -385,18 +385,18 @@ export default async function postRoutes(fastify, options) {
     if (usersToEnrich.length > 0) {
         await userEnricher.enrichMany(usersToEnrich, { request });
 
-        // Map back to posts
+        // 映射回帖子
         const enrichedUserMap = new Map(usersToEnrich.map(u => [u.id, u]));
 
         postsList.forEach(post => {
-            // Author
+            // 作者
             const author = enrichedUserMap.get(post.userId);
             if (author) {
                 post.userAvatarFrame = author.avatarFrame;
                 // post.userBadges = author.badges;
             }
 
-            // ReplyTo User
+            // 被回复用户
             if (post.replyToPost) {
                 const replyUser = enrichedUserMap.get(post.replyToPost.userId);
                 if (replyUser) {
@@ -405,7 +405,7 @@ export default async function postRoutes(fastify, options) {
             }
         });
     }
-    // Build count query with same conditions
+    // 使用相同条件构建计数查询
     const [{ count }] = await db
       .select({ count: sql`count(*)` })
       .from(posts)
@@ -420,7 +420,7 @@ export default async function postRoutes(fastify, options) {
     };
   });
 
-  // Get post position in topic (for jumping to specific post)
+  // 获取帖子在话题中的位置（用于跳转到特定楼层）
   fastify.get('/:id/position', {
     preHandler: [fastify.optionalAuth],
     schema: {
@@ -540,7 +540,7 @@ export default async function postRoutes(fastify, options) {
     };
   });
 
-  // Get single post
+  // 获取单个帖子
   fastify.get('/:id', {
     preHandler: [fastify.optionalAuth],
     schema: {
@@ -594,7 +594,7 @@ export default async function postRoutes(fastify, options) {
     }
     delete post.userIsBanned;
 
-    // Check if current user has liked
+    // 检查当前用户是否已点赞
     if (request.user) {
       const [like] = await db
         .select()
@@ -607,7 +607,7 @@ export default async function postRoutes(fastify, options) {
     return post;
   });
 
-  // Create post (reply to topic)
+  // 创建帖子（回复话题）
   fastify.post('/', {
     preHandler: [fastify.authenticate, fastify.checkBanned, fastify.requireEmailVerification],
     schema: {
@@ -627,7 +627,7 @@ export default async function postRoutes(fastify, options) {
   }, async (request, reply) => {
     const { topicId, content, replyToPostId } = request.body;
 
-    // Verify topic exists and is not closed
+    // 验证话题是否存在且未关闭
     const [topic] = await db.select().from(topics).where(eq(topics.id, topicId)).limit(1);
 
     if (!topic || topic.isDeleted) {
@@ -647,7 +647,7 @@ export default async function postRoutes(fastify, options) {
       return reply.code(403).send({ error: '话题已被拒绝，无法回复' });
     }
 
-    // Get next post number
+    // 获取下一个楼层号
     const [{ maxPostNumber }] = await db
       .select({ maxPostNumber: sql`COALESCE(MAX(${posts.postNumber}), 0)` })
       .from(posts)
@@ -679,12 +679,13 @@ export default async function postRoutes(fastify, options) {
            // Deduct credits via Ledger
            // Assuming 'credits' currency code
            if (fastify.ledger) {
-              await fastify.ledger.transfer({
-                  fromUserId: request.user.id,
-                  toUserId: null, // System deduction (burn)
-                  currency: 'credits',
+              await fastify.ledger.deduct({
+                  userId: request.user.id,
+                  currencyCode: 'credits',
                   amount: finalCost,
                   type: 'post_reply',
+                  referenceType: 'topic',
+                  referenceId: String(topicId),
                   description: `发布回复扣费 (原价: ${replyCost}, 减免: ${replyCost - finalCost})`,
                   metadata: {
                     topicId,
@@ -696,7 +697,7 @@ export default async function postRoutes(fastify, options) {
         }
       } catch (err) {
         // 如果是余额不足，返回 400
-        if (err.message.includes('余额不足')) {
+        if (err.message.includes('余额不足') || err.message.includes('Insufficient funds')) {
            return reply.code(400).send({ error: `积分余额不足，发表回复需要 ${Math.abs(await getRewardConfig('post_reply_amount', 0))} 积分` });
         }
         // 其他积分系统错误（如未启用），记录日志但允许发帖（或者也可以选择拦截）
@@ -706,7 +707,7 @@ export default async function postRoutes(fastify, options) {
     }
     // ===============================================
 
-    // Create post
+    // 创建帖子
     const [newPost] = await db.insert(posts).values({
       topicId,
       userId: request.user.id,
@@ -717,7 +718,7 @@ export default async function postRoutes(fastify, options) {
       approvalStatus
     }).returning();
 
-    // Update topic stats
+    // 更新话题统计
     await db.update(topics).set({
       postCount: sql`${topics.postCount} + 1`,
       lastPostAt: new Date(),
@@ -725,7 +726,7 @@ export default async function postRoutes(fastify, options) {
       updatedAt: sql`${topics.updatedAt}` // Explicitly keep same to avoid $onUpdate trigger
     }).where(eq(topics.id, topicId));
 
-    // Create notification for topic owner if not replying to own topic
+    // 如果不是回复自己的话题，为话题所有者创建通知
     // 检查是否存在拉黑关系
     if (topic.userId !== request.user.id) {
       const blocked = await isBlocked(request.user.id, topic.userId);
@@ -741,7 +742,7 @@ export default async function postRoutes(fastify, options) {
       }
     }
 
-    // If replying to specific post, notify that user too
+    // 如果是回复特定帖子，也通知该用户
     if (replyToPostId) {
       const [replyToPost] = await db.select().from(posts).where(eq(posts.id, replyToPostId)).limit(1);
       if (replyToPost && replyToPost.userId !== request.user.id && replyToPost.userId !== topic.userId) {
@@ -760,7 +761,7 @@ export default async function postRoutes(fastify, options) {
       }
     }
 
-    // Notify all subscribers to this topic (except the replier and topic owner)
+    // 通知该话题的所有订阅者（除回复者和话题所有者外）
     const subscribers = await db
       .select({ userId: subscriptions.userId })
       .from(subscriptions)
@@ -812,7 +813,7 @@ export default async function postRoutes(fastify, options) {
     };
   });
 
-  // Update post
+  // 更新帖子
   fastify.patch('/:id', {
     preHandler: [fastify.authenticate],
     schema: {
@@ -844,7 +845,7 @@ export default async function postRoutes(fastify, options) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
-    // Check permissions
+    // 检查权限
     const isModerator = ['moderator', 'admin'].includes(request.user.role);
     const isOwner = post.userId === request.user.id;
 
@@ -927,7 +928,7 @@ export default async function postRoutes(fastify, options) {
     };
   });
 
-  // Delete post
+  // 删除帖子
   fastify.delete('/:id', {
     preHandler: [fastify.authenticate],
     schema: {
@@ -958,12 +959,12 @@ export default async function postRoutes(fastify, options) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
-    // Cannot delete first post (use topic delete instead)
+    // 无法删除第一条帖子（请改为删除话题）
     if (post.postNumber === 1) {
       return reply.code(400).send({ error: '无法删除第一条帖子，请删除话题' });
     }
 
-    // Check permissions
+    // 检查权限
     const isModerator = ['moderator', 'admin'].includes(request.user.role);
     const isOwner = post.userId === request.user.id;
 
@@ -971,27 +972,27 @@ export default async function postRoutes(fastify, options) {
       return reply.code(403).send({ error: '你没有权限删除该帖子' });
     }
 
-    // Only moderators and admins can permanently delete
+    // 只有版主和管理员可以永久删除
     if (permanent && !isModerator) {
       return reply.code(403).send({ error: '只有版主和管理员可以永久删除回复' });
     }
 
     if (permanent) {
-      // Hard delete - permanently remove from database
-      // First delete related data
+      // 硬删除 - 从数据库中永久移除
+      // 首先删除相关数据
       await db.delete(likes).where(eq(likes.postId, id));
 
-      // Delete replies to this post (set replyToPostId to null)
+      // 删除对此帖子的回复（将 replyToPostId 设置为 null）
       await db.update(posts).set({
         replyToPostId: null,
         updatedAt: new Date()
       }).where(eq(posts.replyToPostId, id));
 
-      // Then delete the post
+      // 然后删除帖子
       await db.delete(posts).where(eq(posts.id, id));
 
-      // Update topic post count (only if not already soft deleted)
-      // If the post was already soft deleted, postCount was already decremented
+      // 更新话题帖子计数（仅当尚未软删除时）
+      // 如果帖子已经软删除，则 postCount 已经减少过
       if (!post.isDeleted) {
         await db.update(topics).set({
           postCount: sql`${topics.postCount} - 1`,
@@ -1001,7 +1002,7 @@ export default async function postRoutes(fastify, options) {
 
       return { message: '回复已永久删除' };
     } else {
-      // Soft delete
+      // 软删除
       await db.update(posts).set({
         isDeleted: true,
         deletedAt: new Date(),
@@ -1009,7 +1010,7 @@ export default async function postRoutes(fastify, options) {
         updatedAt: new Date()
       }).where(eq(posts.id, id));
 
-      // Update topic post count (only if not already deleted)
+      // 更新话题帖子计数（仅当尚未删除时）
       if (!post.isDeleted) {
         await db.update(topics).set({
           postCount: sql`${topics.postCount} - 1`,
@@ -1021,7 +1022,7 @@ export default async function postRoutes(fastify, options) {
     }
   });
 
-  // Like post
+  // 点赞帖子
   fastify.post('/:id/like', {
     preHandler: [fastify.authenticate, fastify.checkBanned],
     schema: {
@@ -1045,7 +1046,7 @@ export default async function postRoutes(fastify, options) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
-    // Check if already liked
+    // 检查是否已点赞
     const [existing] = await db
       .select()
       .from(likes)
@@ -1056,18 +1057,18 @@ export default async function postRoutes(fastify, options) {
       return reply.code(400).send({ error: '帖子已点赞' });
     }
 
-    // Create like
+    // 创建点赞
     await db.insert(likes).values({
       userId: request.user.id,
       postId: id
     });
 
-    // Update post like count
+    // 更新帖子点赞数
     await db.update(posts).set({
       likeCount: sql`${posts.likeCount} + 1`
     }).where(eq(posts.id, id));
 
-    // Create notification for post owner
+    // 为帖子所有者创建通知
     if (post.userId !== request.user.id) {
       // 检查是否存在拉黑关系
       const blocked = await isBlocked(request.user.id, post.userId);
@@ -1095,7 +1096,7 @@ export default async function postRoutes(fastify, options) {
     return { message: 'Post liked successfully' };
   });
 
-  // Unlike post
+  // 取消点赞帖子
   fastify.delete('/:id/like', {
     preHandler: [fastify.authenticate],
     schema: {
@@ -1113,7 +1114,7 @@ export default async function postRoutes(fastify, options) {
   }, async (request, reply) => {
     const { id } = request.params;
 
-    // Delete like
+    // 删除点赞
     const deleted = await db
       .delete(likes)
       .where(and(eq(likes.userId, request.user.id), eq(likes.postId, id)))

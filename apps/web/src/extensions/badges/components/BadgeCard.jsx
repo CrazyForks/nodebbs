@@ -20,7 +20,7 @@ export default function BadgeCard({ badge, isUnlocked = false }) {
   const getConditionText = () => {
      if (badge.category === 'manual') return '通过管理员发放或商城购买获得';
      if (condition.type === 'checkin_streak') return `连续签到满 ${condition.threshold} 天`;
-     if (condition.type === 'post_count') return `累计发布 ${condition.threshold} 篇帖子`;
+     if (condition.type === 'post_count') return `累计发布 ${condition.threshold} 条回复`;
      if (condition.type === 'topic_count') return `累计发布 ${condition.threshold} 个话题`;
      if (condition.type === 'like_received_count') return `累计获得 ${condition.threshold} 次点赞`;
      if (condition.type === 'registration_days') return `注册满 ${condition.threshold} 天`;
@@ -107,7 +107,7 @@ export default function BadgeCard({ badge, isUnlocked = false }) {
                   <Award className="w-3 h-3" /> 获取条件
                 </div>
                 <p className="text-xs text-muted-foreground">
-                   {conditionText}
+                   {badge.description || conditionText}
                 </p>
              </div>
              {renderEffects()}

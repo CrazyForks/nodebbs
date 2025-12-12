@@ -3,8 +3,8 @@ import { sysCurrencies, sysAccounts, sysTransactions } from '../schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 
 /**
- * Ledger Service
- * Handles all monetary transactions with atomic integrity.
+ * 账本服务
+ * 处理所有货币交易，具有原子完整性。
  */
 export class LedgerService {
   constructor(fastify) {
@@ -12,10 +12,10 @@ export class LedgerService {
   }
 
   /**
-   * Get or create a specific currency account for a user.
+   * 获取或创建用户的特定货币账户。
    * @param {number} userId 
    * @param {string} currencyCode 
-   * @param {object} [tx] - Optional transaction context
+   * @param {object} [tx] - 可选的事务上下文
    */
   async getAccount(userId, currencyCode, tx = db) {
     let [account] = await tx
@@ -28,9 +28,9 @@ export class LedgerService {
       .limit(1);
 
     if (!account) {
-      // Check if currency exists first to avoid FK error, or let DB handle it?
-      // Better to check or trust app logic. We'll trust FK constraint for performance, but valid currency check is good.
-      // For now, assuming currency exists or it will throw.
+      // 先检查货币是否存在以避免外键错误，还是让数据库处理？
+      // 最好检查或信任应用逻辑。为了性能我们信任外键约束，但有效的货币检查是好的。
+      // 目前假设货币存在，否则会抛出异常。
       try {
         [account] = await tx.insert(sysAccounts).values({
           userId,
@@ -40,7 +40,7 @@ export class LedgerService {
           totalSpent: 0
         }).returning();
       } catch (err) {
-        // Handle race condition if unique constraint fails
+        // 如果唯一约束失败，处理竞态条件
         if (err.code === '23505') { // unique_violation
           [account] = await tx
             .select()
@@ -59,7 +59,7 @@ export class LedgerService {
   }
 
   /**
-   * Grant currency to a user (System -> User).
+   * 授予用户货币（系统 -> 用户）。
    * @param {object} params
    * @param {number} params.userId
    * @param {number} params.amount
@@ -79,7 +79,7 @@ export class LedgerService {
       const newBalance = Number(account.balance) + amount;
       const newTotalEarned = Number(account.totalEarned) + amount;
 
-      // Update Account
+      // 更新账户
       await tx.update(sysAccounts)
         .set({
           balance: newBalance,
@@ -88,7 +88,7 @@ export class LedgerService {
         })
         .where(eq(sysAccounts.id, account.id));
 
-      // Create Transaction Record
+      // 创建交易记录
       const [transaction] = await tx.insert(sysTransactions).values({
         userId,
         currencyCode,
@@ -106,7 +106,7 @@ export class LedgerService {
   }
 
   /**
-   * Deduct currency from a user (User -> System).
+   * 从用户扣除货币（用户 -> 系统）。
    * @param {object} params
    * @param {number} params.userId
    * @param {number} params.amount
@@ -142,7 +142,7 @@ export class LedgerService {
       const [transaction] = await tx.insert(sysTransactions).values({
         userId,
         currencyCode,
-        amount: -amount, // Negative for deduction
+        amount: -amount, // 扣除为负数
         balanceAfter: newBalance,
         type,
         referenceType,
@@ -156,7 +156,7 @@ export class LedgerService {
   }
 
   /**
-   * Transfer currency between users (User A -> User B).
+   * 在用户之间转账货币（用户 A -> 用户 B）。
    * @param {object} params
    * @param {number} params.fromUserId
    * @param {number} params.toUserId
@@ -176,12 +176,12 @@ export class LedgerService {
       const fromAccount = await this.getAccount(fromUserId, currencyCode, tx);
       const toAccount = await this.getAccount(toUserId, currencyCode, tx);
 
-      // Check balance
+      // 检查余额
       if (Number(fromAccount.balance) < amount) {
         throw new Error(`Insufficient funds. Balance: ${fromAccount.balance}, Required: ${amount}`);
       }
 
-      // Update From Account
+      // 更新来源账户
       const fromNewBalance = Number(fromAccount.balance) - amount;
       await tx.update(sysAccounts)
         .set({
@@ -191,7 +191,7 @@ export class LedgerService {
         })
         .where(eq(sysAccounts.id, fromAccount.id));
 
-      // Update To Account
+      // 更新目标账户
       const toNewBalance = Number(toAccount.balance) + amount;
       await tx.update(sysAccounts)
         .set({
@@ -201,7 +201,7 @@ export class LedgerService {
         })
         .where(eq(sysAccounts.id, toAccount.id));
 
-      // Create From Transaction
+      // 创建来源交易
       const [fromTx] = await tx.insert(sysTransactions).values({
         userId: fromUserId,
         currencyCode,
@@ -215,7 +215,7 @@ export class LedgerService {
         metadata: metadata ? JSON.stringify(metadata) : null
       }).returning();
 
-      // Create To Transaction
+      // 创建目标交易
       const [toTx] = await tx.insert(sysTransactions).values({
         userId: toUserId,
         currencyCode,
