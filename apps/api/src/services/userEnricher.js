@@ -1,7 +1,6 @@
 
 /**
- * Service to allow different features to enrich the user object
- * with additional data (e.g. badges, credits, settings).
+ * 允许不同功能向用户对象补充额外数据（如勋章、积分、设置等）的服务。
  */
 class UserEnricher {
   constructor() {
@@ -10,9 +9,9 @@ class UserEnricher {
   }
 
   /**
-   * Register a new enricher.
-   * @param {string} name - Unique name for the enricher.
-   * @param {function} callback - Async function (user) => Promise<void>. Mutates user object.
+   * 注册一个新的增强器。
+   * @param {string} name - 增强器的唯一名称。
+   * @param {function} callback - 异步函数 (user) => Promise<void>。直接修改用户对象。
    */
   register(name, callback) {
     console.log(`[UserEnricher] Registered: ${name}`);
@@ -20,9 +19,9 @@ class UserEnricher {
   }
 
   /**
-   * Register a new batch enricher.
-   * @param {string} name - Unique name for the enricher.
-   * @param {function} callback - Async function (users[]) => Promise<void>. Mutates user objects in the array.
+   * 注册一个新的批量增强器。
+   * @param {string} name - 增强器的唯一名称。
+   * @param {function} callback - 异步函数 (users[]) => Promise<void>。直接修改数组中的用户对象。
    */
   registerBatch(name, callback) {
     console.log(`[UserEnricher] Registered Batch: ${name}`);
@@ -30,21 +29,21 @@ class UserEnricher {
   }
 
   /**
-   * Run all registered enrichers on the user object.
-   * @param {object} user - The user object to enrich.
-   * @param {object} context - Optional context (e.g. request object).
+   * 在用户对象上运行所有注册的增强器。
+   * @param {object} user - 要增强的用户对象。
+   * @param {object} context - 可选上下文（例如 request 对象）。
    */
   async enrich(user, context = {}) {
     if (!user) return;
 
-    // Run enrichers in parallel for performance
+    // 并行运行所有增强器以提高性能
     await Promise.all(
       this.enrichers.map(async ({ name, callback }) => {
         try {
           await callback(user, context);
         } catch (err) {
           console.error(`[UserEnricher] Error in ${name}:`, err);
-          // Don't fail the whole request if one enricher fails
+          // 如果一个增强器失败，不要导致整个请求失败
         }
       })
     );
@@ -53,14 +52,14 @@ class UserEnricher {
   }
 
   /**
-   * Run all registered batch enrichers on a list of users.
-   * @param {object[]} users - The list of user objects to enrich.
-   * @param {object} context - Optional context.
+   * 在用户列表上运行所有注册的批量增强器。
+   * @param {object[]} users - 要增强的用户对象列表。
+   * @param {object} context - 可选上下文。
    */
   async enrichMany(users, context = {}) {
     if (!users || users.length === 0) return users;
 
-    // Run batch enrichers in parallel
+    // 并行运行所有批量增强器
     await Promise.all(
       this.batchEnrichers.map(async ({ name, callback }) => {
         try {

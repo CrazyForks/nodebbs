@@ -2,7 +2,7 @@ import db from '../../../db/index.js';
 import { badges, userBadges } from '../schema.js';
 import { userCheckIns } from '../../rewards/schema.js';
 import { users, topics, posts, shopItems } from '../../../db/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 /**
  * 授予用户徽章
@@ -95,8 +95,47 @@ export async function getUserBadges(userId) {
     })
     .from(userBadges)
     .innerJoin(badges, eq(userBadges.badgeId, badges.id))
-    .where(eq(userBadges.userId, userId))
+    .where(and(eq(userBadges.userId, userId), eq(badges.isActive, true)))
     .orderBy(userBadges.displayOrder);
+}
+
+/**
+ * 批量获取用户的徽章
+ * @param {number[]} userIds 
+ * @returns {Promise<Object>} Map of userId -> badges array
+ */
+export async function getUsersBadges(userIds) {
+  if (!userIds || userIds.length === 0) return {};
+
+  const result = await db
+    .select({
+      userId: userBadges.userId,
+      id: userBadges.id,
+      earnedAt: userBadges.earnedAt,
+      isDisplayed: userBadges.isDisplayed,
+      badge: badges
+    })
+    .from(userBadges)
+    .innerJoin(badges, eq(userBadges.badgeId, badges.id))
+    .where(and(inArray(userBadges.userId, userIds), eq(badges.isActive, true)))
+    .orderBy(userBadges.displayOrder);
+
+  // Group by userId
+  const map = {};
+  userIds.forEach(id => map[id] = []);
+  
+  result.forEach(item => {
+    if (map[item.userId]) {
+      map[item.userId].push({
+        id: item.id,
+        earnedAt: item.earnedAt,
+        isDisplayed: item.isDisplayed,
+        badge: item.badge
+      });
+    }
+  });
+
+  return map;
 }
 
 /**

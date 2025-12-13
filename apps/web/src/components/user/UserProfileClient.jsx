@@ -24,7 +24,7 @@ export default function UserProfileClient({
   return (
     <>
       {/* 操作按钮 */}
-      <div className='mb-4'>
+      <div className=''>
         <FollowButton
           username={username}
           initialIsFollowing={isFollowing}
@@ -33,7 +33,7 @@ export default function UserProfileClient({
       </div>
 
       {/* 关注者和粉丝 */}
-      <div className='flex items-center gap-4 mb-4 text-sm'>
+      <div className='flex items-center gap-4 text-sm'>
         <Link
           href={`/users/${username}/followers`}
           className='flex items-center gap-1 hover:text-primary'

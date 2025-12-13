@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SendMessageButton({ recipientId, recipientName, recipientMessagePermission = 'everyone' }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, openLoginDialog } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
@@ -89,7 +89,7 @@ export default function SendMessageButton({ recipientId, recipientName, recipien
 
   const handleOpenChange = (open) => {
     if (!isAuthenticated && open) {
-      toast.error('请先登录');
+      openLoginDialog();
       return;
     }
     setIsOpen(open);
@@ -138,6 +138,7 @@ export default function SendMessageButton({ recipientId, recipientName, recipien
                 onChange={(e) => setContent(e.target.value)}
                 disabled={sending}
                 className='resize-none min-h-24'
+                autoFocus
               />
             </div>
           </div>

@@ -40,7 +40,7 @@ async function getCategoryWithDescendants(categoryId) {
 }
 
 export default async function topicRoutes(fastify, options) {
-  // List topics
+  // 获取话题列表
   fastify.get(
     '/',
     {
@@ -316,31 +316,24 @@ export default async function topicRoutes(fastify, options) {
         return topicWithoutSensitive;
       });
 
-      // 批量获取用户增强数据（头像框、徽章等）
+      // 批量获取用户增强数据（头像框、勋章等）
       if (finalResults.length > 0) {
-        // 构建临时用户对象列表用于enrich
-        // 注意：finalResults 中的对象会被直接修改
-        // map topic.userId to user structure expected by enricher
+        // 构建临时用户对象列表用于 enrichment
+        // 注意：我们为每个 userId 创建新对象，enricher 会修改这些对象
         const usersToEnrich = finalResults.map(topic => ({
             id: topic.userId,
-            // 如果需要其他字段辅助enrichment，可以在这里添加
-            // 目前 credits plugin 只需要 id
         }));
 
         await userEnricher.enrichMany(usersToEnrich, { request });
 
-        // 将 enrich 后的数据同步回 results (引用传递，其实 usersToEnrich 中的对象和 finalResults 中的对象不是同一个引用，需要回填)
-        // Wait, UserEnricher mutates the object passed to it.
-        // We constructed NEW objects `{id: topic.userId}`.
-        // So we need to map the results back to `finalResults`.
-
+        // 将 enrich 后的数据同步回 results
         const enrichedUserMap = new Map(usersToEnrich.map(u => [u.id, u]));
         
         finalResults.forEach(topic => {
             const enrichedUser = enrichedUserMap.get(topic.userId);
             if (enrichedUser) {
                 topic.userAvatarFrame = enrichedUser.avatarFrame;
-                // topic.userBadges = enrichedUser.badges; // 如果需要显示徽章
+                topic.userBadges = enrichedUser.badges; 
             }
         });
       }
@@ -389,7 +382,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Get single topic
+  // 获取单个话题
   fastify.get(
     '/:id',
     {
@@ -476,7 +469,7 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // Increment view count (only for approved topics or when accessed by author/moderator)
+      // 增加浏览量（仅针对已批准话题或作者/版主访问的情况）
       await db
         .update(topics)
         .set({ 
@@ -485,7 +478,7 @@ export default async function topicRoutes(fastify, options) {
         })
         .where(eq(topics.id, id));
 
-      // Get the first post (topic content)
+      // 获取首贴（话题内容）
       const [firstPost] = await db
         .select({
           id: posts.id,
@@ -504,7 +497,7 @@ export default async function topicRoutes(fastify, options) {
         )
         .limit(1);
 
-      // Get the last post to get the max postNumber
+      // 获取最后一条回复以确定最大楼层号
       const [lastPost] = await db
         .select({
           postNumber: posts.postNumber,
@@ -514,7 +507,7 @@ export default async function topicRoutes(fastify, options) {
         .orderBy(desc(posts.postNumber))
         .limit(1);
 
-      // Check if current user liked the first post
+      // 检查当前用户是否点赞了首贴
       let isFirstPostLiked = false;
       if (request.user && firstPost) {
         const [like] = await db
@@ -530,7 +523,7 @@ export default async function topicRoutes(fastify, options) {
         isFirstPostLiked = !!like;
       }
 
-      // Get tags
+      // 获取标签
       const topicTagsList = await db
         .select({
           id: tags.id,
@@ -542,7 +535,7 @@ export default async function topicRoutes(fastify, options) {
         .innerJoin(tags, eq(topicTags.tagId, tags.id))
         .where(eq(topicTags.topicId, id));
 
-      // Check if bookmarked by current user
+      // 检查当前用户是否收藏/订阅
       let isBookmarked = false;
       let isSubscribed = false;
       if (request.user) {
@@ -571,21 +564,9 @@ export default async function topicRoutes(fastify, options) {
         isSubscribed = !!subscription;
       }
 
-      // Fetch author's avatar frame
-      const [frame] = await db
-        .select({
-           itemMetadata: shopItems.metadata
-        })
-        .from(userItems)
-        .innerJoin(shopItems, eq(userItems.itemId, shopItems.id))
-        .where(
-          and(
-            eq(userItems.userId, topic.userId),
-            eq(userItems.isEquipped, true),
-            eq(shopItems.type, 'avatar_frame')
-          )
-        )
-        .limit(1);
+      // 补充作者数据（头像框、勋章）
+      const authorInfo = { id: topic.userId };
+      await userEnricher.enrich(authorInfo, { request });
 
       return {
         ...topic,
@@ -600,7 +581,8 @@ export default async function topicRoutes(fastify, options) {
         isBookmarked,
         isSubscribed,
         viewCount: topic.viewCount + 1, // Return incremented count
-        userAvatarFrame: frame ? { itemMetadata: frame.itemMetadata } : null
+        userAvatarFrame: authorInfo.avatarFrame || null,
+        userBadges: authorInfo.badges || []
       };
     }
   );
@@ -629,7 +611,7 @@ export default async function topicRoutes(fastify, options) {
     async (request, reply) => {
       const { title, categoryId, content, tags: tagNames } = request.body;
 
-      // Verify category exists
+      // 验证分类是否存在
       const [category] = await db
         .select()
         .from(categories)
@@ -658,7 +640,7 @@ export default async function topicRoutes(fastify, options) {
       // Generate slug
       const slug = slugify(title) + '-' + Date.now();
 
-      // Create topic
+      // 创建话题
       const [newTopic] = await db
         .insert(topics)
         .values({
@@ -672,7 +654,7 @@ export default async function topicRoutes(fastify, options) {
         })
         .returning();
 
-      // Create first post
+      // 创建首贴
       const [firstPost] = await db
         .insert(posts)
         .values({
@@ -685,12 +667,12 @@ export default async function topicRoutes(fastify, options) {
         })
         .returning();
 
-      // Handle tags
+      // 处理标签
       if (tagNames && tagNames.length > 0) {
         for (const tagName of tagNames) {
           const tagSlug = slugify(tagName);
 
-          // Get or create tag
+          // 获取或创建标签
           let [tag] = await db
             .select()
             .from(tags)
@@ -713,7 +695,7 @@ export default async function topicRoutes(fastify, options) {
               .where(eq(tags.id, tag.id));
           }
 
-          // Link tag to topic
+          // 关联标签与话题
           await db.insert(topicTags).values({
             topicId: newTopic.id,
             tagId: tag.id,
@@ -791,7 +773,7 @@ export default async function topicRoutes(fastify, options) {
           .send({ error: '你没有权限编辑该话题' });
       }
 
-      // Only moderators can pin/close
+      // 仅版主可以置顶或关闭话题
       if (
         (request.body.isPinned !== undefined ||
           request.body.isClosed !== undefined) &&
@@ -808,11 +790,11 @@ export default async function topicRoutes(fastify, options) {
         false
       );
 
-      // Prepare topic updates (exclude content and tags as they need special handling)
+      // 准备话题更新（排除内容和标签，它们需要特殊处理）
       const { content, tags: tagNames, ...topicUpdates } = request.body;
       const updates = { ...topicUpdates, updatedAt: new Date() };
 
-      // Update slug if title changed
+      // 如果标题变更，更新 slug
       if (request.body.title) {
         updates.slug = slugify(request.body.title) + '-' + topic.id;
       }
@@ -841,14 +823,14 @@ export default async function topicRoutes(fastify, options) {
         }
       }
 
-      // Update topic
+      // 更新话题
       const [updatedTopic] = await db
         .update(topics)
         .set(updates)
         .where(eq(topics.id, id))
         .returning();
 
-      // If content is provided, update the first post (topic content)
+      // 如果提供了内容，更新首贴（话题内容）
       if (content !== undefined) {
         const [firstPost] = await db
           .select()
@@ -895,9 +877,9 @@ export default async function topicRoutes(fastify, options) {
         });
       }
 
-      // If tags are provided, update them
+      // 如果提供了标签，更新标签
       if (tagNames !== undefined) {
-        // Get current tags
+        // 获取当前标签
         const currentTags = await db
           .select({ tagId: topicTags.tagId })
           .from(topicTags)
@@ -905,11 +887,11 @@ export default async function topicRoutes(fastify, options) {
 
         const currentTagIds = currentTags.map((t) => t.tagId);
 
-        // Remove all current tag associations
+        // 移除所有当前标签关联
         if (currentTagIds.length > 0) {
           await db.delete(topicTags).where(eq(topicTags.topicId, id));
 
-          // Decrement topic count for removed tags
+          // 减少被移除标签的话题计数
           for (const tagId of currentTagIds) {
             await db
               .update(tags)
@@ -918,12 +900,12 @@ export default async function topicRoutes(fastify, options) {
           }
         }
 
-        // Add new tags
+        // 添加新标签
         if (tagNames.length > 0) {
           for (const tagName of tagNames) {
             const tagSlug = slugify(tagName);
 
-            // Get or create tag
+            // 获取或创建标签
             let [tag] = await db
               .select()
               .from(tags)
@@ -946,7 +928,7 @@ export default async function topicRoutes(fastify, options) {
                 .where(eq(tags.id, tag.id));
             }
 
-            // Link tag to topic
+            // 关联标签与话题
             await db.insert(topicTags).values({
               topicId: id,
               tagId: tag.id,
@@ -971,7 +953,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Delete topic
+  // 删除话题
   fastify.delete(
     '/:id',
     {
@@ -1020,7 +1002,7 @@ export default async function topicRoutes(fastify, options) {
           .send({ error: '你没有权限删除该话题' });
       }
 
-      // Only moderators and admins can permanently delete
+      // 仅版主和管理员可以永久删除话题
       if (permanent && !isModerator) {
         return reply
           .code(403)
@@ -1030,19 +1012,19 @@ export default async function topicRoutes(fastify, options) {
       }
 
       if (permanent) {
-        // Hard delete - permanently remove from database
-        // First delete related data
+        // 硬删除 - 从数据库中永久删除
+        // 首先删除相关数据
         await db.delete(topicTags).where(eq(topicTags.topicId, id));
         await db.delete(bookmarks).where(eq(bookmarks.topicId, id));
         await db.delete(subscriptions).where(eq(subscriptions.topicId, id));
         await db.delete(posts).where(eq(posts.topicId, id));
 
-        // Then delete the topic
+        // 然后删除话题
         await db.delete(topics).where(eq(topics.id, id));
 
         return { message: '话题已永久删除' };
       } else {
-        // Soft delete
+        // 软删除
         await db
           .update(topics)
           .set({ isDeleted: true, updatedAt: new Date() })
@@ -1053,7 +1035,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Bookmark topic
+  // 收藏话题
   fastify.post(
     '/:id/bookmark',
     {
@@ -1084,7 +1066,7 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // Check if already bookmarked
+      // 检查是否已收藏
       const [existing] = await db
         .select()
         .from(bookmarks)
@@ -1106,7 +1088,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Remove bookmark
+  // 取消收藏
   fastify.delete(
     '/:id/bookmark',
     {
@@ -1137,7 +1119,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Subscribe to topic
+  // 订阅话题
   fastify.post(
     '/:id/subscribe',
     {
@@ -1168,7 +1150,7 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // Check if already subscribed
+      // 检查是否已订阅
       const [existing] = await db
         .select()
         .from(subscriptions)
@@ -1195,7 +1177,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Unsubscribe from topic
+  // 取消订阅
   fastify.delete(
     '/:id/subscribe',
     {

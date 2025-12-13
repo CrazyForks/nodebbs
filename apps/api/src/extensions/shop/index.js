@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin';
 import shopRoutes from './routes/index.js';
+import registerShopEnricher from './enricher.js';
 
 /**
  * 商城插件
@@ -8,6 +9,9 @@ import shopRoutes from './routes/index.js';
 async function shopPlugin(fastify, options) {
   // 注册路由
   fastify.register(shopRoutes, { prefix: '/api/shop' });
+  
+  // 注册增强器
+  registerShopEnricher();
 }
 
 export default fp(shopPlugin, {

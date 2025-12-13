@@ -380,13 +380,20 @@ export default async function authRoutes(fastify, options) {
                   type: 'object',
                   properties: {
                     id: { type: 'number' },
-                    badgeId: { type: 'number' },
-                    name: { type: 'string' },
-                    slug: { type: 'string' },
-                    iconUrl: { type: 'string' },
-                    description: { type: ['string', 'null'] },
                     isDisplayed: { type: 'boolean' },
-                    earnedAt: { type: ['string', 'null'] }
+                    earnedAt: { type: ['string', 'null'] },
+                    badge: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'number' },
+                        name: { type: 'string' },
+                        slug: { type: 'string' },
+                        iconUrl: { type: 'string' },
+                        description: { type: ['string', 'null'] },
+                        metadata: { type: ['string', 'null'] },
+                        unlockCondition: { type: ['string', 'null'] }
+                      }
+                    }
                   }
                 }
               }

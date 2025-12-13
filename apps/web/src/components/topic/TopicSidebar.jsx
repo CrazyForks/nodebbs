@@ -16,13 +16,15 @@ import {
   Bell,
   Bookmark,
   Loader2,
+  CalendarDays,
+  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import ReportDialog from '@/components/moderation/ReportDialog';
 import TopicForm from '@/components/forum/TopicForm';
-import UserAvatar from '../forum/UserAvatar';
 import Time from '../forum/Time';
+import UserCard from '@/components/user/UserCard';
 
 export default function TopicSidebar({
   topic,
@@ -40,6 +42,7 @@ export default function TopicSidebar({
   isAuthenticated,
   user,
 }) {
+  console.log(user, topic)
   const author = {
     avatar: topic.userAvatar,
     username: topic.username,
@@ -73,6 +76,9 @@ export default function TopicSidebar({
       throw err;
     }
   };
+
+  // 获取要显示的勋章
+  const displayBadges = (isTopicOwner && user?.badges) ? user.badges : (topic.userBadges || []);
 
   return (
     <div className='space-y-4'>
@@ -156,31 +162,14 @@ export default function TopicSidebar({
         </DropdownMenu>
       </div>
 
-      {/* 参与者 - GitHub 风格 */}
-      <div className='border border-border rounded-lg bg-card'>
-        <div className='px-3 py-2 border-b border-border'>
-          <h3 className='text-sm font-semibold'>作者</h3>
-        </div>
-        <div className='p-3'>
-          <div className='flex items-center gap-2'>
-            <UserAvatar
-              url={author?.avatar}
-              name={author?.username}
-              size='lg'
-              frameMetadata={author?.avatarFrame?.itemMetadata}
-            />
-            <Link
-              href={`/users/${author?.username}`}
-              prefetch={false}
-              className='text-sm hover:text-primary hover:underline font-medium'
-            >
-              {author?.name}
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* 优化后的作者卡片 - 使用通用组件 */}
+      <UserCard
+        user={author}
+        badges={displayBadges}
+        variant="banner"
+      />
 
-      {/* 标签 - GitHub 风格 */}
+      {/* 标签 - GitHub 风格 (恢复原样) */}
       <div className='border border-border rounded-lg bg-card'>
         <div className='px-3 py-2 border-b border-border'>
           <h3 className='text-sm font-semibold'>标签</h3>
@@ -204,7 +193,7 @@ export default function TopicSidebar({
         </div>
       </div>
 
-      {/* 统计信息 - GitHub 风格 */}
+      {/* 统计信息 - GitHub 风格 (恢复原样) */}
       <div className='border border-border rounded-lg bg-card p-3'>
         <div className='space-y-2 text-sm'>
           {/* <div className='flex items-center justify-between'>
@@ -232,7 +221,6 @@ export default function TopicSidebar({
         </div>
       </div>
 
-      {/* 编辑话题对话框 */}
       {/* 编辑话题对话框 */}
       <FormDialog
           open={isEditDialogOpen}

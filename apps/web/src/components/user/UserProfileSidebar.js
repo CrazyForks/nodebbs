@@ -1,14 +1,14 @@
 'use client';
 
 import { Calendar } from 'lucide-react';
-import UserAvatar from '@/components/forum/UserAvatar';
 import StickySidebar from '@/components/forum/StickySidebar';
 import Time from '@/components/forum/Time';
 import SendMessageButton from '@/components/user/SendMessageButton';
 import BlockUserButton from '@/components/user/BlockUserButton';
 import ReportUserButton from '@/components/user/ReportUserButton';
 import UserProfileClient from '@/components/user/UserProfileClient';
-import Badge from '@/extensions/badges/components/Badge';
+import UserCard from '@/components/user/UserCard';
+
 export default function UserProfileSidebar({ user }) {
   const avatarFrame = user.avatarFrame;
   const badges = user.badges || [];
@@ -16,39 +16,16 @@ export default function UserProfileSidebar({ user }) {
   return (
     <div className='w-full lg:w-72 shrink-0'>
       <StickySidebar className='sticky top-[81px]' enabled={false}>
-        <aside>
+        <aside className='space-y-4'>
           {/* 用户头像和基本信息 */}
-          <div className='mb-4 flex flex-col items-center'>
-            <UserAvatar
-              url={user.avatar}
-              name={user.username}
-              className='w-24 h-24'
-              frameMetadata={avatarFrame?.itemMetadata}
-            />
+          <UserCard
+            user={user}
+            badges={badges}
+            variant="default"
+            avatarClassName="w-24 h-24"
+          />
 
-            <div className='mb-4 mt-1 text-center'>
-              <h1 className='text-2xl font-semibold leading-tight'>
-                {user.name || user.username}
-              </h1>
-              
-              {/* 勋章展示 */}
-              {badges.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mt-2">
-                  {badges.map((userBadge) => {
-                    const badge = userBadge.badge || userBadge;
-                    return (
-                      <Badge 
-                        key={badge.id}
-                        badge={badge}
-                        userBadge={userBadge}
-                        size="xl" // 24px matches previous w-6 h-6
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
+          <div className='flex flex-col items-center gap-4'>
             {/* 关注按钮和粉丝数（客户端组件） */}
             <UserProfileClient
               username={user.username}
@@ -58,7 +35,7 @@ export default function UserProfileSidebar({ user }) {
             />
 
             {/* 其他操作按钮 */}
-            <div className='space-y-2 mb-4'>
+            <div className='space-y-2 w-full px-4 md:px-8'>
               <SendMessageButton
                 recipientId={user.id}
                 recipientName={user.name || user.username}

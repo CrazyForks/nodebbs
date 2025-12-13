@@ -393,7 +393,7 @@ export default async function postRoutes(fastify, options) {
             const author = enrichedUserMap.get(post.userId);
             if (author) {
                 post.userAvatarFrame = author.avatarFrame;
-                // post.userBadges = author.badges;
+                post.userBadges = author.badges;
             }
 
             // 被回复用户

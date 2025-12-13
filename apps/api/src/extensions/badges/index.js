@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import badgeRoutes from './routes/index.js';
 import badgeListeners from './listeners.js';
+import registerBadgeEnricher from './enricher.js';
 
 /**
  * Badges Feature
@@ -9,6 +10,9 @@ import badgeListeners from './listeners.js';
 async function badgesFeature(fastify, options) {
   fastify.register(badgeRoutes, { prefix: '/api/badges' });
   fastify.register(badgeListeners);
+  
+  // Register User Enricher
+  registerBadgeEnricher();
 }
 
 export default fp(badgesFeature, {

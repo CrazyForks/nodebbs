@@ -9,11 +9,11 @@ import { toast } from 'sonner';
 
 export default function ReportUserButton({ userId, username }) {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, openLoginDialog } = useAuth();
 
   const handleClick = () => {
     if (!isAuthenticated) {
-      toast.error('请先登录');
+      openLoginDialog();
       return;
     }
 
