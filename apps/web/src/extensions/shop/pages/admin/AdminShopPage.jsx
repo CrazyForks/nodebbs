@@ -81,7 +81,7 @@ export default function AdminShopPage() {
           <p className="text-muted-foreground">管理积分商城的商品</p>
         </div>
         <Button onClick={openCreateDialog}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           新建商品
         </Button>
       </div>

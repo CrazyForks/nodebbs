@@ -115,7 +115,7 @@ export default function AdminBadgesPage() {
           <p className="text-muted-foreground">管理系统中的所有荣誉勋章</p>
         </div>
         <Button onClick={openCreateDialog}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           新建勋章
         </Button>
       </div>
