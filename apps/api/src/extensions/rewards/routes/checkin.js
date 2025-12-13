@@ -26,10 +26,12 @@ export default async function checkInRoutes(fastify, options) {
       return result;
     } catch (error) {
       if (error.message === '积分系统未启用' || error.message === '奖励系统未启用') {
-        return reply.code(403).send({ error: error.message });
+        // 静默处理：如果系统未启用，不返回错误，前端也不会提示
+        return { message: '积分系统未启用' };
       }
       fastify.log.error('[签到] 失败:', error);
-      return reply.code(500).send({ error: '签到失败' });
+      // 静默处理：其它错误也不中断前端体验
+      return { message: error.message || 'ok' };
     }
   });
   // 获取签到状态

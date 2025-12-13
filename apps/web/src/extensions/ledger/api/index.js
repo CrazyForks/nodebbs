@@ -6,6 +6,11 @@ export const ledgerApi = {
     return apiClient.get('/ledger/accounts');
   },
 
+  // 获取所有活跃货币（公开）
+  async getActiveCurrencies() {
+    return apiClient.get('/ledger/active-currencies');
+  },
+
   // 获取统计信息（管理员全局/用户个人）
   async getStats(params = {}) {
       // params: { currency, userId }

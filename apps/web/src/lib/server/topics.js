@@ -170,17 +170,20 @@ export async function getTopicRewardData(topic, posts) {
   let isRewardEnabled = false;
 
   try {
-    const { rewardsApi } = await import('@/lib/api');
     
-    // 1. 获取系统状态
-    const status = await rewardsApi.getStatus();
-    isRewardEnabled = status.enabled;
+    // 1. 获取系统状态 (通过 Server Utility)
+    const { isCurrencyActive } = await import('@/lib/server/ledger');
+    isRewardEnabled = await isCurrencyActive('credits');
 
     // 2. 如果启用了积分系统，批量获取打赏统计
     if (isRewardEnabled) {
       const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
       if (postIds.length > 0) {
-        initialRewardStats = await rewardsApi.getBatchPostRewards(postIds);
+        initialRewardStats = await request('/api/rewards/posts/batch', {
+            method: 'POST',
+            body: JSON.stringify({ postIds })
+        });
+        if (!initialRewardStats) initialRewardStats = {};
       }
     }
   } catch (error) {

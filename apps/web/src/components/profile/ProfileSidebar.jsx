@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { messageApi, rewardsApi } from '@/lib/api'; // Restore Import
+import { messageApi } from '@/lib/api';
+import { isCurrencyActive } from '@/extensions/ledger/utils/currency';
 import { cn } from '@/lib/utils';
 
 export default function ProfileSidebar() {
@@ -54,9 +55,9 @@ export default function ProfileSidebar() {
     }
   };
 
-  const fetchCreditStatus = async () => { // Restore Function
+  const fetchCreditStatus = async () => {
     try {
-      const { enabled } = await rewardsApi.getStatus();
+      const enabled = await isCurrencyActive('credits');
       setRewardEnabled(enabled);
     } catch (err) {
       console.error('获取积分系统状态失败:', err);

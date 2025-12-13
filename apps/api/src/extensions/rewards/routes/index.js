@@ -14,24 +14,7 @@ export default async function rewardsRoutes(fastify, options) {
   
   // ============ Feature Interfaces ============
 
-  // 获取积分系统状态
-  fastify.get('/status', {
-    schema: {
-      tags: ['rewards'],
-      description: '获取奖励系统启用状态',
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            enabled: { type: 'boolean' },
-          },
-        },
-      },
-    },
-  }, async (request, reply) => {
-    const enabled = await fastify.ledger.isCurrencyActive('credits');
-    return { enabled };
-  });
+  // ============ Feature Interfaces ============
 
   // 打赏帖子
   fastify.post('/reward', {

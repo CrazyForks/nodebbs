@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { rewardsApi } from '@/lib/api';
+
 import { toast } from 'sonner';
 
 export default function AutoCheckIn() {
@@ -20,12 +21,6 @@ export default function AutoCheckIn() {
       hasCheckedIn.current = true;
 
       try {
-        // 检查积分系统状态
-        const { enabled } = await rewardsApi.getStatus();
-        if (!enabled) {
-          return;
-        }
-
         // 尝试签到
         const result = await rewardsApi.checkIn();
         if (result.amount) {

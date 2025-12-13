@@ -161,6 +161,7 @@ export async function buyItem(userId, itemId) {
       // 5. 记录交易日志 (sys_transactions)
       await tx.insert(sysTransactions).values({
         userId,
+        accountId: account.id, // Fixed: Added missing accountId
         currencyCode,
         amount: -item.price,
         balanceAfter: newBalance,
@@ -573,6 +574,7 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       // 5. 记录交易日志 (发送者)
       await tx.insert(sysTransactions).values({
         userId: senderId,
+        accountId: senderAccount.id, // Fixed: Added missing accountId
         currencyCode,
         amount: -item.price,
         balanceAfter: newBalance,

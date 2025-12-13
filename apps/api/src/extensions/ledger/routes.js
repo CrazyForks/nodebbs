@@ -12,66 +12,19 @@ export default async function ledgerRoutes(fastify, options) {
     preHandler: [fastify.authenticate, fastify.requireAdmin],
     schema: {
       tags: ['ledger'],
-      description: '获取账本统计数据（仅限管理员）。返回每种货币的统计列表。',
-      querystring: {
-        type: 'object',
-        properties: {
-          currency: { type: 'string' },
-          userId: { type: 'integer' }
-        }
-      }
+      description: '获取账本统计数据（仅限管理员）。返回每种货币的列表。',
     }
   }, async (req, reply) => {
-    const { currency, userId } = req.query;
-    
-    // 确定范围
-    let targetUserId = undefined;
-    let isSystemStats = true;
-
-    if (userId) {
-      targetUserId = userId; // 管理员查看特定用户
-      isSystemStats = false;
-    }
-
-    // 获取需要处理的货币
-    let currenciesToProcess = [];
-    if (currency) {
-      const [curr] = await db.select().from(sysCurrencies).where(eq(sysCurrencies.code, currency));
-      if (curr) currenciesToProcess = [curr];
-    } else {
-      currenciesToProcess = await db.select().from(sysCurrencies).where(eq(sysCurrencies.isActive, true));
-    }
+    // 获取所有货币
+    const currencies = await db.select().from(sysCurrencies);
 
     const results = [];
-    for (const curr of currenciesToProcess) {
-      if (isSystemStats) {
-        results.push(await getSystemStats(curr.code));
-      } else {
-        results.push(await getUserStats(targetUserId, curr.code));
-      }
+    for (const curr of currencies) {
+      results.push(await getSystemStats(curr.code));
     }
     
     return results;
   });
-
-  // 辅助函数：获取用户统计
-  async function getUserStats(targetUserId, currencyCode) {
-      const [account] = await db.select()
-        .from(sysAccounts)
-        .where(and(
-            eq(sysAccounts.userId, targetUserId),
-            eq(sysAccounts.currencyCode, currencyCode)
-        ));
-      
-      return {
-          scope: 'user',
-          currency: currencyCode,
-          balance: account ? Number(account.balance) : 0,
-          totalEarned: account ? Number(account.totalEarned) : 0,
-          totalSpent: account ? Number(account.totalSpent) : 0,
-          userId: targetUserId
-      };
-  }
 
   // 辅助函数：获取系统统计
   async function getSystemStats(currencyCode) {
@@ -230,6 +183,21 @@ export default async function ledgerRoutes(fastify, options) {
       };
   });
 
+  // 3.5 获取活跃货币 (公开)
+  fastify.get('/active-currencies', {
+      schema: {
+          tags: ['ledger'],
+          description: '获取所有活跃货币列表'
+      }
+  }, async (req, reply) => {
+      return db.select({
+          code: sysCurrencies.code,
+          name: sysCurrencies.name,
+          symbol: sysCurrencies.symbol,
+          isActive: sysCurrencies.isActive
+      }).from(sysCurrencies).where(eq(sysCurrencies.isActive, true));
+  });
+
   // 4. 获取所有账户 (用户钱包) - 保持现有
   fastify.get('/accounts', {
     preHandler: [fastify.authenticate],
@@ -273,7 +241,6 @@ export default async function ledgerRoutes(fastify, options) {
       return db.select().from(sysCurrencies).orderBy(sysCurrencies.id);
   });
 
-  // 更新/插入货币 (辅助路由，保留 /currencies POST)
   fastify.post('/currencies', {
       preHandler: [fastify.authenticate, fastify.requireAdmin],
       schema: {
@@ -281,12 +248,16 @@ export default async function ledgerRoutes(fastify, options) {
           // ... 剩余 schema
       }
   }, async (req, reply) => {
-      const { code, name, symbol, rate, isActive } = req.body;
+      const { code, name, symbol, rate, isActive, config } = req.body;
       await db.insert(sysCurrencies).values({
-          code, name, symbol, isActive: isActive !== undefined ? isActive : true
+          code, 
+          name, 
+          symbol, 
+          isActive: isActive !== undefined ? isActive : true,
+          config: config
       }).onConflictDoUpdate({
           target: sysCurrencies.code,
-          set: { name, symbol, isActive }
+          set: { name, symbol, isActive, config }
       });
       return { success: true };
   });
