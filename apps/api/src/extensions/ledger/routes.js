@@ -20,14 +20,16 @@ export default async function ledgerRoutes(fastify, options) {
 
     const results = [];
     for (const curr of currencies) {
-      results.push(await getSystemStats(curr.code));
+      results.push(await getSystemStats(curr));
     }
     
     return results;
   });
 
   // 辅助函数：获取系统统计
-  async function getSystemStats(currencyCode) {
+  async function getSystemStats(currency) {
+      const currencyCode = currency.code;
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -70,6 +72,7 @@ export default async function ledgerRoutes(fastify, options) {
       return {
           scope: 'system',
           currency: currencyCode,
+          info: currency,
           totalCirculation: Number(circulation?.total || 0),
           todayEarned: Number(earned?.total || 0),
           todaySpent: Math.abs(Number(spent?.total || 0)),
