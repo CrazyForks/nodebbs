@@ -1,11 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import { DataTable } from '@/components/forum/DataTable';
 import { Loading } from '@/components/common/Loading';
 import TimeAgo from '@/components/forum/TimeAgo';
-import { TransactionTypeBadge } from '../../../rewards/components/shared/TransactionTypeBadge';
+import { TransactionTypeBadge } from './TransactionTypeBadge';
 
 // 简单的辅助函数，避免依赖 rewards 扩展
 function formatAmount(amount) {
@@ -26,15 +23,23 @@ function getAmountColorClass(amount) {
  * @param {Array} props.transactions - 交易记录数组
  * @param {boolean} props.loading - 加载状态
  * @param {Object} props.pagination - 分页信息 { page, total, limit, onPageChange }
+ * @param {boolean} [props.showUserColumn=true] - 是否显示用户列 (用户自己查看时不需要)
+ * @param {boolean} [props.compact=false] - 是否紧凑模式 (无 Card 外壳)
  */
-export function LedgerTransactionTable({ transactions, loading, pagination }) {
+export function LedgerTransactionTable({ 
+  transactions, 
+  loading, 
+  pagination, 
+  showUserColumn = true, 
+  compact = false 
+}) {
   const columns = [
     {
       label: 'ID',
       key: 'id',
       render: (value) => <span className="text-muted-foreground">#{value}</span>,
     },
-    {
+    ...(showUserColumn ? [{
       label: '用户',
       key: 'username',
       render: (value, row) => (
@@ -47,7 +52,7 @@ export function LedgerTransactionTable({ transactions, loading, pagination }) {
           {row.username}
         </a>
       ),
-    },
+    }] : []),
     {
       label: '应用货币',
       key: 'currencyCode',
@@ -86,23 +91,29 @@ export function LedgerTransactionTable({ transactions, loading, pagination }) {
     },
   ];
 
+  const content = loading ? (
+    <Loading text="加载中..." className="py-12" />
+  ) : (
+    <DataTable
+      columns={columns}
+      data={transactions}
+      pagination={pagination}
+      emptyMessage="暂无交易记录"
+    />
+  );
+
+  if (compact) {
+    return content;
+  }
+
   return (
     <Card>
       <CardHeader>
           <CardTitle>交易记录</CardTitle>
-          <CardDescription>查看系统中的所有交易流水</CardDescription>
+          <CardDescription>查看所有交易流水</CardDescription>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <Loading text="加载中..." className="py-12" />
-        ) : (
-          <DataTable
-            columns={columns}
-            data={transactions}
-            pagination={pagination}
-            emptyMessage="暂无交易记录"
-          />
-        )}
+        {content}
       </CardContent>
     </Card>
   );

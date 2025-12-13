@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Coins, TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCredits } from '../../utils/formatters';
+import { formatCredits } from '../../../ledger/utils/formatters';
 
 /**
  * Detailed balance overview with earned/spent stats

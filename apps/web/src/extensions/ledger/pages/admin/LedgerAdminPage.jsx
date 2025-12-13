@@ -9,12 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { DataTable } from '@/components/forum/DataTable';
 import { FormDialog } from '@/components/common/FormDialog';
 import { CurrencyOperationDialog } from '../../components/admin/CurrencyOperationDialog';
-import { LedgerTransactionTable } from '../../components/admin/LedgerTransactionTable';
+import { LedgerTransactionTable } from '../../components/common/LedgerTransactionTable';
+import { CurrencyStats } from '../../components/admin/CurrencyStats';
 import { Wallet, Plus, Coins, ArrowUpCircle, ArrowDownCircle, List as ListIcon } from 'lucide-react';
 import { ledgerApi } from '../../api';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserSearchInput } from '@/extensions/rewards/components/admin/UserSearchInput';
+import { UserSearchInput } from '../../components/admin/UserSearchInput';
 import {
     Select,
     SelectContent,
@@ -25,35 +26,53 @@ import {
 
 export default function LedgerAdminPage() {
   const [currencies, setCurrencies] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCurrency, setEditingCurrency] = useState(null);
-  
-  // Operation Dialog State
-  const [operationOpen, setOperationOpen] = useState(false);
-  const [operationMode, setOperationMode] = useState('grant');
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    symbol: '',
-    isActive: true
-  });
-
-  // Transaction View State
-  const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
-  const [txPagination, setTxPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [operationOpen, setOperationOpen] = useState(false);
+  const [operationMode, setOperationMode] = useState('grant'); // 'grant', 'deduct'
+  const [submitting, setSubmitting] = useState(false);
+  const [editingCurrency, setEditingCurrency] = useState(null);
+  const [formData, setFormData] = useState({
+      code: '',
+      name: '',
+      symbol: '',
+      exchangeRate: 1,
+      isActive: true
+  });
+  const [transactions, setTransactions] = useState([]);
+  const [txPagination, setTxPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0
+  });
   const [txFilterUser, setTxFilterUser] = useState(null);
   const [txFilterCurrency, setTxFilterCurrency] = useState('all');
 
   useEffect(() => {
     fetchCurrencies();
+    fetchStats();
+    fetchTransactions();
   }, []);
 
   useEffect(() => {
       fetchTransactions();
   }, [txPagination.page, txFilterUser, txFilterCurrency]);
+
+  const fetchStats = async () => {
+    setStatsLoading(true);
+    try {
+      const data = await ledgerApi.getStats();
+      setStats(data || []);
+    } catch (error) {
+      console.error('获取统计失败:', error);
+      toast.error('获取统计数据失败');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const fetchTransactions = async () => {
       setTxLoading(true);
@@ -121,6 +140,9 @@ export default function LedgerAdminPage() {
           await ledgerApi.admin.operation(data);
           toast.success(data.type === 'grant' ? '货币发放成功' : '货币扣除成功');
           setOperationOpen(false);
+          fetchStats();
+          // optionally refresh transactions if we were viewing them
+          fetchTransactions();
       } catch (err) {
           console.error(err);
           toast.error('操作失败');
@@ -208,7 +230,28 @@ export default function LedgerAdminPage() {
             </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
+        <TabsContent value="overview" className="space-y-8">
+            {/* Stats Sections for each currency */}
+            {currencies.filter(c => c.isActive).map(currency => {
+              const currencyStats = stats.find(s => s.currency === currency.code);
+              if (!currencyStats) return null;
+              
+              return (
+                <div key={currency.code} className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <span className="text-2xl">{currency.symbol}</span>
+                    {currency.name} ({currency.code})
+                  </h3>
+                  <CurrencyStats 
+                    stats={currencyStats} 
+                    loading={statsLoading} 
+                    currency={currency} 
+                  />
+                  <div className="border-b my-4 opacity-50"></div>
+                </div>
+              );
+            })}
+
             <FormDialog 
                 open={isDialogOpen} 
                 onOpenChange={setIsDialogOpen}
@@ -339,6 +382,7 @@ export default function LedgerAdminPage() {
                     ...txPagination,
                     onPageChange: (page) => setTxPagination(prev => ({ ...prev, page }))
                 }}
+                showUserColumn={true}
             />
         </TabsContent>
       </Tabs>

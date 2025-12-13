@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ItemTypeIcon } from '@/extensions/shop/components/shared/ItemTypeIcon';
-import { CreditsBadge } from '../shared/CreditsBadge';
+import { CreditsBadge } from '../../../ledger/components/common/CreditsBadge';
 import { getItemTypeLabel } from '@/extensions/shop/utils/itemTypes';
 
 /**

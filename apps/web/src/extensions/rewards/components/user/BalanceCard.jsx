@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Coins } from 'lucide-react';
-import { formatCredits } from '../../utils/formatters';
+import { formatCredits } from '../../../ledger/utils/formatters';
 
 /**
  * Compact balance display card for headers

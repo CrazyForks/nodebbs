@@ -5,7 +5,6 @@ import { ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { shopApi, rewardsApi, ledgerApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { useRewardsBalance } from '@/extensions/rewards/hooks/useRewardsBalance';
 import { useShopItems } from '@/extensions/shop/hooks/useShopItems';
 import { BalanceCard } from '@/extensions/rewards/components/user/BalanceCard';
 import { ItemTypeSelector } from '@/extensions/shop/components/shared/ItemTypeSelector';

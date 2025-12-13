@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Minus } from 'lucide-react';
-import { UserSearchInput } from '../../../rewards/components/admin/UserSearchInput';
+import { UserSearchInput } from './UserSearchInput';
 import { FormDialog } from '@/components/common/FormDialog';
 import {
     Select,

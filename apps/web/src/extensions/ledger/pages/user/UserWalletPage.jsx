@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wallet, TrendingUp, TrendingDown, Clock, Loader2, Trophy } from 'lucide-react';
+import { Wallet, Loader2, Trophy, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { ledgerApi } from '../../api';
 import { rewardsApi } from '@/lib/api';
 import { CheckInStatus } from '../../../rewards/components/user/CheckInStatus';
-import { Pager } from '@/components/common/Pagination';
+import { LedgerTransactionTable } from '../../components/common/LedgerTransactionTable';
 import { toast } from 'sonner';
-import Time from '@/components/forum/Time';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserWalletPage() {
@@ -131,59 +130,19 @@ export default function UserWalletPage() {
       </div>
 
       {/* Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            最近交易记录
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-             {loading && transactions.length === 0 ? (
-               <div className="text-center py-8 text-muted-foreground">加载中...</div>
-             ) : transactions.length === 0 ? (
-               <div className="text-center py-8 text-muted-foreground">暂无交易记录</div>
-             ) : (
-               transactions.map(tx => (
-                 <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${tx.amount >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
-                        {tx.amount >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{tx.description || tx.type}</div>
-                        <div className="text-xs text-muted-foreground">
-                          <Time date={tx.createdAt} fromNow />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.amount >= 0 ? '+' : ''}{tx.amount} <span className="text-xs text-muted-foreground">{tx.currencyCode}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        余额: {tx.balance}
-                      </div>
-                    </div>
-                 </div>
-               ))
-             )}
-          </div>
-
-          {/* Pagination */}
-          {total > limit && (
-            <div className="mt-6 border-t pt-4">
-              <Pager
-                page={page}
-                pageSize={limit}
-                total={total}
-                onPageChange={handlePageChange}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+          <LedgerTransactionTable 
+            transactions={transactions}
+            loading={loading}
+            pagination={{
+                page,
+                limit,
+                total,
+                onPageChange: handlePageChange
+            }}
+            showUserColumn={false}
+          />
+      </div>
     </div>
   );
 }

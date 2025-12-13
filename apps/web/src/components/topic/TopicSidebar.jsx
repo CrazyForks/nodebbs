@@ -42,7 +42,6 @@ export default function TopicSidebar({
   isAuthenticated,
   user,
 }) {
-  console.log(user, topic)
   const author = {
     avatar: topic.userAvatar,
     username: topic.username,
