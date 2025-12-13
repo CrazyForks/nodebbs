@@ -154,7 +154,7 @@ export default function Badge({
 
             {/* 获得时间 */}
             {earnedAt && (
-              <div className="pt-2 border-t border-border/10">
+              <div className="pt-2 border-t border-primary/10">
                 <p className="text-[10px] text-muted-foreground/60">
                  <span className="opacity-70">获得于: </span> 
                  <Time date={earnedAt} format="YYYY-MM-DD" />

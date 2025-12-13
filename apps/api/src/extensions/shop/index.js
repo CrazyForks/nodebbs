@@ -11,7 +11,7 @@ async function shopPlugin(fastify, options) {
   fastify.register(shopRoutes, { prefix: '/api/shop' });
   
   // 注册增强器
-  registerShopEnricher();
+  registerShopEnricher(fastify);
 }
 
 export default fp(shopPlugin, {

@@ -12,7 +12,7 @@ async function badgesFeature(fastify, options) {
   fastify.register(badgeListeners);
   
   // Register User Enricher
-  registerBadgeEnricher();
+  registerBadgeEnricher(fastify);
 }
 
 export default fp(badgesFeature, {

@@ -119,7 +119,7 @@ export function PostItem({ post }) {
         )}
 
         {/* Post content */}
-        <div className='prose prose-sm max-w-none mb-3'>
+        <div className='prose prose-sm dark:prose-invert max-w-none mb-3'>
           <div
             className='line-clamp-3 text-sm'
             dangerouslySetInnerHTML={{ __html: post.content }}

@@ -70,22 +70,23 @@ export default function UserCard({
               isBanner ? 'text-base' : 'text-2xl font-semibold leading-tight'
             )}
           >
-            {user.name || user.username}
-          </h4>
-          <p
-            className={cn(
-              'text-muted-foreground truncate',
-              isBanner ? 'text-xs' : 'text-sm hidden'
+            {isBanner ? (
+              <Link
+                href={`/users/${user.username}`}
+                prefetch={false}
+                className='font-bold hover:text-primary hover:underline block truncate'
+              >
+                {user.name || user.username}
+              </Link>
+            ) : (
+              user.name || user.username
             )}
-          >
-            <Link
-              href={`/users/${user.username}`}
-              prefetch={false}
-              className='font-bold hover:text-primary hover:underline block truncate'
-            >
+          </h4>
+          {isBanner && (
+            <p className={cn('text-muted-foreground truncate text-xs')}>
               @{user.username}
-            </Link>
-          </p>
+            </p>
+          )}
         </div>
 
         {/* 勋章展示 */}

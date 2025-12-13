@@ -59,7 +59,6 @@ export default function FollowButton({ username, initialIsFollowing = false, onF
       onClick={handleToggleFollow}
       disabled={loading}
       variant={isFollowing ? 'outline' : 'default'}
-      className='w-full'
     >
       {loading ? (
         <>
