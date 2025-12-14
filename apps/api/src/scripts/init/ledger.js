@@ -15,7 +15,7 @@ export const DEFAULT_CURRENCIES = [
     name: '积分',
     symbol: 'pts',
     precision: 0,
-    isActive: true,
+    isActive: false,
     metadata: JSON.stringify({
       icon: 'coins',
       color: 'yellow',
