@@ -1312,6 +1312,9 @@ export default async function userRoutes(fastify, options) {
 
     if (permanent) {
       // Hard delete - cascade will handle related records
+      // 手动解除一些没有设置 cascade 的关联
+      await db.update(topics).set({ lastPostUserId: null }).where(eq(topics.lastPostUserId, userId));
+
       await db.delete(users).where(eq(users.id, userId));
       return { message: '用户已彻底删除' };
     } else {

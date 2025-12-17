@@ -144,7 +144,9 @@ export const topics = pgTable(
       .notNull()
       .default('approved'), // 'pending', 'approved', 'rejected'
     lastPostAt: timestamp('last_post_at'),
-    lastPostUserId: integer('last_post_user_id').references(() => users.id),
+    lastPostUserId: integer('last_post_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
   },
   (table) => [
     index('topics_slug_idx').on(table.slug),
