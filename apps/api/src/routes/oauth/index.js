@@ -884,21 +884,26 @@ export default async function oauthRoutes(fastify, options) {
         // 则只能获取到邮箱
         
         // 尝试从首次请求的 user 字段中获取名字
-        let nameMap = {};
+        let fullName = null;
         if (appleUserWrap) {
-          // appleUserWrap 可能是 json 字符串或对象，请求体解析可能会处理
-          // form-post 模式下 apple 返回的是 json 字符串
           try {
              const userObj = typeof appleUserWrap === 'string' ? JSON.parse(appleUserWrap) : appleUserWrap;
              if (userObj.name) {
-               nameMap = userObj.name;
+               const { firstName, lastName } = userObj.name;
+               if (firstName && lastName) {
+                 fullName = `${firstName} ${lastName}`;
+               } else {
+                 fullName = firstName || lastName || null;
+               }
              }
-          } catch(e) {}
+          } catch(e) {
+            fastify.log.warn('Failed to parse Apple user name', e);
+          }
         }
 
         const profileData = {
           ...payload,
-          name: nameMap, // 传递可能存在的 name 信息
+          name: fullName, // 传递可能存在的 name 信息 (String or null)
         };
 
         const result = await handleOAuthLogin(
