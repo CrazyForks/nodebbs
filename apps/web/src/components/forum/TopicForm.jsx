@@ -189,14 +189,14 @@ export default function TopicForm({
                     setFormData({ ...formData, content: e.target.value });
                     if (errors.content) setErrors({ ...errors, content: '' });
                   }}
-                  className='min-h-[300px] max-h-[calc(100vh-280px)] resize-none overflow-y-auto field-sizing-fixed sm:field-sizing-content bg-card'
+                  className='min-h-[300px] max-h-[calc(100vh-280px)] resize-none overflow-y-auto field-sizing-fixed sm:field-sizing-content bg-card wrap-break-word break-all'
                   placeholder='详细描述你的话题内容，支持 Markdown 格式...'
                   aria-invalid={!!errors.content}
                 />
               ) : (
                 <div className='min-h-[300px] max-h-[calc(100vh-280px)] overflow-y-auto p-4 bg-card rounded-lg'>
                   {formData.content ? (
-                    <article className='prose prose-stone dark:prose-invert'>
+                    <article className='prose prose-stone dark:prose-invert wrap-break-word whitespace-pre-wrap'>
                       <MarkdownRender content={formData.content} />
                     </article>
                   ) : (
