@@ -12,7 +12,7 @@ import { FormDialog } from '@/components/common/FormDialog';
 import { Plus, Edit, Trash2, Loader2, Lock } from 'lucide-react';
 import { categoryApi } from '@/lib/api';
 import { toast } from 'sonner';
-import CategorySelector from '@/components/forum/CategorySelector';
+import CategorySelector from '@/components/topic/CategorySelector';
 import { Loading } from '@/components/common/Loading';
 
 export default function CategoriesManagement() {

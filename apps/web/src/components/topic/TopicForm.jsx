@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import CategorySelector from '@/components/forum/CategorySelector';
+import CategorySelector from '@/components/topic/CategorySelector';
 import { toast } from 'sonner';
 import { X, AlertCircle, Loader2 } from 'lucide-react';
 import MarkdownRender from '../common/MarkdownRender';
