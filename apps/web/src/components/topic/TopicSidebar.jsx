@@ -22,7 +22,7 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 import ReportDialog from '@/components/moderation/ReportDialog';
-import TopicForm from '@/components/forum/TopicForm';
+import TopicForm from '@/components/topic/TopicForm';
 import Time from '../forum/Time';
 import UserCard from '@/components/user/UserCard';
 

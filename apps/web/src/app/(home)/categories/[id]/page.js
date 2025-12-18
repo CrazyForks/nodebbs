@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getCategoryBySlug, getTopicsData } from '@/lib/server/topics';
-import { TopicListClient } from '@/components/forum/TopicList';
+import { TopicListClient } from '@/components/topic/TopicList';
 
 // 生成页面元数据
 export async function generateMetadata({ params }) {

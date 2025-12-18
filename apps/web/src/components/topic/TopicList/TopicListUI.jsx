@@ -9,9 +9,9 @@ import {
   BookOpen,
   Plus,
 } from 'lucide-react';
-import UserAvatar from '../UserAvatar';
+import UserAvatar from '@/components/forum/UserAvatar';
 import { Pager } from '@/components/common/Pagination';
-import Time from '../Time';
+import Time from '@/components/forum/Time';
 
 // 空状态组件
 export function EmptyState() {
