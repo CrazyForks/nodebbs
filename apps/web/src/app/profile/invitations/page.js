@@ -15,7 +15,8 @@ import {
 import { FormDialog } from '@/components/common/FormDialog';
 import { invitationsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { Copy, Plus, Check, X, Clock, Ticket } from 'lucide-react';
+import { Plus, X, Clock, Ticket } from 'lucide-react';
+import CopyButton from '@/components/common/CopyButton';
 import { Loading } from '@/components/common/Loading';
 import { Pager } from '@/components/common/Pagination';
 
@@ -30,7 +31,6 @@ export default function InvitationsPage() {
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [copiedCode, setCopiedCode] = useState(null);
 
   const [generateForm, setGenerateForm] = useState({
     note: '',
@@ -116,17 +116,7 @@ export default function InvitationsPage() {
     }
   };
 
-  // 复制邀请码
-  const handleCopy = async (code) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      toast.success('邀请码已复制到剪贴板');
-      setTimeout(() => setCopiedCode(null), 2000);
-    } catch (error) {
-      toast.error('复制失败');
-    }
-  };
+
 
   // 获取状态标签
   const getStatusBadge = (status) => {
@@ -263,18 +253,14 @@ export default function InvitationsPage() {
                       {code.code}
                     </code>
                     {getStatusBadge(code.status)}
-                    <Button
+                    <CopyButton
+                      value={code.code}
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCopy(code.code)}
                       className="h-8 w-8 p-0"
-                    >
-                      {copiedCode === code.code ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
+                      iconSize="h-4 w-4"
+                      onCopy={() => toast.success('邀请码已复制到剪贴板')} 
+                    />
                   </div>
 
                   {code.note && (

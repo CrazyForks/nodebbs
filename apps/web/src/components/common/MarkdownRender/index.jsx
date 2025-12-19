@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Copy } from 'lucide-react';
 import Link from 'next/link';
 import Markdown from 'react-markdown';
@@ -8,8 +8,8 @@ import remarkMedia from './plugins/remark-media';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import CopyButton from '@/components/common/CopyButton';
 
 function MarkdownRender({ content }) {
   return (
@@ -152,30 +152,19 @@ function MarkdownRender({ content }) {
   );
 }
 
+
+
 function CodeBlock({ language, code, ...rest }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      console.error('复制失败:', err);
-    }
-  };
-
   return (
     <div className='relative group rounded-lg w-full max-w-full grid grid-cols-1 min-w-0'>
-      <Button
-        onClick={handleCopy}
+      <CopyButton
+        value={code}
         variant='ghost'
         size='sm'
         className='absolute text-accent right-2 top-2 shrink opacity-0 group-hover:opacity-100 transition z-10'
-        type='button'
       >
-        {copied ? '已复制' : <Copy className='w-4 h-4' />}
-      </Button>
+        {({ copied }) => (copied ? '已复制' : <Copy className='w-4 h-4' />)}
+      </CopyButton>
       <SyntaxHighlighter
         {...rest}
         language={language}

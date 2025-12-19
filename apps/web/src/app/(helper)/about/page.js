@@ -1,39 +1,38 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import CopyButton from '@/components/common/CopyButton';
 import { Github, Rocket, Bot, Code2, Plug, Settings, Shield, Mail, Zap, QrCode, UserCheck, Copy, Check } from 'lucide-react';
 
 const CodeBlock = ({ code, language = 'bash' }) => {
-  const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="relative group">
       <div className="flex items-center justify-between bg-slate-800 dark:bg-slate-900 rounded-t-lg px-4 py-2 border-b border-slate-700">
         <span className="text-xs text-slate-400 font-medium">{language}</span>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 transition-colors"
-          title={copied ? '已复制' : '复制代码'}
+        <CopyButton
+          value={code}
+          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 transition-colors h-auto w-auto"
+          title="复制代码"
         >
-          {copied ? (
+          {({ copied }) => (
             <>
-              <Check className="h-3 w-3" />
-              <span>已复制</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span>复制</span>
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3" />
+                  <span>已复制</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>复制</span>
+                </>
+              )}
             </>
           )}
-        </button>
+        </CopyButton>
       </div>
       <div className="bg-slate-900 dark:bg-slate-950 rounded-b-lg p-4 font-mono text-sm overflow-x-auto border border-slate-700 border-t-0">
         <pre className="text-slate-100 m-0">{code}</pre>

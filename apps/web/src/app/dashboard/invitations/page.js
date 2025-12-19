@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import CopyButton from '@/components/common/CopyButton';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -47,7 +48,6 @@ export default function AdminInvitationsPage() {
   const [showEnableDialog, setShowEnableDialog] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(null);
   const limit = 20;
 
   const [generateForm, setGenerateForm] = useState({
@@ -189,16 +189,7 @@ export default function AdminInvitationsPage() {
     }
   };
 
-  const handleCopy = async (code) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      toast.success('邀请码已复制到剪贴板');
-      setTimeout(() => setCopiedCode(null), 2000);
-    } catch (error) {
-      toast.error('复制失败');
-    }
-  };
+
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -301,18 +292,14 @@ export default function AdminInvitationsPage() {
                 <code className="text-sm font-mono font-bold bg-muted px-2 py-1 rounded">
                   {value}
                 </code>
-                <Button
+                <CopyButton
+                  value={value}
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy(value)}
                   className="h-6 w-6 p-0"
-                >
-                  {copiedCode === value ? (
-                    <Check className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </Button>
+                  iconSize="h-3 w-3"
+                  onCopy={() => toast.success('邀请码已复制到剪贴板')}
+                />
               </div>
             ),
           },
