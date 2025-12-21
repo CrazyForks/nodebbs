@@ -53,7 +53,7 @@ export function TopicItem({ topic }) {
             <Link
               href={`/topic/${topic.id}`}
               prefetch={false}
-              className='text-base font-semibold hover:text-primary transition-colors line-clamp-2 block mb-2'
+              className='text-base font-semibold hover:text-primary transition-colors line-clamp-2 block mb-2 break-all'
             >
               {topic.title}
             </Link>

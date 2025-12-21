@@ -84,25 +84,25 @@ export function TopicItem({ topic }) {
         {/* 中间：主要内容区域 */}
         <div className='flex-1 min-w-0'>
           {/* 标题行 */}
-          <div className='mb-2'>
-            <div className='flex items-start gap-2 flex-wrap'>
+            {/* 标题行 - 使用 inline-block 以支持自然换行 */}
+            <div className='mb-2 leading-snug'>
               {topic.isPinned && (
-                <Pin className='h-4 w-4 text-chart-5 shrink-0 mt-1.5' />
+                <Pin className='inline-block w-4 h-4 text-chart-5 mr-1.5 align-middle relative -top-[1px]' />
               )}
               {topic.isClosed && (
-                <Lock className='h-4 w-4 text-muted-foreground/60 shrink-0 mt-1.5' />
+                <Lock className='inline-block w-4 h-4 text-muted-foreground/60 mr-1.5 align-middle relative -top-[1px]' />
               )}
               <Link
                 href={`/topic/${topic.id}`}
                 prefetch={false}
-                className='text-lg font-medium text-foreground group-hover:text-primary visited:text-muted-foreground transition-colors leading-tight'
+                className='text-lg font-medium text-foreground group-hover:text-primary visited:text-muted-foreground transition-colors align-middle break-all'
               >
                 {topic.title}
               </Link>
               {topic.approvalStatus === 'pending' && (
                 <Badge
                   variant='outline'
-                  className='text-chart-5 border-chart-5 text-xs h-5 shrink-0'
+                  className='text-chart-5 border-chart-5 text-xs h-5 inline-flex align-middle ml-2 relative -top-[1px]'
                 >
                   待审核
                 </Badge>
@@ -110,13 +110,12 @@ export function TopicItem({ topic }) {
               {topic.approvalStatus === 'rejected' && (
                 <Badge
                   variant='outline'
-                  className='text-destructive border-destructive text-xs h-5 shrink-0'
+                  className='text-destructive border-destructive text-xs h-5 inline-flex align-middle ml-2 relative -top-[1px]'
                 >
                   已拒绝
                 </Badge>
               )}
             </div>
-          </div>
 
           {/* 元信息行 */}
           <div className='flex items-center gap-2 text-sm text-muted-foreground flex-wrap'>
@@ -129,12 +128,13 @@ export function TopicItem({ topic }) {
               {topic.userName || topic.username}
             </Link>
 
-            <span className='text-muted-foreground/50'>·</span>
-
             {/* 分类 */}
-            <Badge variant='ghost' className='text-xs font-normal'>
-              {categoryName}
-            </Badge>
+            <div className='hidden sm:flex items-center'>
+               <span className='text-muted-foreground/50 mr-2'>·</span>
+               <Badge variant='ghost' className='text-xs font-normal p-0 h-auto hover:bg-transparent'>
+                 {categoryName}
+               </Badge>
+            </div>
 
             <span className='text-muted-foreground/50'>·</span>
 
@@ -163,6 +163,22 @@ export function TopicItem({ topic }) {
                 </div>
               </>
             )}
+
+            {/* 移动端统计信息 (放入 Meta 行，且居右) */}
+            <div className='flex sm:hidden items-center gap-3 text-xs text-muted-foreground/70 ml-auto shrink-0'>
+              <div className='flex items-center gap-1'>
+                <MessageSquare className='h-3 w-3' />
+                <span className='font-medium tabular-nums'>
+                  {Math.max((topic.postCount || 1) - 1, 0)}
+                </span>
+              </div>
+              <div className='flex items-center gap-1'>
+                <Eye className='h-3 w-3' />
+                <span className='font-medium tabular-nums'>
+                  {topic.viewCount || 0}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -189,22 +205,6 @@ export function TopicItem({ topic }) {
               最后回复 <Time date={topic.lastPostAt} fromNow />
             </div>
           )}
-        </div>
-
-        {/* 移动端统计信息 */}
-        <div className='flex sm:hidden items-center gap-3 text-xs text-muted-foreground/70 ml-auto shrink-0'>
-          <div className='flex items-center gap-1'>
-            <MessageSquare className='h-3 w-3' />
-            <span className='font-medium tabular-nums'>
-              {Math.max((topic.postCount || 1) - 1, 0)}
-            </span>
-          </div>
-          <div className='flex items-center gap-1'>
-            <Eye className='h-3 w-3' />
-            <span className='font-medium tabular-nums'>
-              {topic.viewCount || 0}
-            </span>
-          </div>
         </div>
       </div>
     </div>
