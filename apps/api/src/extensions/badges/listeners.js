@@ -49,4 +49,5 @@ export default async function badgeListeners(fastify) {
      }
   });
   fastify.eventBus.on('user.login', handleActivity); // 用于签到连胜或登录天数
+  fastify.eventBus.on('user.checkin', handleActivity); // 监听签到事件
 }

@@ -147,6 +147,11 @@ export async function checkIn(fastify, userId) {
       }
     });
 
+    // 触发签到事件，用于徽章检查等
+    if (fastify.eventBus) {
+      fastify.eventBus.emit('user.checkin', { userId, streak: result.newStreak });
+    }
+
     return {
       amount: totalAmount,
       balance: tx.balanceAfter,
