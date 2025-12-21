@@ -71,7 +71,7 @@ export function ShopItemTable({ items, loading, pagination, onEdit, onDelete }) 
       render: (value, row) => (
         <div className="flex items-center gap-3">
           {row.imageUrl && (
-            <div className="relative w-12 h-12">
+            <div className="relative w-24 h-24">
               <img
                 src={row.imageUrl}
                 alt={row.name}

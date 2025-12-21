@@ -182,8 +182,8 @@ export function LedgerCurrencies() {
                 <CardContent>
                     <DataTable
                         columns={[
-                            { key: 'code', label: '代码', render: (val) => <span className="font-mono">{val}</span> },
                             { key: 'name', label: '名称' },
+                            { key: 'code', label: '代码', render: (val) => <span className="font-mono">{val}</span> },
                             { key: 'symbol', label: '符号' },
                             { 
                                 key: 'isActive', 

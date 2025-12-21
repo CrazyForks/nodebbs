@@ -14,7 +14,7 @@ export function BadgeTable({ items, loading, onEdit, onDelete }) {
         <img 
           src={value} 
           alt={item.name} 
-          className="w-8 h-8 object-contain"
+          className="w-24 h-24 object-contain"
         />
       ),
     },

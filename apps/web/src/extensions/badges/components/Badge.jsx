@@ -115,52 +115,73 @@ export default function Badge({
             {content}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-[220px] p-4 bg-muted/95 backdrop-blur-sm text-popover-foreground [&_.z-50]:!bg-muted/95 [&_.z-50]:!fill-muted/95">
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                {badgeData.iconUrl || metadata.iconUrl ? (
-                   <img 
-                    src={badgeData.iconUrl || metadata.iconUrl} 
-                    alt="" 
-                    className="w-4 h-4 object-contain"
-                  />
-                ) : (
-                  <Award className="w-4 h-4 text-primary" />
-                )}
-                <span>{badgeData.name || badgeData.itemName}</span>
-              </div>
-              
-              {(badgeData.description || metadata.description) && (
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {badgeData.description || metadata.description}
-                </p>
+        <TooltipContent side="bottom" className="p-0 bg-muted/95 backdrop-blur-sm shadow-xl border-border/50 [&_.z-50]:!bg-muted/95 [&_.z-50]:!fill-muted/95">
+          <div className="flex flex-col rounded-md overflow-hidden">
+            {/* 大图展示区 */}
+            <div className="w-full aspect-square flex items-center justify-center p-6 relative">
+              {badgeData.iconUrl || metadata.iconUrl ? (
+                <img 
+                  src={badgeData.iconUrl || metadata.iconUrl} 
+                  alt={badgeData.name || badgeData.itemName}
+                  className="w-[200px] h-[200px] object-contain drop-shadow-lg transition-transform hover:scale-110 duration-500 ease-in-out"
+                />
+              ) : (
+                <Award className="w-32 h-32 text-primary/20" />
               )}
             </div>
 
-            {/* 佩戴效果 */}
-            {hasEffects && (
-              <div className="space-y-1 pt-2 border-t border-border/10">
-                <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
-                  <Zap className="w-3 h-3" /> 佩戴效果
-                </div>
-                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside pl-1">
-                  {effects.checkInBonus > 0 && <li>签到奖励 +{effects.checkInBonus} 积分</li>}
-                  {effects.checkInBonusPercent > 0 && <li>签到奖励 +{effects.checkInBonusPercent}%</li>}
-                  {effects.replyCostReductionPercent > 0 && <li>回复消耗 -{effects.replyCostReductionPercent}%</li>}
-                </ul>
+            {/* 信息区 */}
+            <div className="p-5 pt-2 space-y-4">
+              <div className="text-center space-y-1.5">
+                <h3 className="font-bold text-lg text-foreground">
+                  {badgeData.name || badgeData.itemName}
+                </h3>
+                {(badgeData.description || metadata.description) && (
+                  <p className="text-xs text-muted-foreground leading-relaxed px-2">
+                    {badgeData.description || metadata.description}
+                  </p>
+                )}
               </div>
-            )}
 
-            {/* 获得时间 */}
-            {earnedAt && (
-              <div className="pt-2 border-t border-primary/10">
-                <p className="text-[10px] text-muted-foreground/60">
-                 <span className="opacity-70">获得于: </span> 
-                 <Time date={earnedAt} format="YYYY-MM-DD" />
-                </p>
-              </div>
-            )}
+              {/* 佩戴效果 */}
+              {hasEffects && (
+                <div className="bg-muted/30 rounded-lg p-3 space-y-2 border border-border/50">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
+                    <Zap className="w-3.5 h-3.5 fill-current" /> 
+                    <span>佩戴效果</span>
+                  </div>
+                  <ul className="text-xs text-muted-foreground space-y-1.5 pl-1">
+                    {effects.checkInBonus > 0 && 
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-amber-500/50" />
+                        签到奖励 +{effects.checkInBonus} 积分
+                      </li>
+                    }
+                    {effects.checkInBonusPercent > 0 && 
+                      <li className="flex items-center gap-1.5">
+                         <span className="w-1 h-1 rounded-full bg-amber-500/50" />
+                         签到奖励 +{effects.checkInBonusPercent}%
+                      </li>
+                    }
+                    {effects.replyCostReductionPercent > 0 && 
+                      <li className="flex items-center gap-1.5">
+                         <span className="w-1 h-1 rounded-full bg-amber-500/50" />
+                         回复消耗 -{effects.replyCostReductionPercent}%
+                      </li>
+                    }
+                  </ul>
+                </div>
+              )}
+
+              {/* 获得时间 */}
+              {earnedAt && (
+                <div className="pt-3 border-t border-border/50 text-center">
+                  <p className="text-[10px] text-muted-foreground/50 font-mono">
+                   获得于 <Time date={earnedAt} format="YYYY.MM.DD" />
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>

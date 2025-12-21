@@ -62,7 +62,7 @@ export default function BadgeCard({ badge, isUnlocked = false }) {
             `}
           >
             {/* Icon Area */}
-            <div className="w-16 h-16 mb-3 relative transition-transform duration-300 group-hover:scale-110">
+            <div className="w-32 h-32 mb-3 relative transition-transform duration-300 group-hover:scale-110">
               <img 
                 src={badge.iconUrl} 
                 alt={badge.name} 
