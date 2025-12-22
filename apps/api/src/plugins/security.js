@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import cors from '@fastify/cors';
 import { isDev } from '../utils/env.js';
+import { isOriginAllowed, parseAllowedOrigins } from '../utils/http-helpers.js';
 
 async function securityPlugin(fastify, opts) {
   // Register CORS https://github.com/fastify/fastify-cors?tab=readme-ov-file#options
@@ -19,8 +20,10 @@ async function securityPlugin(fastify, opts) {
           return;
         }
         
-        const allowedOrigins = process.env.CORS_ORIGIN.split(',').map((s) => s.trim());
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        // 解析一次 (生产环境建议缓存这个结果，但这里作为插件闭包也可以)
+        const allowedPatterns = parseAllowedOrigins(process.env.CORS_ORIGIN);
+        
+        if (isOriginAllowed(origin, allowedPatterns)) {
           cb(null, true);
           return;
         }
