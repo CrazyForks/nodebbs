@@ -44,6 +44,12 @@ async function securityPlugin(fastify, opts) {
       //   return;
       // }
 
+      // 3. 特殊处理：允许 Apple 登录回调的 Origin
+      if (origin === 'https://appleid.apple.com') {
+          cb(null, true);
+          return;
+      }
+
       // 拒绝其他来源
       cb(new Error('Not allowed by CORS'), false);
     },
