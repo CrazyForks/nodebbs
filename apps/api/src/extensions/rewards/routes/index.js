@@ -50,6 +50,7 @@ export default async function rewardsRoutes(fastify, options) {
           userId: posts.userId,
           topicId: posts.topicId,
           isDeleted: posts.isDeleted,
+          postNumber: posts.postNumber,
         })
         .from(posts)
         .where(eq(posts.id, postId))
@@ -97,17 +98,23 @@ export default async function rewardsRoutes(fastify, options) {
         message,
       });
 
+      // 判断是话题还是回复 (postNumber === 1 为话题内容)
+      const isTopic = post.postNumber === 1;
+      const notificationType = isTopic ? 'reward_topic' : 'reward_reply';
+      const defaultMessage = isTopic ? '打赏了你的话题' : '打赏了你的帖子';
+
       // 发送通知
       await db.insert(notifications).values({
         userId: post.userId,
-        type: 'reward',
+        type: notificationType,
         triggeredByUserId: request.user.id,
         topicId: post.topicId,
         postId: postId,
-        message: message || '打赏了你的帖子',
+        message: message || defaultMessage,
         isRead: false,
         metadata: JSON.stringify({
-          amount
+          amount,
+          isTopic
         })
       });
 

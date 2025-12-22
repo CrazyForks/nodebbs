@@ -409,7 +409,7 @@ export const notifications = pgTable(
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    type: varchar('type', { length: 50 }).notNull(), // mention (提及), reply (回复), like (点赞), follow (关注) 等
+    type: varchar('type', { length: 50 }).notNull(), // mention (提及), reply (回复), like (点赞), follow (关注), reward_topic (打赏话题), reward_reply (打赏帖子) 等
     triggeredByUserId: integer('triggered_by_user_id').references(
       () => users.id,
       { onDelete: 'cascade' }

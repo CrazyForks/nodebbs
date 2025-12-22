@@ -27,6 +27,8 @@ export const getNotificationIcon = (type) => {
     case 'gift_received':
       return <Gift className='h-4 w-4 text-pink-500' />;
     case 'reward':
+    case 'reward_topic':
+    case 'reward_reply':
       return <Coins className='h-4 w-4 text-yellow-500' />;
     case 'report_resolved':
       return <CheckCheck className='h-4 w-4 text-green-600' />;
@@ -75,6 +77,10 @@ export const getNotificationMessage = (notification) => {
     case 'gift_received':
       return notification.message;
     case 'reward':
+      return notification.message || '打赏了你的内容';
+    case 'reward_topic':
+      return notification.message || '打赏了你的话题';
+    case 'reward_reply':
       return notification.message || '打赏了你的帖子';
     default:
       return notification.message || '发送了一条通知';
