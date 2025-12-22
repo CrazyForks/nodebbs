@@ -12,12 +12,13 @@ import { oauthProviders } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { isProd } from '../../utils/env.js';
+import { getFrontendOrigin } from '../../utils/http-helpers.js';
 
 /**
  * OAuth 认证路由
  */
 export default async function oauthRoutes(fastify, options) {
-  const frontendUrl = process.env.APP_URL || 'http://localhost:3100';
+
 
   // ============= OAuth 配置管理 =============
 
@@ -299,7 +300,8 @@ export default async function oauthRoutes(fastify, options) {
         const state = generateRandomState();
         const params = new URLSearchParams({
           client_id: providerConfig.clientId,
-          redirect_uri: providerConfig.callbackUrl || `${frontendUrl}/auth/github/callback`,
+          // redirect_uri: providerConfig.callbackUrl || `${frontendUrl}/auth/github/callback`, // Removed frontendUrl
+          redirect_uri: providerConfig.callbackUrl, // 必须在后台配置完整的 callbackUrl
           scope: scope.join(' '),
           state: state,
         });
@@ -367,7 +369,8 @@ export default async function oauthRoutes(fastify, options) {
         
         const params = new URLSearchParams({
           client_id: providerConfig.clientId,
-          redirect_uri: providerConfig.callbackUrl || `${frontendUrl}/auth/google/callback`,
+          // redirect_uri: providerConfig.callbackUrl || `${frontendUrl}/auth/google/callback`,
+          redirect_uri: providerConfig.callbackUrl,
           scope: scope.join(' '),
           state: state,
           response_type: 'code',
@@ -438,14 +441,19 @@ export default async function oauthRoutes(fastify, options) {
         // 我们利用 Next.js 的 /api 代理转发
         
         // 使用外部定义的 frontendUrl
-        const defaultCallbackUrl = `${frontendUrl}/api/oauth/apple/callback`;
+        // const defaultCallbackUrl = `${frontendUrl}/api/oauth/apple/callback`;
         
         // 手动构建授权 URL
         const state = generateRandomState();
 
+        // 对于Apple，必须配置准确的 callbackUrl，因为它是 POST 回调
+        if (!providerConfig.callbackUrl) { 
+           throw new Error('Apple OAuth 需要配置回调 URL');
+        }
+
         const params = new URLSearchParams({
           client_id: providerConfig.clientId,
-          redirect_uri: providerConfig.callbackUrl || defaultCallbackUrl,
+          redirect_uri: providerConfig.callbackUrl,
           scope: scope.join(' '),
           state: state,
           response_type: 'code id_token', 
@@ -461,6 +469,17 @@ export default async function oauthRoutes(fastify, options) {
           secure: true, // SameSite=None 必须配合 Secure
           maxAge: 600, // 10 minutes
           sameSite: 'none',
+        });
+
+        // 存储前端 Origin 用于回调重定向
+        const baseUrl = getFrontendOrigin(request);
+        
+        reply.setCookie('oauth_frontend_origin', baseUrl, {
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            maxAge: 600,
+            sameSite: 'none',
         });
 
         return { authorizationUri };
@@ -549,7 +568,7 @@ export default async function oauthRoutes(fastify, options) {
         );
 
         if (!tokenResponse.ok) {
-          throw new Error('Failed to exchange code for token');
+          throw new Error('代码换取 Token 失败');
         }
 
         const token = await tokenResponse.json();
@@ -567,7 +586,7 @@ export default async function oauthRoutes(fastify, options) {
         });
 
         if (!userInfoResponse.ok) {
-          throw new Error('Failed to fetch GitHub user info');
+          throw new Error('获取 GitHub 用户信息失败');
         }
 
         const githubUser = await userInfoResponse.json();
@@ -700,7 +719,7 @@ export default async function oauthRoutes(fastify, options) {
         );
 
         if (!tokenResponse.ok) {
-          throw new Error('Failed to exchange code for token');
+          throw new Error('代码换取 Token 失败');
         }
 
         const token = await tokenResponse.json();
@@ -712,13 +731,13 @@ export default async function oauthRoutes(fastify, options) {
         // 直接从 id_token 解析用户信息，避免再次请求 userinfo 接口
         const idToken = token.id_token;
         if (!idToken) {
-           throw new Error('No id_token received');
+           throw new Error('未收到 id_token');
         }
         
         // 简单解码 (生产环境建议验证签名)
         const googleUser = jwt.decode(idToken);
         if (!googleUser) {
-           throw new Error('Failed to decode id_token');
+           throw new Error('解码 id_token 失败');
         }
 
         const result = await handleOAuthLogin(
@@ -806,7 +825,7 @@ export default async function oauthRoutes(fastify, options) {
             try {
                 appleUserWrap = typeof user === 'string' ? JSON.parse(user) : user;
             } catch (e) {
-                fastify.log.warn('Failed to parse Apple user JSON', e);
+                fastify.log.warn('解析 Apple 用户 JSON 失败', e);
             }
         }
 
@@ -824,7 +843,7 @@ export default async function oauthRoutes(fastify, options) {
             ? JSON.parse(providerConfig.additionalConfig)
             : {};
         } catch (e) {
-          fastify.log.warn('Apple additionalConfig parsing failed', e);
+          fastify.log.warn('Apple 额外配置解析失败', e);
         }
 
         const { teamId, keyId } = additionalConfig;
@@ -861,8 +880,8 @@ export default async function oauthRoutes(fastify, options) {
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
-          fastify.log.error(`Apple token exchange failed: ${errorText}`);
-          throw new Error('Failed to exchange code for token');
+          fastify.log.error(`Apple Token 交换失败: ${errorText}`);
+          throw new Error('代码换取 Token 失败');
         }
 
         const token = await tokenResponse.json();
@@ -874,7 +893,7 @@ export default async function oauthRoutes(fastify, options) {
         // 验证 ID Token
         const idToken = token.id_token;
         if (!idToken) {
-          throw new Error('No id_token received from Apple');
+          throw new Error('未收到 Apple id_token');
         }
 
         const payload = await verifyAppleIdToken(idToken, providerConfig.clientId);
@@ -897,7 +916,7 @@ export default async function oauthRoutes(fastify, options) {
                }
              }
           } catch(e) {
-            fastify.log.warn('Failed to parse Apple user name', e);
+            fastify.log.warn('解析 Apple 用户名失败', e);
           }
         }
 
@@ -928,8 +947,18 @@ export default async function oauthRoutes(fastify, options) {
         });
 
         // 3. 构建前端重定向 URL
-        // 因为是 form_post，必须 redirect 回前端页面
-        const frontendRedirectUrl = new URL(`${frontendUrl}/auth/apple/callback`);
+        // 从 Cookie 获取前端 Origin
+        const frontendOrigin = request.cookies.oauth_frontend_origin || '';
+        if (!frontendOrigin) {
+             fastify.log.warn('Apple 回调未找到 oauth_frontend_origin cookie');
+        }
+        
+        // 清除 cookie
+        reply.clearCookie('oauth_frontend_origin');
+        
+        const baseUrl = frontendOrigin || '/'; 
+
+        const frontendRedirectUrl = new URL(`${baseUrl}/auth/apple/callback`);
         frontendRedirectUrl.searchParams.set('token', authToken);
         frontendRedirectUrl.searchParams.set('status', 'success');
 
@@ -937,7 +966,12 @@ export default async function oauthRoutes(fastify, options) {
 
       } catch (error) {
         fastify.log.error(error);
-        const errorRedirectUrl = new URL(`${frontendUrl}/auth/apple/callback`);
+        
+        const frontendOrigin = request.cookies.oauth_frontend_origin || '';
+        reply.clearCookie('oauth_frontend_origin');
+        const baseUrl = frontendOrigin || '/'; 
+        
+        const errorRedirectUrl = new URL(`${baseUrl}/auth/apple/callback`);
         errorRedirectUrl.searchParams.set('error', error.message || 'Login failed');
         errorRedirectUrl.searchParams.set('status', 'error');
         return reply.redirect(errorRedirectUrl.toString());
@@ -980,21 +1014,21 @@ async function verifyAppleIdToken(idToken, clientId) {
   const decoded = jwt.decode(idToken);
   
   if (!decoded) {
-    throw new Error('Invalid ID Token');
+    throw new Error('无效的 ID Token');
   }
 
   if (decoded.iss !== 'https://appleid.apple.com') {
-    throw new Error('Invalid ID Token issuer');
+    throw new Error('ID Token 签发者无效');
   }
 
   if (decoded.aud !== clientId) {
-    throw new Error('Invalid ID Token audience');
+    throw new Error('ID Token 受众无效');
   }
 
   // 检查有效期
   const now = Math.floor(Date.now() / 1000);
   if (decoded.exp < now) {
-    throw new Error('ID Token expired');
+    throw new Error('ID Token 已过期');
   }
 
   return decoded;

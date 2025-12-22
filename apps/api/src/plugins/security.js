@@ -35,11 +35,11 @@ async function securityPlugin(fastify, opts) {
         }
       }
       
-      // 3. 生产环境默认只允许 APP_URL
-      if (process.env.APP_URL && origin === process.env.APP_URL) {
-        cb(null, true);
-        return;
-      }
+      // 3. 生产环境默认只允许 APP_URL (APP_URL 已弃用，完全依赖 CORS_ORIGIN)
+      // if (process.env.APP_URL && origin === process.env.APP_URL) {
+      //   cb(null, true);
+      //   return;
+      // }
 
       // 拒绝其他来源
       cb(new Error('Not allowed by CORS'), false);
