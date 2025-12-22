@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import CopyButton from '@/components/common/CopyButton';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DataTable } from '@/components/common/DataTable';
 import UserAvatar from '@/components/user/UserAvatar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
 import {
@@ -41,6 +35,7 @@ export default function AdminInvitationsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [statusFilter, setStatusFilter] = useState('all');
 
   const [selectedCode, setSelectedCode] = useState(null);
@@ -57,15 +52,24 @@ export default function AdminInvitationsPage() {
   });
 
   useEffect(() => {
-    fetchCodes();
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     fetchStats();
-  }, [page, statusFilter]);
+  }, []);
+
+  useEffect(() => {
+    fetchCodes();
+  }, [page, statusFilter, debouncedSearch]);
 
   const fetchCodes = async () => {
     setLoading(true);
     try {
       const params = { page, limit };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (statusFilter !== 'all') params.status = statusFilter;
 
       const data = await invitationsApi.admin.getAll(params);
@@ -90,10 +94,7 @@ export default function AdminInvitationsPage() {
 
 
 
-  const handleSearch = () => {
-    setPage(1);
-    fetchCodes();
-  };
+
 
   const handleGenerate = async () => {
     setSubmitting(true);
@@ -421,13 +422,7 @@ export default function AdminInvitationsPage() {
         loading={loading}
         search={{
           value: search,
-          onChange: (value) => {
-            setSearch(value);
-            if (!value) {
-              setPage(1);
-              fetchCodes();
-            }
-          },
+          onChange: (value) => setSearch(value),
           placeholder: '搜索邀请码或备注...',
         }}
         filter={{
