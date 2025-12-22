@@ -106,6 +106,9 @@ export default async function rewardsRoutes(fastify, options) {
         postId: postId,
         message: message || '打赏了你的帖子',
         isRead: false,
+        metadata: JSON.stringify({
+          amount
+        })
       });
 
       return {

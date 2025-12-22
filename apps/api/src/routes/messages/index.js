@@ -457,6 +457,10 @@ export default async function messageRoutes(fastify) {
         message: `${request.user.username} 给你发送了一条新消息${
           subject ? `：${subject}` : ''
         }`,
+        metadata: JSON.stringify({
+          messageId: newMessage.id,
+          subject: subject || null
+        })
       });
 
       return newMessage;

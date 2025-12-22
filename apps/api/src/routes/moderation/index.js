@@ -286,6 +286,11 @@ export default async function moderationRoutes(fastify, options) {
         type: action === 'resolve' ? 'report_resolved' : 'report_dismissed',
         triggeredByUserId: request.user.id,
         message: getReportNotificationMessage(report.reportType, action),
+        metadata: JSON.stringify({
+          reportId: report.id,
+          reportType: report.reportType,
+          targetId: report.targetId
+        })
       });
     } catch (error) {
       // 通知发送失败不影响举报处理

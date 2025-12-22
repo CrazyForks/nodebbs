@@ -33,7 +33,7 @@ export const $defaults = {
   ...$ts,
 };
 
-// ============ Users ============
+// ============ Users (用户) ============
 export const users = pgTable(
   'users',
   {
@@ -44,7 +44,7 @@ export const users = pgTable(
     name: varchar('name', { length: 255 }),
     bio: text('bio'),
     avatar: varchar('avatar', { length: 500 }),
-    role: varchar('role', { length: 20 }).notNull().default('user'), // user, vip, moderator, admin
+    role: varchar('role', { length: 20 }).notNull().default('user'), // user (用户), vip (会员), moderator (版主), admin (管理员)
     isBanned: boolean('is_banned').notNull().default(false),
     isEmailVerified: boolean('is_email_verified').notNull().default(false),
     isDeleted: boolean('is_deleted').notNull().default(false),
@@ -52,10 +52,10 @@ export const users = pgTable(
     lastSeenAt: timestamp('last_seen_at'),
     messagePermission: varchar('message_permission', { length: 20 })
       .notNull()
-      .default('everyone'), // 'everyone', 'followers', 'disabled'
+      .default('everyone'), // 'everyone' (所有人), 'followers' (粉丝), 'disabled' (关闭)
     contentVisibility: varchar('content_visibility', { length: 20 })
       .notNull()
-      .default('everyone'), // 'everyone', 'authenticated', 'private'
+      .default('everyone'), // 'everyone' (所有人), 'authenticated' (登录用户), 'private' (仅自己)
     // 用户名修改相关字段
     usernameChangedAt: timestamp('username_changed_at'),
     usernameChangeCount: integer('username_change_count').notNull().default(0),
@@ -83,12 +83,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     relationName: 'createdInvitations',
   }),
   usedInvitations: many(invitationCodes, { relationName: 'usedInvitations' }),
-  // Credit System Relations
-  // Credit/Reward System Relations - Removed to avoid circular deps. Access via extension schemas.
+  // 积分系统关联
+  // 积分/奖励系统关联 - 为避免循环依赖已移除。通过扩展 schema 访问。
   // userItems: many(userItems),
 }));
 
-// ============ Categories ============
+// ============ Categories (分类) ============
 export const categories = pgTable(
   'categories',
   {
@@ -122,7 +122,7 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
   topics: many(topics),
 }));
 
-// ============ Topics ============
+// ============ Topics (话题) ============
 export const topics = pgTable(
   'topics',
   {
@@ -142,7 +142,7 @@ export const topics = pgTable(
     isDeleted: boolean('is_deleted').notNull().default(false),
     approvalStatus: varchar('approval_status', { length: 20 })
       .notNull()
-      .default('approved'), // 'pending', 'approved', 'rejected'
+      .default('approved'), // 'pending' (待审核), 'approved' (已通过), 'rejected' (已拒绝)
     lastPostAt: timestamp('last_post_at'),
     lastPostUserId: integer('last_post_user_id').references(() => users.id, {
       onDelete: 'set null',
@@ -177,7 +177,7 @@ export const topicsRelations = relations(topics, ({ one, many }) => ({
   bookmarks: many(bookmarks),
 }));
 
-// ============ Posts ============
+// ============ Posts (帖子) ============
 export const posts = pgTable(
   'posts',
   {
@@ -196,7 +196,7 @@ export const posts = pgTable(
     isDeleted: boolean('is_deleted').notNull().default(false),
     approvalStatus: varchar('approval_status', { length: 20 })
       .notNull()
-      .default('approved'), // 'pending', 'approved', 'rejected'
+      .default('approved'), // 'pending' (待审核), 'approved' (已通过), 'rejected' (已拒绝)
     deletedAt: timestamp('deleted_at'),
     deletedBy: integer('deleted_by').references(() => users.id),
     editedAt: timestamp('edited_at'),
@@ -228,7 +228,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   likes: many(likes),
 }));
 
-// ============ Tags ============
+// ============ Tags (标签) ============
 export const tags = pgTable(
   'tags',
   {
@@ -249,7 +249,7 @@ export const tagsRelations = relations(tags, ({ many }) => ({
   topics: many(topicTags),
 }));
 
-// ============ Topic Tags (Join Table) ============
+// ============ Topic Tags (话题标签关联) ============
 export const topicTags = pgTable(
   'topic_tags',
   {
@@ -279,7 +279,7 @@ export const topicTagsRelations = relations(topicTags, ({ one }) => ({
   }),
 }));
 
-// ============ Likes ============
+// ============ Likes (点赞) ============
 export const likes = pgTable(
   'likes',
   {
@@ -309,7 +309,7 @@ export const likesRelations = relations(likes, ({ one }) => ({
   }),
 }));
 
-// ============ Bookmarks ============
+// ============ Bookmarks (收藏) ============
 export const bookmarks = pgTable(
   'bookmarks',
   {
@@ -339,7 +339,7 @@ export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
   }),
 }));
 
-// ============ Subscriptions (Topic Watch) ============
+// ============ Subscriptions (关注话题) ============
 export const subscriptions = pgTable(
   'subscriptions',
   {
@@ -369,7 +369,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   }),
 }));
 
-// ============ Follows (User following) ============
+// ============ Follows (用户关注) ============
 export const follows = pgTable(
   'follows',
   {
@@ -401,7 +401,7 @@ export const followsRelations = relations(follows, ({ one }) => ({
   }),
 }));
 
-// ============ Notifications ============
+// ============ Notifications (通知) ============
 export const notifications = pgTable(
   'notifications',
   {
@@ -409,7 +409,7 @@ export const notifications = pgTable(
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    type: varchar('type', { length: 50 }).notNull(), // mention, reply, like, follow, etc.
+    type: varchar('type', { length: 50 }).notNull(), // mention (提及), reply (回复), like (点赞), follow (关注) 等
     triggeredByUserId: integer('triggered_by_user_id').references(
       () => users.id,
       { onDelete: 'cascade' }
@@ -421,6 +421,7 @@ export const notifications = pgTable(
       onDelete: 'cascade',
     }),
     message: text('message').notNull(),
+    metadata: text('metadata'), // 额外数据的 JSON 字符串（例如徽章信息、打赏金额）
     isRead: boolean('is_read').notNull().default(false),
   },
   (table) => [
@@ -451,7 +452,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-// ============ Messages (Private Messages / 站内信) ============
+// ============ Messages (私信) ============
 export const messages = pgTable(
   'messages',
   {
@@ -497,13 +498,13 @@ export const reports = pgTable(
   'reports',
   {
     ...$defaults,
-    reportType: varchar('report_type', { length: 20 }).notNull(), // topic, post, user
+    reportType: varchar('report_type', { length: 20 }).notNull(), // topic (话题), post (帖子), user (用户)
     targetId: integer('target_id').notNull(), // 被举报对象的ID
     reporterId: integer('reporter_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }), // 举报人
     reason: text('reason').notNull(), // 举报原因
-    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, resolved, dismissed
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending (待处理), resolved (已解决), dismissed (已驳回)
     resolvedBy: integer('resolved_by').references(() => users.id), // 处理人
     resolvedAt: timestamp('resolved_at'), // 处理时间
     resolverNote: text('resolver_note'), // 处理备注
@@ -535,7 +536,7 @@ export const moderationLogs = pgTable(
   {
     ...$defaults,
     action: varchar('action', { length: 20 }).notNull(), // 'approve', 'reject', 'delete', 'restore', 'close', 'open', 'pin', 'unpin'
-    targetType: varchar('target_type', { length: 20 }).notNull(), // 'topic', 'post', 'user'
+    targetType: varchar('target_type', { length: 20 }).notNull(), // 'topic' (话题), 'post' (帖子), 'user' (用户)
     targetId: integer('target_id').notNull(), // 目标对象的ID
     moderatorId: integer('moderator_id')
       .notNull()
@@ -744,7 +745,7 @@ export const invitationRules = pgTable(
 
 export const invitationRulesRelations = relations(invitationRules, () => ({}));
 
-// ============ OAuth Providers (OAuth 提供商配置) ============
+// ============ OAuth Providers (OAuth 提供商) ============
 export const oauthProviders = pgTable(
   'oauth_providers',
   {
@@ -754,8 +755,8 @@ export const oauthProviders = pgTable(
     clientId: varchar('client_id', { length: 255 }),
     clientSecret: text('client_secret'), // 加密存储
     callbackUrl: varchar('callback_url', { length: 500 }),
-    scope: text('scope'), // JSON array of scopes
-    additionalConfig: text('additional_config'), // JSON for provider-specific config
+    scope: text('scope'), // 权限范围的 JSON 数组
+    additionalConfig: text('additional_config'), // 提供商特定配置的 JSON
     displayName: varchar('display_name', { length: 100 }),
     displayOrder: integer('display_order').notNull().default(0),
   },
@@ -768,7 +769,7 @@ export const oauthProviders = pgTable(
 
 export const oauthProvidersRelations = relations(oauthProviders, () => ({}));
 
-// ============ Email Providers (邮件服务提供商配置) ============
+// ============ Email Providers (邮件服务提供商) ============
 export const emailProviders = pgTable(
   'email_providers',
   {
@@ -789,7 +790,7 @@ export const emailProviders = pgTable(
     apiKey: text('api_key'), // 加密存储
     apiEndpoint: varchar('api_endpoint', { length: 500 }),
     // 其他配置
-    additionalConfig: text('additional_config'), // JSON for provider-specific config
+    additionalConfig: text('additional_config'), // 提供商特定配置的 JSON
     displayName: varchar('display_name', { length: 100 }),
     displayOrder: integer('display_order').notNull().default(0),
   },
@@ -803,7 +804,7 @@ export const emailProviders = pgTable(
 
 export const emailProvidersRelations = relations(emailProviders, () => ({}));
 
-// ============ Verifications (验证码表 - Better Auth 规范) ============
+// ============ Verifications (验证码) ============
 export const verifications = pgTable(
   'verifications',
   {
@@ -811,7 +812,7 @@ export const verifications = pgTable(
     identifier: varchar('identifier', { length: 255 }).notNull(), // 邮箱、手机号等标识符
     value: varchar('value', { length: 255 }).notNull(), // 验证码或 token
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    type: varchar('type', { length: 50 }).notNull(), // 'email_verification', 'password_reset', '2fa', etc.
+    type: varchar('type', { length: 50 }).notNull(), // 'email_verification' (邮箱验证), 'password_reset' (密码重置), '2fa' (双因素认证) 等
     userId: integer('user_id').references(() => users.id, {
       onDelete: 'cascade',
     }), // 可选，关联用户
@@ -866,10 +867,10 @@ export const qrLoginRequestsRelations = relations(qrLoginRequests, ({ one }) => 
   }),
 }));
 
-// ============ Credit System (Imported from Plugin) ============
+// ============ Credit System (积分系统) ============
 export * from '../extensions/rewards/schema.js';
 export * from '../extensions/shop/schema.js';
 export * from '../extensions/badges/schema.js';
 
-// ============ Ledger System ============
+// ============ Ledger System (账本系统) ============
 export * from '../extensions/ledger/schema.js';
