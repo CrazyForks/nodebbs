@@ -174,7 +174,7 @@ export default function TopicSidebar({
           <h3 className='text-sm font-semibold'>分类</h3>
         </div>
         <div className='p-3'>
-           <Link href={`/categories/${topic.categorySlug}`} className="block">
+           <Link href={`/categories/${topic.categorySlug}`} className="block" prefetch={false}>
               <Badge
                 style={{
                   backgroundColor: category?.color + '20', // 10% opacity

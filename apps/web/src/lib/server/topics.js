@@ -160,36 +160,38 @@ export async function getPostsData(topicId, page = 1, limit = 20) {
 }
 
 /**
- * 服务端获取话题的打赏数据
- * @param {Object} topic - 话题对像
- * @param {Array} posts - 帖子列表
- * @returns {Promise<Object>} { isRewardEnabled, rewardStats }
+ * 服务端获取积分系统是否启用
+ * 可单独调用用于并行优化
+ * @returns {Promise<boolean>} 是否启用
  */
-export async function getTopicRewardData(topic, posts) {
-  let initialRewardStats = {};
-  let isRewardEnabled = false;
-
+export async function getRewardEnabledStatus() {
   try {
-    
-    // 1. 获取系统状态 (通过 Server Utility)
     const { isCurrencyActive } = await import('@/lib/server/ledger');
-    isRewardEnabled = await isCurrencyActive('credits');
+    return await isCurrencyActive('credits');
+  } catch (error) {
+    console.error('检查积分系统状态失败:', error);
+    return false;
+  }
+}
 
-    // 2. 如果启用了积分系统，批量获取打赏统计
-    if (isRewardEnabled) {
-      const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
-      if (postIds.length > 0) {
-        initialRewardStats = await request('/rewards/posts/batch', {
-            method: 'POST',
-            body: JSON.stringify({ postIds })
-        });
-        if (!initialRewardStats) initialRewardStats = {};
-      }
+/**
+ * 服务端获取打赏统计数据
+ * @param {Object} topic - 话题对象（需要 firstPostId）
+ * @param {Array} posts - 帖子列表
+ * @returns {Promise<Object>} 打赏统计 Map
+ */
+export async function getRewardStats(topic, posts) {
+  try {
+    const postIds = [topic.firstPostId, ...posts.map(p => p.id)].filter(Boolean);
+    if (postIds.length > 0) {
+      const stats = await request('/rewards/posts/batch', {
+        method: 'POST',
+        body: JSON.stringify({ postIds })
+      });
+      return stats || {};
     }
   } catch (error) {
-    console.error('服务端获取打赏数据失败:', error);
-    // 不抛出错误，以免影响主页面渲染
+    console.error('获取打赏统计失败:', error);
   }
-
-  return { isRewardEnabled, initialRewardStats };
+  return {};
 }

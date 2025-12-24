@@ -15,7 +15,7 @@ import {
   userItems,
   shopItems,
 } from '../../db/schema.js';
-import { eq, sql, desc, and, or, like, inArray } from 'drizzle-orm';
+import { eq, sql, desc, and, or, like, inArray, not } from 'drizzle-orm';
 import slugify from 'slug';
 import { getSetting } from '../../utils/settings.js';
 import { userEnricher } from '../../services/userEnricher.js';
@@ -122,7 +122,7 @@ export default async function topicRoutes(fastify, options) {
 
           if (excludeUserIds.size > 0) {
             conditions.push(
-              sql`${topics.userId} NOT IN (${Array.from(excludeUserIds).join(',')})`
+              not(inArray(topics.userId, [...excludeUserIds]))
             );
           }
         }
@@ -412,6 +412,7 @@ export default async function topicRoutes(fastify, options) {
           username: users.username,
           userName: users.name,
           userAvatar: users.avatar,
+          userIsBanned: users.isBanned,
           viewCount: topics.viewCount,
           // 注意：likeCount 已从 topics 表移除，通过 firstPostLikeCount 获取
           postCount: topics.postCount,
@@ -435,12 +436,6 @@ export default async function topicRoutes(fastify, options) {
 
       const isAuthor = request.user && request.user.id === topic.userId;
 
-      // 检查用户是否被封禁，如果是且访问者不是管理员/版主，隐藏头像
-      const [topicUser] = await db.select({ isBanned: users.isBanned }).from(users).where(eq(users.id, topic.userId)).limit(1);
-      if (topicUser && topicUser.isBanned && !isModerator) {
-        topic.userAvatar = null;
-      }
-
       // 检查私有分类访问权限
       if (topic.categoryIsPrivate && !isModerator) {
         return reply.code(404).send({ error: '话题不存在' });
@@ -456,18 +451,19 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // 增加浏览量（仅针对已批准话题或作者/版主访问的情况）
-      await db
-        .update(topics)
+      // 异步增加浏览量（不阻塞响应）
+      db.update(topics)
         .set({ 
           viewCount: sql`${topics.viewCount} + 1`,
           updatedAt: sql`${topics.updatedAt}`
         })
-        .where(eq(topics.id, id));
+        .where(eq(topics.id, id))
+        .catch(err => fastify.log.error('更新浏览量失败:', err));
 
-      // 获取首贴（话题内容）
-      const [firstPost] = await db
-        .select({
+      // 并行获取首贴和最后回复
+      const [firstPostResult, lastPostResult] = await Promise.all([
+        // 获取首贴（话题内容）
+        db.select({
           id: posts.id,
           content: posts.content,
           editCount: posts.editCount,
@@ -482,37 +478,28 @@ export default async function topicRoutes(fastify, options) {
             eq(posts.isDeleted, false)
           )
         )
-        .limit(1);
-
-      // 获取最后一条回复以确定最大楼层号
-      const [lastPost] = await db
-        .select({
+        .limit(1),
+        
+        // 获取最后一条回复以确定最大楼层号
+        db.select({
           postNumber: posts.postNumber,
         })
         .from(posts)
         .where(and(eq(posts.topicId, id), eq(posts.isDeleted, false)))
         .orderBy(desc(posts.postNumber))
-        .limit(1);
+        .limit(1)
+      ]);
 
-      // 检查当前用户是否点赞了首贴
-      let isFirstPostLiked = false;
-      if (request.user && firstPost) {
-        const [like] = await db
-          .select()
-          .from(likes)
-          .where(
-            and(
-              eq(likes.userId, request.user.id),
-              eq(likes.postId, firstPost.id)
-            )
-          )
-          .limit(1);
-        isFirstPostLiked = !!like;
-      }
+      const firstPost = firstPostResult[0];
+      const lastPost = lastPostResult[0];
 
-      // 获取标签
-      const topicTagsList = await db
-        .select({
+      // 并行获取标签、用户状态检查、作者增强数据
+      const authorInfo = { id: topic.userId };
+      
+      // 构建并行查询数组
+      const parallelQueries = [
+        // 获取标签
+        db.select({
           id: tags.id,
           name: tags.name,
           slug: tags.slug,
@@ -520,46 +507,89 @@ export default async function topicRoutes(fastify, options) {
         })
         .from(topicTags)
         .innerJoin(tags, eq(topicTags.tagId, tags.id))
-        .where(eq(topicTags.topicId, id));
+        .where(eq(topicTags.topicId, id)),
+        
+        // 补充作者数据（头像框、勋章）
+        userEnricher.enrich(authorInfo, { request })
+      ];
 
-      // 检查当前用户是否收藏/订阅
-      let isBookmarked = false;
-      let isSubscribed = false;
+      // 登录用户的额外检查（点赞、收藏、订阅）
+      let likeQuery = null;
+      let bookmarkQuery = null;
+      let subscriptionQuery = null;
+      
       if (request.user) {
-        const [bookmark] = await db
-          .select()
+        if (firstPost) {
+          likeQuery = db.select()
+            .from(likes)
+            .where(and(eq(likes.userId, request.user.id), eq(likes.postId, firstPost.id)))
+            .limit(1);
+          parallelQueries.push(likeQuery);
+        }
+        
+        bookmarkQuery = db.select()
           .from(bookmarks)
-          .where(
-            and(
-              eq(bookmarks.userId, request.user.id),
-              eq(bookmarks.topicId, id)
-            )
-          )
+          .where(and(eq(bookmarks.userId, request.user.id), eq(bookmarks.topicId, id)))
           .limit(1);
-        isBookmarked = !!bookmark;
-
-        const [subscription] = await db
-          .select()
+        parallelQueries.push(bookmarkQuery);
+        
+        subscriptionQuery = db.select()
           .from(subscriptions)
+          .where(and(eq(subscriptions.userId, request.user.id), eq(subscriptions.topicId, id)))
+          .limit(1);
+        parallelQueries.push(subscriptionQuery);
+
+        // 检查作者是否被拉黑
+        const blockQuery = db.select()
+          .from(blockedUsers)
           .where(
-            and(
-              eq(subscriptions.userId, request.user.id),
-              eq(subscriptions.topicId, id)
+            or(
+              and(eq(blockedUsers.userId, request.user.id), eq(blockedUsers.blockedUserId, topic.userId)), // 我屏蔽了他
+              and(eq(blockedUsers.userId, topic.userId), eq(blockedUsers.blockedUserId, request.user.id))  // 他屏蔽了我
             )
           )
           .limit(1);
-        isSubscribed = !!subscription;
+        parallelQueries.push(blockQuery);
       }
 
-      // 补充作者数据（头像框、勋章）
-      const authorInfo = { id: topic.userId };
-      await userEnricher.enrich(authorInfo, { request });
+      const results = await Promise.all(parallelQueries);
+      
+      // 解析结果
+      const topicTagsList = results[0];
+      // results[1] 是 userEnricher.enrich 的返回值（无需处理）
+      
+      let isFirstPostLiked = false;
+      let isBookmarked = false;
+      let isSubscribed = false;
+      let isBlockedUser = false;
+      
+      if (request.user) {
+        let resultIndex = 2;
+        if (firstPost) {
+          isFirstPostLiked = results[resultIndex]?.length > 0;
+          resultIndex++;
+        }
+        isBookmarked = results[resultIndex]?.length > 0;
+        resultIndex++;
+        isSubscribed = results[resultIndex]?.length > 0;
+        resultIndex++;
+        // 检查 blockQuery 结果
+        if (results[resultIndex]?.length > 0) {
+          isBlockedUser = true;
+        }
+      }
 
       return {
+        // content: firstPost?.content || '',  <-- this line is not in the chunk, careful with context
+        // Check the actual context from view_file output in Step 98
+        // The return object starts at 581
         ...topic,
         content: firstPost?.content || '',
         firstPostId: firstPost?.id,
         firstPostLikeCount: firstPost?.likeCount || 0,
+        // Override avatar if banned
+        userAvatar: (topic.userIsBanned && !isModerator) ? null : topic.userAvatar,
+
         isFirstPostLiked,
         editCount: firstPost?.editCount || 0,
         editedAt: firstPost?.editedAt,
@@ -569,7 +599,8 @@ export default async function topicRoutes(fastify, options) {
         isSubscribed,
         viewCount: topic.viewCount + 1, // Return incremented count
         userAvatarFrame: authorInfo.avatarFrame || null,
-        userBadges: authorInfo.badges || []
+        userBadges: authorInfo.badges || [],
+        isBlockedUser
       };
     }
   );

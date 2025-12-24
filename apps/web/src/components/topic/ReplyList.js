@@ -16,7 +16,6 @@ const ReplyList = forwardRef(function ReplyList(
     limit,
     isRewardEnabled,
     rewardStatsMap = {}, // 新增：打赏统计 Map
-    onPostsChange, // 新增：posts 变化回调
     onRefreshRewards, // 新增：刷新打赏统计回调
   },
   ref
@@ -29,8 +28,14 @@ const ReplyList = forwardRef(function ReplyList(
 
   // 当服务端数据更新时（分页切换），更新本地状态
   useEffect(() => {
-    setPosts(initialPosts);
-    setTotalPosts(initialTotalPosts);
+    // 只有当 initialPosts 真正改变时（例如翻页）才更新
+    // 避免因父组件重渲染（例如打赏导致的状态更新）而重置本地的乐观更新
+    // 简单的浅比较
+    if (initialPosts !== posts) {
+        setPosts(initialPosts);
+        setTotalPosts(initialTotalPosts);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPosts, initialTotalPosts]);
 
   // 页码变化时滚动到顶部
@@ -44,12 +49,7 @@ const ReplyList = forwardRef(function ReplyList(
     }
   }, [currentPage]);
 
-  // 通知父组件 posts 变化
-  useEffect(() => {
-    if (onPostsChange) {
-      onPostsChange(posts);
-    }
-  }, [posts, onPostsChange]);
+
 
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({

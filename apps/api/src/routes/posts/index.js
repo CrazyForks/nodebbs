@@ -1,6 +1,6 @@
 import db from '../../db/index.js';
 import { posts, topics, users, likes, notifications, subscriptions, moderationLogs, blockedUsers, userItems, shopItems } from '../../db/schema.js';
-import { eq, sql, desc, and, inArray, ne, like, or } from 'drizzle-orm';
+import { eq, sql, desc, and, inArray, ne, like, or, not } from 'drizzle-orm';
 import { getSetting } from '../../utils/settings.js';
 import { userEnricher } from '../../services/userEnricher.js';
 import { sysCurrencies, sysAccounts } from '../../extensions/ledger/schema.js';
@@ -96,6 +96,9 @@ export default async function postRoutes(fastify, options) {
 
     // 构建查询条件
     let whereConditions = [];
+    
+    // 提前声明 blockedUserIds，在后续处理拉黑标记时复用
+    let blockedUserIds = new Set();
 
     // 管理员模式的特殊处理
     if (isAdminMode) {
@@ -118,7 +121,6 @@ export default async function postRoutes(fastify, options) {
       whereConditions.push(eq(posts.isDeleted, false));
 
       // 如果用户已登录，根据场景决定是否过滤被拉黑用户内容
-      let blockedUserIds = new Set();
       if (request.user) {
         const blockedUsersList = await db
           .select({
@@ -147,7 +149,7 @@ export default async function postRoutes(fastify, options) {
           // 在话题详情页中，保留被拉黑用户的帖子但标记为屏蔽
           if (!topicId && blockedUserIds.size > 0) {
             whereConditions.push(
-              sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+              not(inArray(posts.userId, [...blockedUserIds]))
             );
           }
         }
@@ -261,31 +263,9 @@ export default async function postRoutes(fastify, options) {
     // 处理用户头像和拉黑标记
     if (!isAdminMode) {
       const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
-      let blockedUserIds = new Set();
       
-      // 重新获取拉黑用户列表（如果需要）
-      if (topicId && request.user) {
-        const blockedUsersList = await db
-          .select({
-            blockedUserId: blockedUsers.blockedUserId,
-            userId: blockedUsers.userId
-          })
-          .from(blockedUsers)
-          .where(
-            or(
-              eq(blockedUsers.userId, request.user.id),
-              eq(blockedUsers.blockedUserId, request.user.id)
-            )
-          );
-
-        blockedUsersList.forEach(block => {
-          if (block.userId === request.user.id) {
-            blockedUserIds.add(block.blockedUserId);
-          } else {
-            blockedUserIds.add(block.userId);
-          }
-        });
-      }
+      // 复用之前查询的 blockedUserIds（已在第121-154行处理）
+      // 无需重复查询数据库
 
       postsList.forEach(post => {
         // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
@@ -511,7 +491,7 @@ export default async function postRoutes(fastify, options) {
         // 在非话题详情场景中过滤拉黑用户 (这里我们保留以保持一致性)
         if (blockedUserIds.size > 0) {
           whereConditions.push(
-            sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+            not(inArray(posts.userId, [...blockedUserIds]))
           );
         }
       }
@@ -774,14 +754,43 @@ export default async function postRoutes(fastify, options) {
       );
 
     if (subscribers.length > 0) {
-      // 过滤掉被拉黑的订阅者
-      const validSubscribers = [];
-      for (const sub of subscribers) {
-        const blocked = await isBlocked(request.user.id, sub.userId);
-        if (!blocked) {
-          validSubscribers.push(sub);
-        }
+      // 优化：批量查询 blockedUsers 表来过滤被拉黑的订阅者
+      // 我们需要排除：
+      // 1. 我拉黑的订阅者 (blockedUsers.userId = me, blockedUsers.blockedUserId = subscriber)
+      // 2. 拉黑我的订阅者 (blockedUsers.userId = subscriber, blockedUsers.blockedUserId = me)
+      
+      const subscriberIds = subscribers.map(s => s.userId);
+      
+      // 只有当有订阅者时才查询
+      let blockedSubscriberIds = new Set();
+      
+      if (subscriberIds.length > 0) {
+        const blocks = await db
+          .select()
+          .from(blockedUsers)
+          .where(
+            or(
+              and(
+                 eq(blockedUsers.userId, request.user.id),
+                 inArray(blockedUsers.blockedUserId, subscriberIds)
+              ),
+              and(
+                 inArray(blockedUsers.userId, subscriberIds),
+                 eq(blockedUsers.blockedUserId, request.user.id)
+              )
+            )
+          );
+          
+         blocks.forEach(block => {
+           if (block.userId === request.user.id) {
+             blockedSubscriberIds.add(block.blockedUserId);
+           } else {
+             blockedSubscriberIds.add(block.userId); 
+           }
+         });
       }
+
+      const validSubscribers = subscribers.filter(sub => !blockedSubscriberIds.has(sub.userId));
 
       if (validSubscribers.length > 0) {
         const notificationValues = validSubscribers.map(sub => ({

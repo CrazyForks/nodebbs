@@ -30,12 +30,7 @@ export default function TopicPageClient({
 
   // 统一管理话题状态
   const [topic, setTopic] = useState(initialTopic);
-  const [posts, setPosts] = useState(initialPosts);
 
-  // 当服务端数据更新时（例如分页），同步更新本地 state
-  useEffect(() => {
-    setPosts(initialPosts);
-  }, [initialPosts]);
 
   // 之前的 useEffect 已移除，数据现在由服务端传入
   // 如果需要客户端再次检查更新，可以保留 swr 或类似的逻辑，但对于详情页 ssr 数据通常足够
@@ -136,7 +131,7 @@ export default function TopicPageClient({
           {/* 回复区域（列表+表单） */}
           <ReplySection
             topicId={topic.id}
-            initialPosts={posts}
+            initialPosts={initialPosts}
             totalPosts={totalPosts}
             totalPages={totalPages}
             currentPage={currentPage}
@@ -146,7 +141,6 @@ export default function TopicPageClient({
             onTopicUpdate={handleTopicUpdate}
             isRewardEnabled={isRewardEnabled}
             rewardStatsMap={rewardStats}
-            onPostsChange={setPosts}
             onRewardSuccess={handleRewardSuccess}
           />
         </div>
