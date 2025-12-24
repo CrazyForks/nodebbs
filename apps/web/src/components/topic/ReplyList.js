@@ -25,12 +25,24 @@ const ReplyList = forwardRef(function ReplyList(
   const [posts, setPosts] = useState(initialPosts);
   const [totalPosts, setTotalPosts] = useState(initialTotalPosts);
   const repliesContainerRef = useRef(null);
+  const prevPageRef = useRef(currentPage);
 
   // 当服务端数据更新时（分页切换），更新本地状态
   useEffect(() => {
     setPosts(initialPosts);
     setTotalPosts(initialTotalPosts);
   }, [initialPosts, initialTotalPosts]);
+
+  // 页码变化时滚动到顶部
+  useEffect(() => {
+    if (currentPage !== prevPageRef.current) {
+        repliesContainerRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      prevPageRef.current = currentPage;
+    }
+  }, [currentPage]);
 
   // 通知父组件 posts 变化
   useEffect(() => {
@@ -51,14 +63,6 @@ const ReplyList = forwardRef(function ReplyList(
     // 使用 URL 参数进行分页，触发服务端重新渲染
     // scroll: false 禁用 Next.js 默认滚动行为
     router.push(`/topic/${topicId}?p=${page}`, { scroll: false });
-
-    // 滚动到回复列表顶部
-    setTimeout(() => {
-        repliesContainerRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }, 100);
   };
 
   // 更新本地回复列表（用于删除等操作）
