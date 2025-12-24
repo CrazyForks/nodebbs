@@ -209,6 +209,44 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
           {/* 首帖底部操作栏 */}
           {topic.firstPostId && (
             <div className='flex items-center justify-end gap-2 mt-5 pt-4 border-t border-border/50'>
+              {/* 点赞按钮 */}
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() =>
+                  handleTogglePostLike(
+                    topic.firstPostId,
+                    likeState.isFirstPostLiked
+                  )
+                }
+                disabled={
+                  likingPostIds.has(topic.firstPostId) || !isAuthenticated
+                }
+                className={`${
+                  likeState.isFirstPostLiked
+                    ? 'text-destructive hover:text-destructive/80'
+                    : 'text-muted-foreground hover:text-destructive'
+                }`}
+                title={likeState.isFirstPostLiked ? '取消点赞' : '点赞'}
+              >
+                {likingPostIds.has(topic.firstPostId) ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : (
+                  <>
+                    <Heart
+                      className={`h-4 w-4 ${
+                        likeState.isFirstPostLiked ? 'fill-current' : ''
+                      }`}
+                    />
+                    <span className='text-sm'>
+                      {likeState.firstPostLikeCount > 0
+                        ? likeState.firstPostLikeCount
+                        : '点赞'}
+                    </span>
+                  </>
+                )}
+              </Button>
+
               {/* 打赏按钮 */}
               {(isRewardEnabled && user?.id !== topic.userId) && (
                 <Button
@@ -252,43 +290,6 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
                    </span>
                  </Button>
               )}
-
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() =>
-                  handleTogglePostLike(
-                    topic.firstPostId,
-                    likeState.isFirstPostLiked
-                  )
-                }
-                disabled={
-                  likingPostIds.has(topic.firstPostId) || !isAuthenticated
-                }
-                className={`${
-                  likeState.isFirstPostLiked
-                    ? 'text-destructive hover:text-destructive/80'
-                    : 'text-muted-foreground hover:text-destructive'
-                }`}
-                title={likeState.isFirstPostLiked ? '取消点赞' : '点赞'}
-              >
-                {likingPostIds.has(topic.firstPostId) ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <>
-                    <Heart
-                      className={`h-4 w-4 ${
-                        likeState.isFirstPostLiked ? 'fill-current' : ''
-                      }`}
-                    />
-                    <span className='text-sm ml-1'>
-                      {likeState.firstPostLikeCount > 0
-                        ? likeState.firstPostLikeCount
-                        : '点赞'}
-                    </span>
-                  </>
-                )}
-              </Button>
             </div>
           )}
         </div>

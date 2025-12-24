@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import CopyButton from '@/components/common/CopyButton';
 import {
   Heart,
   MoreHorizontal,
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   Clock,
   Coins,
+  Check,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,6 +46,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [rewardListOpen, setRewardListOpen] = useState(false);
+  const [origin, setOrigin] = useState('');
   const [reportTarget, setReportTarget] = useState({
     type: '',
     id: 0,
@@ -58,6 +61,12 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
   useEffect(() => {
     setLocalRewardStats(rewardStats || { totalCount: 0, totalAmount: 0 });
   }, [rewardStats]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
 
   // 检查审核状态
   const isPending = localReply.approvalStatus === 'pending';
@@ -205,7 +214,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
     <>
       <div
         id={`post-${localReply.id}`}
-        className={`bg-card border rounded-lg hover:border-border/80 transition-colors group ${
+        className={`bg-card border rounded-lg hover:border-border/80 transition-all duration-300 group ${
           isPending
             ? 'border-chart-5/30 bg-chart-5/5'
             : isRejected
@@ -216,88 +225,116 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
         }`}
         data-post-number={localReply.postNumber}
       >
-        {/* 回复内容区域 */}
-        <div className='px-4 sm:px-6 py-4'>
-          {/* 顶部：作者信息栏 */}
-          <div className='flex items-center justify-between mb-3'>
-            {/* 左侧：作者信息 */}
-            <div className='flex items-center gap-2'>
-              <Link href={`/users/${localReply.username}`} prefetch={false}>
+        <div className='p-4 sm:p-5'>
+          {/* 头部信息区 */}
+          <div className='flex items-start justify-between gap-4 mb-4'>
+            <div className='flex items-start gap-3'>
+              {/* 头像 */}
+              <Link href={`/users/${localReply.username}`} prefetch={false} className="shrink-0 mt-0.5">
                 <UserAvatar
                   url={localReply.userAvatar}
                   name={localReply.userName}
                   size='sm'
-                  className='ring-1 ring-transparent group-hover:ring-primary/15 transition-all'
+                  className='h-9 w-9 ring-1 ring-border/50 group-hover:ring-primary/20 transition-all'
                   frameMetadata={localReply.userAvatarFrame?.itemMetadata}
                 />
               </Link>
-              <div className='flex items-center gap-1.5 flex-wrap text-sm text-muted-foreground'>
-                <Link
-                  href={`/users/${localReply.username}`}
-                  prefetch={false}
-                  className='hover:text-foreground transition-colors'
-                >
-                  {localReply.userName || localReply.userUsername}
-                </Link>
-                <span className='text-muted-foreground/30'>·</span>
-                <span className='text-xs'>
-                  <Time date={localReply.createdAt} fromNow />
-                </span>
-                <span className='text-muted-foreground/30'>·</span>
-                <span className='text-xs font-mono text-muted-foreground/50'>
-                  #{localReply.postNumber}
-                </span>
-                
-               {/* OP 标识 */}
-               {localReply.topicUserId === localReply.userId && (
-                  <>
-                    <span className='text-muted-foreground/30'>·</span>
-                    <Badge variant="default" className="text-[11px] px-1.5 h-5 font-medium">
-                      OP
-                    </Badge>
-                  </>
-                )}
 
-                {/* 管理员标识 */}
-                {localReply.userRole === 'admin' && (
-                  <>
-                    <span className='text-muted-foreground/30'>·</span>
-                    <Badge variant="secondary" className="text-[11px] px-1.5 h-5 font-medium border-transparent">
+              <div className='flex flex-col gap-0.5 min-w-0'>
+                {/* 第一行：用户名 */}
+                <div className='flex items-center gap-2 text-sm'>
+                  <Link
+                    href={`/users/${localReply.username}`}
+                    prefetch={false}
+                    className='font-medium text-foreground hover:underline decoration-primary/50 underline-offset-4 truncate'
+                  >
+                    {localReply.userName || localReply.userUsername}
+                  </Link>
+                </div>
+
+                {/* 第二行：时间与徽章 */}
+                <div className='flex items-center gap-2 text-xs text-muted-foreground/70 flex-wrap leading-none'>
+                  <Time date={localReply.createdAt} fromNow />
+                  
+                  {/* 角色标识 */}
+                  {localReply.topicUserId === localReply.userId && (
+                    <Badge variant="secondary" className="px-1.5 h-4 text-[10px] font-normal bg-primary/10 text-primary hover:bg-primary/20 border-0 rounded">
+                      楼主
+                    </Badge>
+                  )}
+                  
+                  {localReply.userRole === 'admin' && (
+                     <Badge variant="secondary" className="px-1.5 h-4 text-[10px] font-normal bg-chart-1/10 text-chart-1 hover:bg-chart-1/20 border-0 rounded">
                       管理员
                     </Badge>
-                  </>
-                )}
+                  )}
 
-                {/* 审核状态标记 */}
-                {isPending && (
-                  <>
-                    <span className='text-muted-foreground/30'>·</span>
-                    <Badge
-                      variant='outline'
-                      className='text-chart-5 border-chart-5 text-xs h-5 gap-1'
-                    >
-                      <Clock className='h-3 w-3' />
-                      待审核
+                  {/* 状态标识 */}
+                  {isPending && (
+                    <Badge variant="outline" className="px-1.5 h-4 text-[10px] font-normal text-chart-5 border-chart-5/30 gap-1 rounded">
+                      <Clock className='h-2.5 w-2.5' /> 审核中
                     </Badge>
-                  </>
-                )}
-                {isRejected && (
-                  <>
-                    <span className='text-muted-foreground/30'>·</span>
-                    <Badge
-                      variant='outline'
-                      className='text-destructive border-destructive text-xs h-5 gap-1'
-                    >
-                      <AlertCircle className='h-3 w-3' />
-                      已拒绝
+                  )}
+
+                  {isRejected && (
+                    <Badge variant="outline" className="px-1.5 h-4 text-[10px] font-normal text-destructive border-destructive/30 gap-1 rounded">
+                      <AlertCircle className='h-2.5 w-2.5' /> 已拒绝
                     </Badge>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* 右侧：操作按钮 */}
-            <div className='flex items-center gap-1'>
+            {/* 右上角操作区：楼层号 */}
+            <div className="flex items-center">
+              {/* 楼层号 (带复制功能) - 放大显示 */}
+              <CopyButton 
+                value={`${origin}/topic/${topicId}#post-${localReply.id}`}
+                className="h-8 px-2 text-xs sm:text-base font-bold text-muted-foreground/30 hover:text-primary hover:cursor-pointer font-mono hover:bg-transparent transition-colors"
+                variant="ghost"
+                onCopy={() => toast.success('链接已复制')}
+              >
+                 {({ copied }) => (
+                  <>
+                    <span className="sr-only">复制链接</span>
+                    {copied ? (
+                      <Check className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <>#{localReply.postNumber}</>
+                    )}
+                  </>
+                )}
+              </CopyButton>
+            </div>
+          </div>
+
+          {/* 内容区域 */}
+          <div className="pl-0 sm:pl-[52px]">
+            {/* 引用/回复目标 */}
+            {localReply.replyToPostId && localReply.replyToPost && (
+              <div className='mb-3 text-xs text-muted-foreground/60 flex items-center gap-1.5 bg-muted/30 px-3 py-2 rounded-md border border-border/50 w-fit max-w-full'>
+                <Reply className='h-3 w-3 shrink-0 opacity-70' />
+                <span className="shrink-0">回复</span>
+                <Link
+                  href={`/topic/${topicId}#post-${localReply.replyToPost.id}`}
+                  prefetch={false}
+                  className="hover:text-primary transition-colors font-mono"
+                >
+                  #{localReply.replyToPost.postNumber}
+                </Link>
+                <span className="truncate max-w-[150px] sm:max-w-xs">
+                  {localReply.replyToPost.userName || localReply.replyToPost.userUsername}
+                </span>
+              </div>
+            )}
+
+            {/* Markdown 内容 */}
+            <div className='max-w-none prose prose-stone dark:prose-invert prose-sm sm:prose-base break-words'>
+              <MarkdownRender content={localReply.content} />
+            </div>
+
+            {/* 底部操作栏 */}
+            <div className='flex items-center justify-end gap-2 mt-4 pt-3 border-t border-dashed border-border/60'>
               {/* 回复按钮 */}
               <Button
                 variant='ghost'
@@ -315,10 +352,11 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                   setReplyToContent('');
                 }}
                 disabled={!canInteract}
-                className='h-7 px-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+                className='h-8 px-3 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 gap-1.5'
                 title={canInteract ? '回复' : '此回复暂时无法回复'}
               >
-                <Reply className='h-3.5 w-3.5' />
+                <Reply className='h-4 w-4' />
+                <span className="text-xs">回复</span>
               </Button>
 
               {/* 点赞按钮 */}
@@ -337,33 +375,24 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                   likingPostIds.has(localReply.id) ||
                   !isAuthenticated
                 }
-                className={`h-7 px-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`h-8 min-w-[3rem] px-3 gap-1.5 ${
                   localReply.isLiked
-                    ? 'text-destructive hover:text-destructive/80'
-                    : 'text-muted-foreground/60 hover:text-destructive hover:bg-muted/50'
+                    ? 'text-destructive hover:text-destructive/80 bg-destructive/5'
+                    : 'text-muted-foreground/70 hover:text-destructive hover:bg-destructive/5'
                 }`}
-                title={
-                  canInteract
-                    ? localReply.isLiked
-                      ? '取消点赞'
-                      : '点赞'
-                    : '此回复暂时无法点赞'
-                }
               >
                 {likingPostIds.has(localReply.id) ? (
-                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                  <Loader2 className='h-4 w-4 animate-spin' />
                 ) : (
                   <>
                     <Heart
-                      className={`h-3.5 w-3.5 ${
+                      className={`h-4 w-4 ${
                         localReply.isLiked ? 'fill-current' : ''
                       }`}
                     />
-                    {localReply.likeCount > 0 && (
-                      <span className='text-xs ml-1'>
-                        {localReply.likeCount}
-                      </span>
-                    )}
+                    <span className='text-xs'>
+                      {localReply.likeCount > 0 ? localReply.likeCount : '点赞'}
+                    </span>
                   </>
                 )}
               </Button>
@@ -380,33 +409,29 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                     }
                     setRewardDialogOpen(true);
                   }}
-                  className='h-7 px-2 text-muted-foreground/60 hover:text-yellow-600 hover:bg-muted/50'
+                  className='h-8 min-w-[3rem] px-3 text-muted-foreground/70 hover:text-yellow-600 hover:bg-yellow-500/10 gap-1.5'
                   title='打赏'
                 >
-                  <Coins className='h-3.5 w-3.5' />
-                  {localRewardStats.totalAmount > 0 && (
-                    <span className='text-xs font-medium'>
-                      {localRewardStats.totalAmount}
-                    </span>
-                  )}
+                  <Coins className='h-4 w-4' />
+                  <span className='text-xs'>
+                    {localRewardStats.totalAmount > 0 ? localRewardStats.totalAmount : '打赏'}
+                  </span>
                 </Button>
               )}
               
-              {/* 如果是作者且有打赏记录，显示查看记录按钮（仅图标） */}
+              {/* 作者查看打赏记录按钮 */}
               {(isRewardEnabled && isOwnReply && localRewardStats.totalCount > 0) && (
                  <Button
                   variant='ghost'
                   size='sm'
                   onClick={() => setRewardListOpen(true)}
-                  className='h-7 px-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50'
+                  className='h-8 px-3 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 gap-1.5'
                   title='查看打赏记录'
                  >
-                   <Coins className='h-3.5 w-3.5' />
-                   {localRewardStats.totalAmount > 0 && (
-                     <span className='text-xs'>
-                       {localRewardStats.totalAmount}
-                     </span>
-                   )}
+                   <Coins className='h-4 w-4' />
+                   <span className='text-xs'>
+                     {localRewardStats.totalAmount}
+                   </span>
                  </Button>
               )}
 
@@ -416,12 +441,13 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                   <Button
                     variant='ghost'
                     size='sm'
-                    className='h-7 w-7 p-0 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50'
+                    className='h-8 w-8 p-0 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 rounded-md'
                   >
-                    <MoreHorizontal className='h-3.5 w-3.5' />
+                    <MoreHorizontal className='h-4 w-4' />
+                    <span className="sr-only">更多操作</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
+                <DropdownMenuContent align='end' className="w-48">
                   {/* 删除选项 */}
                   {isAuthenticated &&
                     (user?.id === localReply.userId ||
@@ -435,16 +461,16 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                             )
                           }
                           disabled={deletingPostId === localReply.id}
-                          className='text-destructive focus:text-destructive'
+                          className='text-destructive focus:text-destructive cursor-pointer'
                         >
                           {deletingPostId === localReply.id ? (
                             <>
-                              <Loader2 className='h-4 w-4 animate-spin' />
+                              <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                               删除中...
                             </>
                           ) : (
                             <>
-                              <Trash2 className='h-4 w-4' />
+                              <Trash2 className='h-4 w-4 mr-2' />
                               删除回复
                             </>
                           )}
@@ -462,68 +488,45 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                       setReportDialogOpen(true);
                     }}
                     disabled={!isAuthenticated}
+                    className="cursor-pointer"
                   >
-                    <Flag className='h-4 w-4' />
+                    <Flag className='h-4 w-4 mr-2' />
                     举报回复
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
-
-          {/* 回复内容 */}
-          <div>
-            {/* 如果是回复某条回复，显示回复目标 */}
-            {localReply.replyToPostId && localReply.replyToPost && (
-              <div className='mb-3 text-xs text-muted-foreground/60 items-center gap-1.5 bg-muted/30 px-2.5 py-1.5 rounded inline-flex'>
-                <Reply className='h-3 w-3' />
-                <span>回复</span>
-                <Link
-                  href={`/topic/${topicId}#post-${localReply.replyToPost.id}`}
-                  prefetch={false}
-                >
-                  #{localReply.replyToPost.postNumber}
-                </Link>
-                <span>
-                  @
-                  {localReply.replyToPost.userName ||
-                    localReply.replyToPost.userUsername}
-                </span>
-              </div>
-            )}
-
-            {/* 回复内容 */}
-            <div className='max-w-none prose prose-stone dark:prose-invert break-all'>
-              <MarkdownRender content={localReply.content} />
-            </div>
-          </div>
         </div>
 
-        {/* 回复到回复的输入框 */}
+        {/* 楼中楼回复输入框 */}
         {replyingToPostId === localReply.id && (
-          <div className='px-3 sm:px-4 pb-4 border-t border-border'>
-            <div className='mt-4'>
-              <div className='text-xs text-muted-foreground mb-2'>
-                回复 #{localReply.postNumber} @
-                {localReply.userName || localReply.userUsername}
+          <div className='px-4 sm:px-6 pb-5 pt-0 opacity-100 transition-all'>
+            <div className='bg-muted/30 rounded-lg p-3 sm:p-4 border border-border/50'>
+              <div className='flex items-center justify-between text-xs text-muted-foreground mb-2'>
+                <span className="flex items-center gap-1">
+                  <Reply className="h-3 w-3" />
+                  回复 <span className="font-medium text-foreground">@{localReply.userName || localReply.userUsername}</span>
+                </span>
               </div>
               <Textarea
-                className='w-full min-h-20 resize-none text-sm'
+                className='w-full min-h-[80px] resize-y text-sm bg-background/50 focus:bg-background transition-colors'
                 placeholder='写下你的回复...'
                 value={replyToContent}
                 onChange={(e) => setReplyToContent(e.target.value)}
                 disabled={submitting}
                 autoFocus
               />
-              <div className='flex items-center justify-end gap-2 mt-2'>
+              <div className='flex items-center justify-end gap-2 mt-3'>
                 <Button
-                  variant='outline'
+                  variant='ghost'
                   size='sm'
                   onClick={() => {
                     setReplyingToPostId(null);
                     setReplyToContent('');
                   }}
                   disabled={submitting}
+                  className="h-8"
                 >
                   取消
                 </Button>
@@ -531,10 +534,11 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                   size='sm'
                   onClick={() => handleSubmitReplyToPost(localReply.id)}
                   disabled={submitting || !replyToContent.trim()}
+                  className="h-8"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className='h-4 w-4 animate-spin' />
+                      <Loader2 className='h-3.5 w-3.5 mr-1.5 animate-spin' />
                       提交中...
                     </>
                   ) : (

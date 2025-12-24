@@ -96,7 +96,7 @@ export default function TopicPageClient({
         // 已在正确页面，滚动到目标元素
         scrollToPost(postId);
       } catch (error) {
-        toast.error(error.message || '出错了');
+        // toast.error(error.message || '出错了');
         console.error('Failed to navigate to post:', error);
       }
     };
