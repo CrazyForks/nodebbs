@@ -409,7 +409,11 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                     }
                     setRewardDialogOpen(true);
                   }}
-                  className='h-8 min-w-[3rem] px-3 text-muted-foreground/70 hover:text-yellow-600 hover:bg-yellow-500/10 gap-1.5'
+                  className={`h-8 min-w-[3rem] px-3 gap-1.5 transition-colors ${
+                    localRewardStats.totalAmount > 0
+                      ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 border-amber-200/50 dark:border-amber-900/50'
+                      : 'text-muted-foreground/70 hover:text-yellow-600 hover:bg-yellow-500/10'
+                  }`}
                   title='打赏'
                 >
                   <Coins className='h-4 w-4' />

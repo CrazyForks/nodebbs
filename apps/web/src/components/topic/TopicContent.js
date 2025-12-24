@@ -224,8 +224,8 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
                 }
                 className={`${
                   likeState.isFirstPostLiked
-                    ? 'text-destructive hover:text-destructive/80'
-                    : 'text-muted-foreground hover:text-destructive'
+                    ? 'text-destructive hover:text-destructive/80 bg-destructive/5'
+                    : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5'
                 }`}
                 title={likeState.isFirstPostLiked ? '取消点赞' : '点赞'}
               >
@@ -259,7 +259,11 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
                     }
                     setRewardDialogOpen(true);
                   }}
-                  className='text-muted-foreground hover:text-yellow-600'
+                  className={`gap-1.5 transition-colors ${
+                    rewardStats.totalAmount > 0
+                      ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 border-amber-200/50 dark:border-amber-900/50'
+                      : 'text-muted-foreground hover:text-yellow-600 hover:bg-yellow-500/10'
+                  }`}
                   title='打赏'
                 >
                   <Coins className='h-4 w-4' />
