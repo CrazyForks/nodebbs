@@ -19,6 +19,7 @@ import { eq, sql, desc, and, or, like, inArray, not } from 'drizzle-orm';
 import slugify from 'slug';
 import { getSetting } from '../../utils/settings.js';
 import { userEnricher } from '../../services/userEnricher.js';
+import { shouldHideUserInfo } from '../../utils/visibility.js';
 
 // 辅助函数：获取分类及其所有子孙分类的 ID
 async function getCategoryWithDescendants(categoryId) {
@@ -256,7 +257,7 @@ export default async function topicRoutes(fastify, options) {
         }
       }
 
-      // Apply sorting
+      // 应用排序
       if (sort === 'latest') {
         query = query.orderBy(desc(topics.isPinned), desc(topics.lastPostAt));
       } else if (sort === 'popular') {
@@ -329,13 +330,12 @@ export default async function topicRoutes(fastify, options) {
             const enrichedUser = enrichedUserMap.get(topic.userId);
             if (enrichedUser) {
                 topic.userAvatarFrame = enrichedUser.avatarFrame;
-                topic.userBadges = enrichedUser.badges; 
             }
         });
       }
 
-      // Get total count with same filters
-      // IMPORTANT: 必须使用与主查询完全相同的条件，包括 join 和所有过滤器
+      // 获取总数，使用相同的过滤条件
+      // 重要：必须使用与主查询完全相同的条件，包括 join 和所有过滤器
       // 直接复用 conditions，因为它已经包含了所有必要的过滤条件
       let countQuery = db
         .select({ count: sql`count(*)` })
@@ -493,12 +493,20 @@ export default async function topicRoutes(fastify, options) {
       const firstPost = firstPostResult[0];
       const lastPost = lastPostResult[0];
 
-      // 并行获取标签、用户状态检查、作者增强数据
       const authorInfo = { id: topic.userId };
-      
-      // 构建并行查询数组
-      const parallelQueries = [
-        // 获取标签
+
+      // 构建并行查询数组 - 使用静态结构以避免索引错位
+      // 对于不满足条件的情况，返回 Promise.resolve([])
+      const [
+        topicTagsList,
+        // eslint-disable-next-line no-unused-vars
+        _enrichResult, 
+        likeResult,
+        bookmarkResult,
+        subscriptionResult,
+        blockResult
+      ] = await Promise.all([
+        // 0. 获取标签
         db.select({
           id: tags.id,
           name: tags.name,
@@ -509,86 +517,50 @@ export default async function topicRoutes(fastify, options) {
         .innerJoin(tags, eq(topicTags.tagId, tags.id))
         .where(eq(topicTags.topicId, id)),
         
-        // 补充作者数据（头像框、勋章）
-        userEnricher.enrich(authorInfo, { request })
-      ];
+        // 1. 补充作者数据（头像框、勋章）
+        userEnricher.enrich(authorInfo, { request }),
 
-      // 登录用户的额外检查（点赞、收藏、订阅）
-      let likeQuery = null;
-      let bookmarkQuery = null;
-      let subscriptionQuery = null;
-      
-      if (request.user) {
-        if (firstPost) {
-          likeQuery = db.select()
-            .from(likes)
-            .where(and(eq(likes.userId, request.user.id), eq(likes.postId, firstPost.id)))
-            .limit(1);
-          parallelQueries.push(likeQuery);
-        }
-        
-        bookmarkQuery = db.select()
-          .from(bookmarks)
-          .where(and(eq(bookmarks.userId, request.user.id), eq(bookmarks.topicId, id)))
-          .limit(1);
-        parallelQueries.push(bookmarkQuery);
-        
-        subscriptionQuery = db.select()
-          .from(subscriptions)
-          .where(and(eq(subscriptions.userId, request.user.id), eq(subscriptions.topicId, id)))
-          .limit(1);
-        parallelQueries.push(subscriptionQuery);
+        // 2. 点赞状态
+        (request.user && firstPost) 
+          ? db.select().from(likes).where(and(eq(likes.userId, request.user.id), eq(likes.postId, firstPost.id))).limit(1)
+          : Promise.resolve([]),
 
-        // 检查作者是否被拉黑
-        const blockQuery = db.select()
-          .from(blockedUsers)
-          .where(
-            or(
-              and(eq(blockedUsers.userId, request.user.id), eq(blockedUsers.blockedUserId, topic.userId)), // 我屏蔽了他
-              and(eq(blockedUsers.userId, topic.userId), eq(blockedUsers.blockedUserId, request.user.id))  // 他屏蔽了我
-            )
-          )
-          .limit(1);
-        parallelQueries.push(blockQuery);
-      }
+        // 3. 收藏状态
+        request.user 
+          ? db.select().from(bookmarks).where(and(eq(bookmarks.userId, request.user.id), eq(bookmarks.topicId, id))).limit(1)
+          : Promise.resolve([]),
 
-      const results = await Promise.all(parallelQueries);
-      
-      // 解析结果
-      const topicTagsList = results[0];
-      // results[1] 是 userEnricher.enrich 的返回值（无需处理）
-      
-      let isFirstPostLiked = false;
-      let isBookmarked = false;
-      let isSubscribed = false;
-      let isBlockedUser = false;
-      
-      if (request.user) {
-        let resultIndex = 2;
-        if (firstPost) {
-          isFirstPostLiked = results[resultIndex]?.length > 0;
-          resultIndex++;
-        }
-        isBookmarked = results[resultIndex]?.length > 0;
-        resultIndex++;
-        isSubscribed = results[resultIndex]?.length > 0;
-        resultIndex++;
-        // 检查 blockQuery 结果
-        if (results[resultIndex]?.length > 0) {
-          isBlockedUser = true;
-        }
-      }
+        // 4. 订阅状态
+        request.user 
+          ? db.select().from(subscriptions).where(and(eq(subscriptions.userId, request.user.id), eq(subscriptions.topicId, id))).limit(1)
+          : Promise.resolve([]),
+
+        // 5. 拉黑状态
+        request.user
+          ? db.select()
+              .from(blockedUsers)
+              .where(
+                or(
+                  and(eq(blockedUsers.userId, request.user.id), eq(blockedUsers.blockedUserId, topic.userId)), // 我屏蔽了他
+                  and(eq(blockedUsers.userId, topic.userId), eq(blockedUsers.blockedUserId, request.user.id))  // 他屏蔽了我
+                )
+              )
+              .limit(1)
+          : Promise.resolve([])
+      ]);
+
+      const isFirstPostLiked = likeResult.length > 0;
+      const isBookmarked = bookmarkResult.length > 0;
+      const isSubscribed = subscriptionResult.length > 0;
+      const isBlockedUser = blockResult.length > 0;
 
       return {
-        // content: firstPost?.content || '',  <-- this line is not in the chunk, careful with context
-        // Check the actual context from view_file output in Step 98
-        // The return object starts at 581
         ...topic,
         content: firstPost?.content || '',
         firstPostId: firstPost?.id,
         firstPostLikeCount: firstPost?.likeCount || 0,
-        // Override avatar if banned
-        userAvatar: (topic.userIsBanned && !isModerator) ? null : topic.userAvatar,
+        // 如果被封禁则覆盖头像
+        userAvatar: shouldHideUserInfo({ isBanned: topic.userIsBanned }, isModerator) ? null : topic.userAvatar,
 
         isFirstPostLiked,
         editCount: firstPost?.editCount || 0,
@@ -605,7 +577,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Create topic
+  // 创建话题
   fastify.post(
     '/',
     {
@@ -655,7 +627,7 @@ export default async function topicRoutes(fastify, options) {
       );
       const approvalStatus = contentModerationEnabled ? 'pending' : 'approved';
 
-      // Generate slug
+      // 生成 slug
       const slug = slugify(title) + '-' + Date.now();
 
       // 创建话题
@@ -739,7 +711,7 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
-  // Update topic
+  // 更新话题
   fastify.patch(
     '/:id',
     {
@@ -781,7 +753,7 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // Check permissions
+      // 检查权限
       const isModerator = ['moderator', 'admin'].includes(request.user.role);
       const isOwner = topic.userId === request.user.id;
 
@@ -979,7 +951,7 @@ export default async function topicRoutes(fastify, options) {
       schema: {
         tags: ['topics'],
         description:
-          'Delete topic (soft delete by default, hard delete with permanent=true)',
+          '删除话题（默认软删除，permanent=true 为硬删除）',
         security: [{ bearerAuth: [] }],
         params: {
           type: 'object',
@@ -1010,7 +982,7 @@ export default async function topicRoutes(fastify, options) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
-      // Check permissions
+      // 检查权限
       const isModerator = ['moderator', 'admin'].includes(request.user.role);
       const isOwner = topic.userId === request.user.id;
 

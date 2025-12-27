@@ -5,6 +5,7 @@ import { getSetting } from '../../utils/settings.js';
 import { userEnricher } from '../../services/userEnricher.js';
 import { sysCurrencies, sysAccounts } from '../../extensions/ledger/schema.js';
 import { getPassiveEffects } from '../../extensions/badges/services/badgeService.js';
+import { applyUserInfoVisibility, shouldHideUserInfo } from '../../utils/visibility.js';
 
 // 辅助函数：检查两个用户之间是否存在拉黑关系（双向检查）
 async function isBlocked(userId1, userId2) {
@@ -262,20 +263,15 @@ export default async function postRoutes(fastify, options) {
 
     // 处理用户头像和拉黑标记
     if (!isAdminMode) {
-      const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
       
       // 复用之前查询的 blockedUserIds（已在第121-154行处理）
       // 无需重复查询数据库
 
-      postsList.forEach(post => {
-        // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
-        if (post.userIsBanned && !isModerator) {
-          post.userAvatar = null;
-        }
-        // 移除 userIsBanned 字段，不返回给客户端
-        delete post.userIsBanned;
+      // 1. 统一应用可见性规则（如隐藏被封禁用户的头像）
+      applyUserInfoVisibility(postsList, isModerator);
 
-        // 标记被拉黑用户的帖子（仅在话题详情页）
+      postsList.forEach(post => {
+        // 2. 标记被拉黑用户的帖子（仅在话题详情页）
         if (topicId && blockedUserIds.size > 0) {
           post.isBlockedUser = blockedUserIds.has(post.userId);
         }
@@ -326,12 +322,7 @@ export default async function postRoutes(fastify, options) {
         .where(inArray(posts.id, replyToPostIds));
       
       // 如果被回复的用户被封禁且访问者不是管理员/版主，隐藏头像
-      replyToPosts.forEach(replyPost => {
-        if (replyPost.userIsBanned && !isModerator) {
-          replyPost.userAvatar = null;
-        }
-        delete replyPost.userIsBanned;
-      });
+      applyUserInfoVisibility(replyToPosts, isModerator);
       
       const replyToPostMap = new Map(replyToPosts.map(p => [p.id, p]));
       
@@ -373,7 +364,6 @@ export default async function postRoutes(fastify, options) {
             const author = enrichedUserMap.get(post.userId);
             if (author) {
                 post.userAvatarFrame = author.avatarFrame;
-                post.userBadges = author.badges;
             }
 
             // 被回复用户
@@ -569,7 +559,7 @@ export default async function postRoutes(fastify, options) {
     const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
     
     // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
-    if (post.userIsBanned && !isModerator) {
+    if (shouldHideUserInfo({ isBanned: post.userIsBanned }, isModerator)) {
       post.userAvatar = null;
     }
     delete post.userIsBanned;
