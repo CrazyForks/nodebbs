@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import TopicPageClient from '@/components/topic/TopicPageClient';
+import TopicPageClient from './components/TopicPageClient';
 import { getTopicData, getPostsData, getRewardEnabledStatus, getRewardStats } from '@/lib/server/topics';
 
 // 生成页面元数据（SEO优化）

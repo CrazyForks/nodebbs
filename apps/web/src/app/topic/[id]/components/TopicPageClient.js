@@ -1,0 +1,72 @@
+'use client';
+
+import StickySidebar from '@/components/common/StickySidebar';
+import { TopicProvider } from '@/contexts/TopicContext';
+import TopicContent from './TopicContent';
+import ReplySection from './ReplySection';
+import TopicSidebarWrapper from './TopicSidebarWrapper';
+
+export default function TopicPageClient({
+  topic: initialTopic,
+  initialPosts,
+  totalPosts,
+  totalPages,
+  currentPage,
+  limit,
+  initialRewardStats = {},
+  initialIsRewardEnabled = false,
+}) {
+  return (
+    <TopicProvider
+      initialTopic={initialTopic}
+      initialRewardStats={initialRewardStats}
+      initialIsRewardEnabled={initialIsRewardEnabled}
+      currentPage={currentPage}
+      limit={limit}
+    >
+      <TopicPageContent
+        initialPosts={initialPosts}
+        totalPosts={totalPosts}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        limit={limit}
+      />
+    </TopicProvider>
+  );
+}
+
+function TopicPageContent({
+  initialPosts,
+  totalPosts,
+  totalPages,
+  currentPage,
+  limit,
+}) {
+  return (
+    <div className='container mx-auto px-4 py-6 flex-1'>
+      <main className='flex flex-col-reverse md:flex-col lg:flex-row gap-6'>
+        {/* 主要内容区域 */}
+        <div className='flex-1 min-w-0'>
+          {/* 话题内容 */}
+          <TopicContent />
+
+          {/* 回复区域（列表+表单） */}
+          <ReplySection
+            initialPosts={initialPosts}
+            totalPosts={totalPosts}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            limit={limit}
+          />
+        </div>
+
+        {/* 右侧边栏 */}
+        <div className='w-full lg:w-64 shrink-0'>
+          <StickySidebar className='sticky top-[107px]'>
+            <TopicSidebarWrapper />
+          </StickySidebar>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -16,14 +16,11 @@ import {
   Bell,
   Bookmark,
   Loader2,
-  CalendarDays,
-  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
 import ReportDialog from '@/components/common/ReportDialog';
 import TopicForm from '@/components/topic/TopicForm';
-import Time from '../common/Time';
+import Time from '@/components/common/Time';
 import UserCard from '@/components/user/UserCard';
 
 export default function TopicSidebar({
@@ -41,6 +38,10 @@ export default function TopicSidebar({
   editLoading,
   isAuthenticated,
   user,
+  reportDialogOpen,
+  setReportDialogOpen,
+  canCloseOrPinTopic,
+  isTopicOwner,
 }) {
   const author = {
     avatar: topic.userAvatar,
@@ -48,18 +49,11 @@ export default function TopicSidebar({
     name: topic.userName,
     avatarFrame: topic.userAvatarFrame,
   };
-  // const category = getCategoryById(topic.categoryId);
+  
   const category = {
     name: topic.categoryName,
     color: topic.categoryColor,
   };
-
-  // 检查是否有关闭话题的权限
-  const canCloseOrPinTopic = user && ['moderator', 'admin'].includes(user.role);
-  const isTopicOwner = user && topic.userId === user.id;
-
-  // 举报对话框状态
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   // 提交编辑
   const handleSubmitEdit = async (formData) => {
@@ -190,33 +184,9 @@ export default function TopicSidebar({
         </div>
       </div>
 
-      {/* 标签信息 */}
-      {/* {topic.tags && topic.tags.length > 0 && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-3 py-2 border-b border-border'>
-            <h3 className='text-sm font-semibold'>标签</h3>
-          </div>
-          <div className='p-3'>
-            <div className='flex flex-wrap gap-2'>
-              {topic.tags.map((tag) => (
-                <Link key={tag.id} href={`/tags/${tag.slug}`} prefetch={false}>
-                   <Badge variant='secondary' className='text-xs hover:bg-secondary/80 transition-colors'>
-                    # {tag.name}
-                  </Badge>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* 统计信息 - GitHub 风格 (恢复原样) */}
       <div className='border border-border rounded-lg bg-card p-3'>
         <div className='space-y-2 text-sm'>
-          {/* <div className='flex items-center justify-between'>
-            <span className='text-muted-foreground'>回复数</span>
-            <span className='font-semibold'>{topic.postCount}</span>
-          </div> */}
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>浏览数</span>
             <span className='font-semibold'>{topic.viewCount}</span>

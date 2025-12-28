@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,187 +27,51 @@ import {
 import UserAvatar from '@/components/user/UserAvatar';
 import ReportDialog from '@/components/common/ReportDialog';
 import { RewardDialog } from '@/extensions/rewards/components/RewardDialog';
-import { useAuth } from '@/contexts/AuthContext';
-import { postApi, rewardsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import MarkdownRender from '../common/MarkdownRender';
-
+import MarkdownRender from '@/components/common/MarkdownRender';
 import { RewardListDialog } from '@/extensions/rewards/components/RewardListDialog';
-import Time from '../common/Time';
+import Time from '@/components/common/Time';
+import { useReplyItem } from '@/hooks/topic/useReplyItem';
 
 export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isRewardEnabled, rewardStats, onRewardSuccess }) {
-  const { user, isAuthenticated, openLoginDialog } = useAuth();
-  const [likingPostIds, setLikingPostIds] = useState(new Set());
-  const [deletingPostId, setDeletingPostId] = useState(null);
-  const [replyingToPostId, setReplyingToPostId] = useState(null);
-  const [replyToContent, setReplyToContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
-  const [rewardListOpen, setRewardListOpen] = useState(false);
-  const [origin, setOrigin] = useState('');
-  const [reportTarget, setReportTarget] = useState({
-    type: '',
-    id: 0,
-    title: '',
+  const {
+    user,
+    isAuthenticated,
+    openLoginDialog,
+    likingPostIds,
+    deletingPostId,
+    replyingToPostId,
+    setReplyingToPostId,
+    replyToContent,
+    setReplyToContent,
+    submitting,
+    reportDialogOpen,
+    setReportDialogOpen,
+    rewardDialogOpen,
+    setRewardDialogOpen,
+    rewardListOpen,
+    setRewardListOpen,
+    origin,
+    reportTarget,
+    openReportDialog,
+    localReply,
+    localRewardStats,
+    isPending,
+    isRejected,
+    isOwnReply,
+    canInteract,
+    handleTogglePostLike,
+    handleDeletePost,
+    handleSubmitReplyToPost,
+    handleRewardSuccess,
+  } = useReplyItem({
+    reply,
+    topicId,
+    onDeleted,
+    onReplyAdded,
+    rewardStats,
+    onRewardSuccess
   });
-
-  // 本地状态
-  const [localReply, setLocalReply] = useState(reply);
-  const [localRewardStats, setLocalRewardStats] = useState(rewardStats || { totalCount: 0, totalAmount: 0 });
-
-  // 同步 props 到本地状态
-  useEffect(() => {
-    setLocalRewardStats(rewardStats || { totalCount: 0, totalAmount: 0 });
-  }, [rewardStats]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOrigin(window.location.origin);
-    }
-  }, []);
-
-  // 检查审核状态
-  const isPending = localReply.approvalStatus === 'pending';
-  const isRejected = localReply.approvalStatus === 'rejected';
-  const isOwnReply = user?.id === localReply.userId;
-  const canInteract = !isPending && !isRejected; // 只有已批准的回复可以点赞和回复
-
-  // 切换点赞状态
-  const handleTogglePostLike = async (postId, isLiked) => {
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    if (likingPostIds.has(postId)) {
-      return;
-    }
-
-    setLikingPostIds((prev) => new Set(prev).add(postId));
-
-    try {
-      if (isLiked) {
-        await postApi.unlike(postId);
-      } else {
-        await postApi.like(postId);
-      }
-
-      setLocalReply((prev) => ({
-        ...prev,
-        isLiked: !isLiked,
-        likeCount: isLiked ? prev.likeCount - 1 : prev.likeCount + 1,
-      }));
-
-      toast.success(isLiked ? '已取消点赞' : '点赞成功');
-    } catch (err) {
-      console.error('点赞操作失败:', err);
-      toast.error(err.message || '操作失败');
-    } finally {
-      setLikingPostIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
-    }
-  };
-
-  // 删除回复
-  const handleDeletePost = async (postId, postNumber) => {
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    if (postNumber === 1) {
-      toast.error('不能删除话题内容，请删除整个话题');
-      return;
-    }
-
-    if (!confirm('确定要删除这条回复吗？此操作不可恢复。')) {
-      return;
-    }
-
-    setDeletingPostId(postId);
-
-    try {
-      await postApi.delete(postId);
-      toast.success('回复已删除');
-      onDeleted?.(postId);
-    } catch (err) {
-      console.error('删除回复失败:', err);
-      toast.error(err.message || '删除失败');
-    } finally {
-      setDeletingPostId(null);
-    }
-  };
-
-  // 提交回复到回复
-  const handleSubmitReplyToPost = async (replyToPostId) => {
-    if (!replyToContent.trim()) {
-      toast.error('请输入回复内容');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const response = await postApi.create({
-        topicId: topicId,
-        content: replyToContent,
-        replyToPostId: replyToPostId,
-      });
-
-      if (response.requiresApproval) {
-        toast.success(
-          response.message || '您的回复已提交，等待审核后将公开显示'
-        );
-      } else {
-        toast.success(response.message || '回复成功！');
-
-        // 如果返回了新帖子数据且有回调，立即添加到列表
-        if (response.post && onReplyAdded) {
-          const newPost = {
-            id: response.post.id,
-            content: replyToContent,
-            userId: user.id,
-            userName: user.name,
-            username: user.username,
-            userUsername: user.username,
-            userAvatar: user.avatar,
-            topicId: topicId,
-            replyToPostId: replyToPostId,
-            replyToPost: {
-              postNumber: localReply.postNumber,
-              userName: localReply.userName,
-              userUsername: localReply.userUsername,
-            },
-            postNumber: response.post.postNumber || 0,
-            likeCount: 0,
-            isLiked: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            editCount: 0,
-            ...response.post,
-          };
-          onReplyAdded(newPost);
-        }
-      }
-
-      setReplyToContent('');
-      setReplyingToPostId(null);
-    } catch (err) {
-      console.error('发布回复失败:', err);
-      toast.error('发布回复失败：' + err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <>
@@ -483,14 +346,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                       </>
                     )}
                   <DropdownMenuItem
-                    onClick={() => {
-                      setReportTarget({
-                        type: 'post',
-                        id: localReply.id,
-                        title: `回复 #${localReply.postNumber}`,
-                      });
-                      setReportDialogOpen(true);
-                    }}
+                    onClick={() => openReportDialog('post', localReply.id, `回复 #${localReply.postNumber}`)}
                     disabled={!isAuthenticated}
                     className="cursor-pointer"
                   >
@@ -570,14 +426,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
         onOpenChange={setRewardDialogOpen}
         postId={localReply.id}
         postAuthor={localReply.userName || localReply.userUsername}
-        onSuccess={(amount) => {
-          // 局部更新打赏统计，无需重新调用批量接口
-          setLocalRewardStats(prev => ({
-            totalCount: (prev.totalCount || 0) + 1,
-            totalAmount: (prev.totalAmount || 0) + amount
-          }));
-          onRewardSuccess?.(localReply.id, amount);
-        }}
+        onSuccess={handleRewardSuccess}
         onViewHistory={() => {
           setRewardDialogOpen(false);
           setRewardListOpen(true);

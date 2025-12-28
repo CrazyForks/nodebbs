@@ -1,118 +1,34 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Lock, Archive, Loader2 } from 'lucide-react';
 import UserAvatar from '@/components/user/UserAvatar';
-import { useAuth } from '@/contexts/AuthContext';
-import { postApi, topicApi } from '@/lib/api';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useReplyForm } from '@/hooks/topic/useReplyForm';
 import { Loading } from '@/components/common/Loading';
 
+/**
+ * 回复表单组件
+ * 所有数据统一从 useReplyForm Hook 获取，确保单一数据入口
+ */
 export default function ReplyForm({
-  topicId,
-  isClosed,
-  isDeleted,
   onReplyAdded,
-  onTopicUpdate,
 }) {
-  const router = useRouter();
-  const { user, isAuthenticated, openLoginDialog, loading } = useAuth();
-  const [replyContent, setReplyContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  // 提交回复
-  const handleSubmitReply = async () => {
-    if (!replyContent.trim()) {
-      toast.error('请输入回复内容');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const response = await postApi.create({
-        topicId: topicId,
-        content: replyContent,
-      });
-
-      if (response.requiresApproval) {
-        toast.success(
-          response.message || '您的回复已提交，等待审核后将公开显示'
-        );
-      } else {
-        toast.success(response.message || '回复成功！');
-
-        // 如果返回了新帖子数据，立即添加到列表
-        if (response.post && onReplyAdded) {
-          const newPost = {
-            id: response.post.id,
-            content: replyContent,
-            userId: user.id,
-            userName: user.name,
-            username: user.username,
-            userUsername: user.username,
-            userAvatar: user.avatar,
-            topicId: topicId,
-            postNumber: response.post.postNumber || 0,
-            likeCount: 0,
-            isLiked: false,
-            replyToPostId: null,
-            replyToPost: null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            editCount: 0,
-            ...response.post,
-          };
-          onReplyAdded(newPost);
-        } else {
-          // 如果没有返回数据或没有回调，刷新页面
-          router.refresh();
-        }
-      }
-
-      setReplyContent('');
-    } catch (err) {
-      console.error('发布回复失败:', err);
-      toast.error('发布回复失败：' + err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // 切换主题状态（开启/关闭）
-  const handleToggleTopicStatus = async () => {
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    try {
-      const newClosedState = !isClosed;
-      await topicApi.update(topicId, {
-        isClosed: newClosedState,
-      });
-
-      toast.success(newClosedState ? '主题已关闭' : '主题已重新开启');
-      
-      // 更新父组件状态
-      if (onTopicUpdate) {
-        onTopicUpdate({ isClosed: newClosedState });
-      }
-      
-      router.refresh();
-    } catch (err) {
-      console.error('操作失败:', err);
-      toast.error('操作失败：' + err.message);
-    }
-  };
+  const {
+    user,
+    isAuthenticated,
+    openLoginDialog,
+    loading,
+    replyContent,
+    setReplyContent,
+    submitting,
+    handleSubmitReply,
+    handleToggleTopicStatus,
+    isClosed,
+    isDeleted,
+  } = useReplyForm({
+    onReplyAdded,
+  });
 
   if (loading) {
     return <Loading className='py-12' />;

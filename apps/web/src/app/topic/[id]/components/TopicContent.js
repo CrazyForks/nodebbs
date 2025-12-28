@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,72 +11,38 @@ import {
   Archive,
   Loader2,
   AlertCircle,
+  Coins,
 } from 'lucide-react';
 import MarkdownRender from '@/components/common/MarkdownRender';
-import { useAuth } from '@/contexts/AuthContext';
-import { postApi } from '@/lib/api';
-import { toast } from 'sonner';
-
 import { RewardDialog } from '@/extensions/rewards/components/RewardDialog';
 import { RewardListDialog } from '@/extensions/rewards/components/RewardListDialog';
-import { rewardsApi } from '@/lib/api';
-import { Coins } from 'lucide-react';
-import Time from '../common/Time';
+import Time from '@/components/common/Time';
+import { useTopicContent } from '@/hooks/topic/useTopicContent';
 
-export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRewardSuccess }) {
-  const { user, isAuthenticated, openLoginDialog } = useAuth();
-  const [likingPostIds, setLikingPostIds] = useState(new Set());
-  const [likeState, setLikeState] = useState({
-    isFirstPostLiked: topic.isFirstPostLiked || false,
-    firstPostLikeCount: topic.firstPostLikeCount || 0,
-  });
-  
-  // 打赏相关状态
-  const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
-  const [rewardListOpen, setRewardListOpen] = useState(false);
-
-  // 移除 fetchRewardStats 和相关 useEffect
-  // 直接使用从 props 传入的 rewardStats
-
-  // 切换首帖点赞状态
-  const handleTogglePostLike = async (postId, isLiked) => {
-    if (!isAuthenticated) {
-      openLoginDialog();
-      return;
-    }
-
-    if (likingPostIds.has(postId)) {
-      return;
-    }
-
-    setLikingPostIds((prev) => new Set(prev).add(postId));
-
-    try {
-      if (isLiked) {
-        await postApi.unlike(postId);
-      } else {
-        await postApi.like(postId);
-      }
-
-      setLikeState({
-        isFirstPostLiked: !isLiked,
-        firstPostLikeCount: isLiked
-          ? (likeState.firstPostLikeCount || 0) - 1
-          : (likeState.firstPostLikeCount || 0) + 1,
-      });
-
-      toast.success(isLiked ? '已取消点赞' : '点赞成功');
-    } catch (err) {
-      console.error('点赞操作失败:', err);
-      toast.error(err.message || '操作失败');
-    } finally {
-      setLikingPostIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
-    }
-  };
+/**
+ * 话题内容组件（首帖展示）
+ * 所有数据统一从 useTopicContent Hook 获取，确保单一数据入口
+ */
+export default function TopicContent() {
+  const {
+    // 来自 Context 的共享状态
+    topic,
+    rewardStats,
+    isRewardEnabled,
+    handleRewardSuccess,
+    // 来自 AuthContext
+    user,
+    isAuthenticated,
+    openLoginDialog,
+    // 首帖专用状态
+    likingPostIds,
+    likeState,
+    rewardDialogOpen,
+    setRewardDialogOpen,
+    rewardListOpen,
+    setRewardListOpen,
+    handleTogglePostLike,
+  } = useTopicContent();
 
   return (
     <>
@@ -260,16 +225,16 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
                     setRewardDialogOpen(true);
                   }}
                   className={`gap-1.5 transition-colors ${
-                    rewardStats.totalAmount > 0
+                    (rewardStats[topic.firstPostId]?.totalAmount || 0) > 0
                       ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 border-amber-200/50 dark:border-amber-900/50'
                       : 'text-muted-foreground hover:text-yellow-600 hover:bg-yellow-500/10'
                   }`}
                   title='打赏'
                 >
                   <Coins className='h-4 w-4' />
-                  {rewardStats.totalAmount > 0 ? (
+                  {(rewardStats[topic.firstPostId]?.totalAmount || 0) > 0 ? (
                     <span className='text-sm font-medium'>
-                      {rewardStats.totalAmount}
+                      {rewardStats[topic.firstPostId].totalAmount}
                     </span>
                   ) : (
                     <span className='text-sm'>
@@ -280,8 +245,7 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
               )}
               
               {/* 如果是作者，或者有打赏记录，且不是当前用户（因为当前用户点击打赏按钮也能看到记录入口），显示查看记录按钮 */}
-              {/* 修改：统一在打赏弹窗中查看记录，或者点击总金额查看 */}
-              {(isRewardEnabled && user?.id === topic.userId && rewardStats.totalCount > 0) && (
+              {(isRewardEnabled && user?.id === topic.userId && (rewardStats[topic.firstPostId]?.totalCount || 0) > 0) && (
                  <Button
                   variant='ghost'
                   size='sm'
@@ -290,7 +254,7 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
                   title='查看打赏记录'
                  >
                    <span className="text-xs">
-                     {rewardStats.totalCount} 次打赏
+                     {rewardStats[topic.firstPostId].totalCount} 次打赏
                    </span>
                  </Button>
               )}
@@ -308,7 +272,7 @@ export default function TopicContent({ topic, isRewardEnabled, rewardStats, onRe
           postAuthor={topic.userName || topic.username}
           onSuccess={(amount) => {
             // 局部更新打赏统计，无需重新调用批量接口
-            onRewardSuccess?.(topic.firstPostId, amount);
+            handleRewardSuccess(topic.firstPostId, amount);
           }}
           onViewHistory={() => {
             setRewardDialogOpen(false);
