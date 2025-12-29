@@ -4,10 +4,10 @@ import { useSearch } from '@/hooks/useSearch';
 import { SearchUI } from './SearchUI';
 
 /**
- * 搜索页面客户端连接组件
+ * 搜索页面布局组件
  * 消费 useSearch Hook，将数据传递给 SearchUI
  */
-export default function SearchPageClient() {
+export default function SearchLayout() {
   const {
     searchQuery,
     searchType,

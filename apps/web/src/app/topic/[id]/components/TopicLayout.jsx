@@ -4,9 +4,9 @@ import StickySidebar from '@/components/common/StickySidebar';
 import { TopicProvider } from '@/contexts/TopicContext';
 import TopicContent from './TopicContent';
 import ReplySection from './ReplySection';
-import TopicSidebarWrapper from './TopicSidebarWrapper';
+import TopicSidebar from './TopicSidebar';
 
-export default function TopicPageClient({
+export default function TopicLayout({
   topic: initialTopic,
   initialPosts,
   totalPosts,
@@ -24,7 +24,7 @@ export default function TopicPageClient({
       currentPage={currentPage}
       limit={limit}
     >
-      <TopicPageContent
+      <TopicLayoutContent
         initialPosts={initialPosts}
         totalPosts={totalPosts}
         totalPages={totalPages}
@@ -35,7 +35,7 @@ export default function TopicPageClient({
   );
 }
 
-function TopicPageContent({
+function TopicLayoutContent({
   initialPosts,
   totalPosts,
   totalPages,
@@ -63,7 +63,7 @@ function TopicPageContent({
         {/* 右侧边栏 */}
         <div className='w-full lg:w-64 shrink-0'>
           <StickySidebar className='sticky top-[107px]'>
-            <TopicSidebarWrapper />
+            <TopicSidebar />
           </StickySidebar>
         </div>
       </main>

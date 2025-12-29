@@ -4,10 +4,10 @@ import { useCategories } from '@/hooks/useCategories';
 import { CategoriesUI } from './CategoriesUI';
 
 /**
- * 分类页面客户端连接组件
+ * 分类页面布局组件
  * 消费 useCategories Hook，将数据传递给 CategoriesUI
  */
-export default function CategoriesPageClient() {
+export default function CategoriesLayout() {
   const { categories, loading, error } = useCategories();
 
   return (

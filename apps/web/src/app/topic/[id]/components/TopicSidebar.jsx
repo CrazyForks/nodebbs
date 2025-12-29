@@ -1,3 +1,5 @@
+'use client';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FormDialog } from '@/components/common/FormDialog';
@@ -22,27 +24,34 @@ import ReportDialog from '@/components/common/ReportDialog';
 import TopicForm from '@/components/topic/TopicForm';
 import Time from '@/components/common/Time';
 import UserCard from '@/components/user/UserCard';
+import { useTopicSidebar } from '@/hooks/topic/useTopicSidebar';
 
-export default function TopicSidebar({
-  topic,
-  isBookmarked,
-  bookmarkLoading,
-  onToggleBookmark,
-  isSubscribed,
-  subscribeLoading,
-  onToggleSubscribe,
-  onToggleTopicStatus,
-  isEditDialogOpen,
-  setIsEditDialogOpen,
-  onEditTopic,
-  editLoading,
-  isAuthenticated,
-  user,
-  reportDialogOpen,
-  setReportDialogOpen,
-  canCloseOrPinTopic,
-  isTopicOwner,
-}) {
+/**
+ * 话题侧边栏组件
+ * 显示操作按钮、作者信息、分类和统计数据
+ */
+export default function TopicSidebar() {
+  // 从 Hook 获取所有数据和回调
+  const {
+    topic,
+    user,
+    isAuthenticated,
+    isBookmarked,
+    bookmarkLoading,
+    handleToggleBookmark: onToggleBookmark,
+    isSubscribed,
+    subscribeLoading,
+    handleToggleSubscribe: onToggleSubscribe,
+    handleToggleTopicStatus: onToggleTopicStatus,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editLoading,
+    handleEditTopic: onEditTopic,
+    reportDialogOpen,
+    setReportDialogOpen,
+    canCloseOrPinTopic,
+    isTopicOwner,
+  } = useTopicSidebar();
   const author = {
     avatar: topic.userAvatar,
     username: topic.username,

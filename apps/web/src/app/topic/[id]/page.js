@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import TopicPageClient from './components/TopicPageClient';
+import TopicLayout from './components/TopicLayout';
 import { getTopicData, getPostsData, getRewardEnabledStatus, getRewardStats } from '@/lib/server/topics';
 
 // 生成页面元数据（SEO优化）
@@ -62,7 +62,7 @@ export default async function TopicDetailPage({ params, searchParams }) {
     : {};
 
   return (
-    <TopicPageClient
+    <TopicLayout
       topic={topic}
       initialPosts={posts}
       totalPosts={totalPosts}

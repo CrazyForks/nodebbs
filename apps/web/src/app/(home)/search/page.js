@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import SearchPageClient from './components/SearchPageClient';
+import SearchLayout from './components/SearchLayout';
 import { Loading } from '@/components/common/Loading';
 
 /**
@@ -9,7 +9,7 @@ import { Loading } from '@/components/common/Loading';
 export default function SearchPage() {
   return (
     <Suspense fallback={<Loading text='加载中...' />}>
-      <SearchPageClient />
+      <SearchLayout />
     </Suspense>
   );
 }
