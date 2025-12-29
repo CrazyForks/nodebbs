@@ -1,11 +1,11 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Lock, Archive, Loader2 } from 'lucide-react';
 import UserAvatar from '@/components/user/UserAvatar';
 import { useReplyForm } from '@/hooks/topic/useReplyForm';
 import { Loading } from '@/components/common/Loading';
+import MarkdownEditor from '@/components/common/MarkdownEditor';
 
 /**
  * 回复表单组件
@@ -42,6 +42,13 @@ export default function ReplyForm({
       </div>
     );
   }
+
+  const handleKeyDown = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmitReply();
+    }
+  };
 
   return (
     <div className='mt-6'>
@@ -88,12 +95,14 @@ export default function ReplyForm({
 
         {/* 回复输入区域 */}
         <div className='p-4'>
-          <Textarea
-            className='w-full min-h-[100px] resize-none'
+          <MarkdownEditor
+            editorClassName='min-h-[150px]'
             placeholder={isDeleted ? '已删除的话题不能回复' : '发表你的评论...'}
             value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
+            onChange={setReplyContent}
             disabled={submitting || isClosed || isDeleted}
+            minimal={true}
+            onKeyDown={handleKeyDown}
           />
         </div>
 
@@ -101,7 +110,6 @@ export default function ReplyForm({
         <div className='px-4 py-3 bg-muted border-t border-border rounded-b-lg'>
           <div className='flex items-center justify-between'>
             <div className='text-sm text-muted-foreground'>
-              {/* 支持 Markdown 格式 */}
             </div>
             <div className='flex items-center space-x-2'>
               {!isDeleted &&

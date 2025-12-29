@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Bold, 
   Italic, 
@@ -28,12 +28,12 @@ import {
   ListTodo,
   Minus,
   FileCode,
+  Type,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
@@ -185,22 +185,41 @@ const DEFAULT_TOOLBAR = [
   '|',
   'horizontalRule',
   '|',
-  // 'link', 'image', 'table'
   'link', 'image', 'video', 'audio', 'table'
 ];
 
 /**
  * MarkdownEditor - 可配置的 Markdown 编辑器
+ * @param {string} value - 编辑器内容
+ * @param {function} onChange - 内容变更回调
+ * @param {string} className - 容器类名
+ * @param {string} editorClassName - 编辑区域（Textarea）类名
+ * @param {string} placeholder - 占位符
+ * @param {Array} toolbar - 工具栏配置
+ * @param {boolean} disabled - 是否禁用
+ * @param {boolean} minimal - 是否启用极简模式（默认收起工具栏）
  */
 export default function MarkdownEditor({ 
   value = '', 
   onChange, 
   className, 
+  editorClassName,
   placeholder = '开始编辑...',
-  toolbar = DEFAULT_TOOLBAR 
+  toolbar = DEFAULT_TOOLBAR,
+  disabled = false,
+  minimal = false,
+  ...props
 }) {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!minimal);
   const textareaRef = useRef(null);
+
+  // 监听 minimal 属性变化
+  useEffect(() => {
+    if (!minimal) {
+      setIsExpanded(true);
+    }
+  }, [minimal]);
 
   // 文本操作辅助函数
   const insertText = (before, after = '') => {
@@ -209,7 +228,7 @@ export default function MarkdownEditor({
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const scrollTop = textarea.scrollTop; // Save scroll position
+    const scrollTop = textarea.scrollTop; // 保存滚动位置
     const text = textarea.value;
     const selection = text.substring(start, end);
     const replacement = before + selection + after;
@@ -221,7 +240,7 @@ export default function MarkdownEditor({
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, start + before.length + selection.length);
-      textarea.scrollTop = scrollTop; // Restore scroll position
+      textarea.scrollTop = scrollTop; // 恢复滚动位置
     }, 0);
   };
 
@@ -258,11 +277,11 @@ export default function MarkdownEditor({
     
     table: (rows, cols) => {
       let markdown = '\n';
-      // Header row
+      // 表头
       markdown += '| ' + Array(cols).fill('标题').join(' | ') + ' |\n';
-      // Separator row
+      // 分隔线
       markdown += '| ' + Array(cols).fill('---').join(' | ') + ' |\n';
-      // Data rows
+      // 数据行
       for (let r = 0; r < rows; r++) {
          markdown += '| ' + Array(cols).fill('内容').join(' | ') + ' |\n';
       }
@@ -307,130 +326,159 @@ export default function MarkdownEditor({
     audio: { icon: MusicIcon, title: '音频', type: 'popover', placeholder: '支持网易云音乐 / MP3 URL...' },
   };
 
+  const showToolbar = isExpanded || !minimal;
+
   return (
     <div className={cn('flex flex-col', className)}>
-      {/* 工具栏 */}
-      <div className="flex items-center justify-between p-2 border border-b-0 rounded-tl-lg rounded-tr-lg bg-muted/30">
-        <div className="flex items-center gap-1 flex-wrap">
-          {toolbar.map((item, index) => {
-            if (item === '|') {
-              return <div key={index} className="w-px h-6 bg-border mx-1" />;
-            }
+      {/* 工具栏 - 仅在展开模式或非极简模式下显示 */}
+      {showToolbar && (
+        <div className="flex items-center justify-between p-2 border border-b-0 rounded-tl-lg rounded-tr-lg bg-muted/30">
+          <div className="flex items-center gap-1 flex-wrap">
+            {toolbar.map((item, index) => {
+              if (item === '|') {
+                return <div key={index} className="w-px h-6 bg-border mx-1" />;
+              }
 
-            const tool = tools[item];
-            if (!tool) return null;
+              const tool = tools[item];
+              if (!tool) return null;
 
-            if (tool.type === 'table-selector') {
-              return (
-                <TableSelector 
-                  key={item}
-                  title={tool.title}
-                  Icon={tool.icon}
-                  onConfirm={handlers[item]}
-                  disabled={isPreviewMode}
-                />
-              );
-            }
+              if (tool.type === 'table-selector') {
+                return (
+                  <TableSelector 
+                    key={item}
+                    title={tool.title}
+                    Icon={tool.icon}
+                    onConfirm={handlers[item]}
+                    disabled={isPreviewMode || disabled}
+                  />
+                );
+              }
 
-            if (tool.type === 'dropdown') {
-              // ... 渲染下拉菜单
-              return (
-                <DropdownMenu key={item}>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 gap-1 px-2"
-                      disabled={isPreviewMode}
-                      title={tool.title}
-                    >
-                      <tool.icon className="h-4 w-4" />
-                      <ChevronDown className="h-3 w-3 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
-                    {tool.options.map((option) => (
-                      <DropdownMenuItem 
-                        key={option.value}
-                        onClick={() => handlers[option.value]()}
-                        className="gap-2"
+              if (tool.type === 'dropdown') {
+                return (
+                  <DropdownMenu key={item}>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 gap-1 px-2"
+                        disabled={isPreviewMode || disabled}
+                        title={tool.title}
                       >
-                        {option.icon && <option.icon className="h-4 w-4" />}
-                        {option.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            }
+                        <tool.icon className="h-4 w-4" />
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
+                      {tool.options.map((option) => (
+                        <DropdownMenuItem 
+                          key={option.value}
+                          onClick={() => handlers[option.value]()}
+                          className="gap-2"
+                        >
+                          {option.icon && <option.icon className="h-4 w-4" />}
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              }
 
-            if (tool.type === 'popover') {
-               // ... 渲染弹窗
+              if (tool.type === 'popover') {
+                return (
+                  <InsertForm 
+                    key={item}
+                    title={tool.title}
+                    Icon={tool.icon}
+                    placeholder={tool.placeholder}
+                    onConfirm={handlers[item]}
+                    disabled={isPreviewMode || disabled}
+                  />
+                );
+              }
+
               return (
-                <InsertForm 
+                <Button
                   key={item}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlers[item]}
+                  disabled={isPreviewMode || disabled}
                   title={tool.title}
-                  Icon={tool.icon}
-                  placeholder={tool.placeholder}
-                  onConfirm={handlers[item]}
-                  disabled={isPreviewMode}
-                />
+                >
+                  <tool.icon className="h-4 w-4" />
+                </Button>
               );
-            }
+            })}
+          </div>
 
-            return (
-              <Button
-                key={item}
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handlers[item]}
-                disabled={isPreviewMode}
-                title={tool.title}
-              >
-                <tool.icon className="h-4 w-4" />
-              </Button>
-            );
-          })}
+          {/* 视图切换 */}
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant={isPreviewMode ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setIsPreviewMode(!isPreviewMode)}
+              className="h-8 gap-2 text-xs"
+              disabled={disabled}
+            >
+              {isPreviewMode ? (
+                <>
+                  <EyeOff className="h-4 w-4" /> 源码
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" /> 预览
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-
-
-        {/* 视图切换 */}
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant={isPreviewMode ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className="h-8 gap-2 text-xs"
-          >
-            {isPreviewMode ? (
-              <>
-                <EyeOff className="h-4 w-4" /> 源码
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4" /> 预览
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      )}
 
       {/* 内容区域 */}
-      <div className="bg-card flex-1 relative">
+      <div className="bg-card flex-1 relative group">
+        {/* 触发展开的按钮 (极简模式且未展开时显示) */}
+        {(minimal && !isExpanded) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 z-10 h-8 w-8 text-muted-foreground hover:text-foreground opacity-50 hover:opacity-100 transition-all"
+            onClick={() => setIsExpanded(true)}
+            title="使用富文本编辑器"
+            disabled={disabled}
+          >
+            <Type className="h-4 w-4" />
+          </Button>
+        )}
+
         {isPreviewMode ? (
-          <article className='min-h-[300px] lg:max-h-[calc(100vh-430px)] overflow-y-auto p-4 border rounded-lg rounded-tl-none rounded-tr-none max-w-none prose prose-stone dark:prose-invert break-all'>
+          <article 
+            className={cn(
+              'min-h-[300px] lg:max-h-[calc(100vh-430px)] overflow-y-auto p-4 border rounded-lg max-w-none prose prose-stone dark:prose-invert break-all',
+              showToolbar && 'rounded-tl-none rounded-tr-none',
+              editorClassName
+            )}
+          >
             <MarkdownRender content={value || ''} />
           </article>
         ) : (
           <Textarea
             ref={textareaRef}
+            {...props}
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
             placeholder={placeholder}
-            className='min-h-[300px] max-h-[50vh] lg:max-h-[calc(100vh-430px)] resize-none overflow-y-auto field-sizing-fixed rounded-tl-none rounded-tr-none sm:field-sizing-content break-all'
+            disabled={disabled}
+            className={cn(
+              'min-h-[300px] max-h-[50vh] lg:max-h-[calc(100vh-430px)] resize-none overflow-y-auto field-sizing-fixed sm:field-sizing-content break-all',
+              showToolbar ? 'rounded-tl-none rounded-tr-none' : 'rounded-lg',
+              editorClassName
+            )}
           />
         )}
       </div>

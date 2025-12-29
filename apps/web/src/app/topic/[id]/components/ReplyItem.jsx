@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import MarkdownEditor from '@/components/common/MarkdownEditor';
 import CopyButton from '@/components/common/CopyButton';
 import {
   Heart,
@@ -72,6 +72,14 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
     rewardStats,
     onRewardSuccess
   });
+
+  // 处理键盘快捷键提交
+  const handleKeyDown = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmitReplyToPost(localReply.id);
+    }
+  };
 
   return (
     <>
@@ -369,13 +377,15 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                   回复 <span className="font-medium text-foreground">@{localReply.userName || localReply.userUsername}</span>
                 </span>
               </div>
-              <Textarea
-                className='w-full min-h-[80px] resize-y text-sm bg-background/50 focus:bg-background transition-colors'
+              <MarkdownEditor
+                editorClassName='min-h-[120px]'
                 placeholder='写下你的回复...'
                 value={replyToContent}
-                onChange={(e) => setReplyToContent(e.target.value)}
+                onChange={setReplyToContent}
                 disabled={submitting}
+                minimal={true}
                 autoFocus
+                onKeyDown={handleKeyDown}
               />
               <div className='flex items-center justify-end gap-2 mt-3'>
                 <Button
