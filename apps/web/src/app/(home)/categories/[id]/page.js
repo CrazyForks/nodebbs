@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getCategoryBySlug, getTopicsData } from '@/lib/server/topics';
-import { TopicListClient } from '@/components/topic/TopicList';
+import { TopicList } from '@/components/topic/TopicList';
 
 // 生成页面元数据
 export async function generateMetadata({ params }) {
@@ -68,14 +68,15 @@ export default async function CategoryPage({ params, searchParams }) {
       </div>
 
       {/* 话题列表 */}
-      <TopicListClient
-        initialTopics={data.items}
-        totalTopics={data.total}
+      <TopicList
+        initialData={data.items}
+        total={data.total}
         currentPage={page}
         totalPages={totalPages}
         limit={LIMIT}
         showPagination={true}
         showHeader={true}
+        useUrlPagination={true}
       />
     </>
   );

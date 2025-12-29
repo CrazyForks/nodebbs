@@ -1,5 +1,5 @@
 import { getTopicsData } from '@/lib/server/topics';
-import { TopicListClient } from '@/components/topic/TopicList';
+import { TopicList } from '@/components/topic/TopicList';
 import { request } from '@/lib/server/api';
 import { Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -92,15 +92,15 @@ export default async function TagTopicListPage({ params, searchParams }) {
         </div>
       </div>
 
-      <TopicListClient
-        initialTopics={topicsData.items}
-        totalTopics={topicsData.total}
+      <TopicList
+        initialData={topicsData.items}
+        total={topicsData.total}
         currentPage={page}
         totalPages={totalPages}
         limit={LIMIT}
         showPagination={true}
         showHeader={true}
-        baseUrl={`/tags/${slug}`} // 确保分页链接正确
+        useUrlPagination={true}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { getTopicsData } from '@/lib/server/topics';
-import { TopicListClient } from '@/components/topic/TopicList';
+import { TopicList } from '@/components/topic/TopicList';
 
 // 生成页面元数据（SEO优化）
 export async function generateMetadata({ searchParams }) {
@@ -39,14 +39,15 @@ export default async function HomePage({ searchParams }) {
       </div>
 
       {/* 话题列表（客户端组件） */}
-      <TopicListClient
-        initialTopics={data.items}
-        totalTopics={data.total}
+      <TopicList
+        initialData={data.items}
+        total={data.total}
         currentPage={page}
         totalPages={totalPages}
         limit={LIMIT}
         showPagination={true}
         showHeader={true}
+        useUrlPagination={true}
       />
     </>
   );
