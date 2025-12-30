@@ -59,56 +59,28 @@ async function authPlugin(fastify) {
   async function getUserInfo(userId) {
     const cacheKey = `user:${userId}`;
     
-    // 尝试从 Redis 获取缓存
-    if (fastify.redis) {
-      try {
-        const cached = await fastify.redis.get(cacheKey);
-        if (cached) {
-          return JSON.parse(cached);
-        }
-      } catch (err) {
-        fastify.log.warn(`Redis 获取失败: ${err.message}`);
-        // Redis 失败不影响功能，继续从数据库查询
+    return await fastify.cache.remember(cacheKey, USER_CACHE_TTL, async () => {
+      // 从数据库查询
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      
+      if (!user) {
+        return null;
       }
-    }
-    
-    // 从数据库查询
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    
-    if (!user) {
-      return null;
-    }
-
-    delete user.passwordHash;
-    
-    // 存入 Redis 缓存
-    if (fastify.redis) {
-      try {
-        await fastify.redis.setex(cacheKey, USER_CACHE_TTL, JSON.stringify(user));
-      } catch (err) {
-        fastify.log.warn(`Redis 存储失败: ${err.message}`);
-        // Redis 失败不影响功能
-      }
-    }
-    
-    return user;
+  
+      delete user.passwordHash;
+      return user;
+    });
   }
   
   // 清除用户缓存（当用户信息更新时调用）
+  // 清除用户缓存（当用户信息更新时调用）
   fastify.decorate('clearUserCache', async function(userId) {
-    const cacheKey = `user:${userId}`;
-    if (fastify.redis) {
-      try {
-        await fastify.redis.del(cacheKey);
-        fastify.log.info(`已清除用户 ${userId} 的缓存`);
-      } catch (err) {
-        fastify.log.warn(`清除缓存失败: ${err.message}`);
-      }
-    }
+    await fastify.cache.invalidate([`user:${userId}`, `user:full:${userId}`]);
+    fastify.log.info(`已清除用户 ${userId} 的缓存`);
   });
 
   // Decorate fastify with auth utilities

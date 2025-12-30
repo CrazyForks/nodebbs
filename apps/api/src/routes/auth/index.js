@@ -477,35 +477,50 @@ export default async function authRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, request.user.id))
-        .limit(1);
+      const userId = request.user.id;
+      const cacheKey = `user:full:${userId}`;
 
-      if (!user) {
-        return reply.code(404).send({ error: '用户不存在' });
-      }
+      const USER_CACHE_TTL = parseInt(process.env.USER_CACHE_TTL || '120', 10);
+      return await fastify.cache.remember(cacheKey, USER_CACHE_TTL, async () => {
+        // 使用 request.user (由 authenticate 中间件提供)，避免重复查询数据库
+        // 注意：需要浅拷贝一份，避免修改 request.user 影响后续处理（虽然在此处是最后一步）
+        const user = { ...request.user };
 
-      // 丰富用户信息（徽章、头像框等）
-      await userEnricher.enrich(user);
+        if (!user) {
+          // 理论上 authenticate 已处理，但保留作为保险
+          return reply.code(404).send({ error: '用户不存在' });
+        }
 
-      // 获取关联的 OAuth 账号
-      const userAccounts = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.userId, user.id));
-      
-      const oauthProviders = userAccounts.map(acc => acc.provider);
+        // 丰富用户信息（徽章、头像框等）
+        await userEnricher.enrich(user);
 
-      const hasPassword = !!user.passwordHash;
-      delete user.passwordHash;
+        // 获取关联的 OAuth 账号
+        const userAccounts = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.userId, user.id));
+        
+        const oauthProviders = userAccounts.map(acc => acc.provider);
 
-      return {
-        ...user,
-        hasPassword,
-        oauthProviders,
-      };
+        // 检查用户是否设置了密码
+        // 注意：authenticate 中间件已经移除了 passwordHash，所以我们需要单独查询一次
+        let userHasPassword = false;
+        const [pwdResult] = await db
+            .select({ passwordHash: users.passwordHash })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+            
+        if (pwdResult && pwdResult.passwordHash) {
+            userHasPassword = true;
+        }
+        
+        return {
+          ...user,
+          hasPassword: userHasPassword,
+          oauthProviders,
+        };
+      });
     }
   );
 
