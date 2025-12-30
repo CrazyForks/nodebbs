@@ -3,7 +3,6 @@ import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { uploadApi } from '@/lib/api';
-import { getApiHost } from '@/lib/api-url';
 
 /**
  * 通用图片上传组件
@@ -42,8 +41,7 @@ export function ImageUpload({
     try {
       setLoading(true);
       const res = await uploadApi.upload(file, type);
-      const apiHost = getApiHost();
-      onChange(`${apiHost}${res.url}`);
+      onChange(`${res.url}`);
       toast.success('上传成功');
     } catch (error) {
       console.error('Upload failed:', error);
