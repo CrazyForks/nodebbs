@@ -6,8 +6,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -16,31 +14,29 @@ import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { ChevronRight, X } from 'lucide-react';
 
-export default function StickySidebar({ children, className, enabled = true }) {
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(true);
+// 自定义 useMediaQuery hook，安全处理 SSR
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(null);
 
   useEffect(() => {
-    setMounted(true);
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
 
-    // 客户端检查屏幕尺寸
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
+    const handler = (event) => setMatches(event.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [query]);
 
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
+  return matches;
+}
 
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
+export default function StickySidebar({ children, className, enabled = true }) {
+  const [open, setOpen] = useState(false);
+  // 使用自定义 useMediaQuery 检测屏幕尺寸，SSR 时返回 null
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
-  // 在服务器端和客户端首次渲染时，始终渲染为桌面版本
-  if (!mounted) {
-    return <aside className={className}>{children}</aside>;
-  }
-
-  if (isDesktop || !enabled) {
+  // SSR 或初次渲染时（isDesktop 为 null），默认渲染桌面版本避免 hydration 不匹配
+  if (isDesktop === null || isDesktop || !enabled) {
     return <aside className={className}>{children}</aside>;
   }
 
