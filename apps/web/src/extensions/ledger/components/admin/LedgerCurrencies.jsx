@@ -47,19 +47,26 @@ export function LedgerCurrencies() {
         fetchCurrencies();
     }, []);
 
+    // 将配置项的 value 统一转换为字符串，便于输入框编辑
+    // value: 用户输入值（空字符串表示未修改，使用默认值）
+    // defaultValue: 原始默认值，用于 placeholder 显示和空值回退
     const normalizeConfig = (conf) => {
         const normalized = {};
         Object.keys(conf).forEach(key => {
             const item = conf[key];
             if (item && typeof item === 'object' && 'value' in item) {
+                const defaultVal = item.value ?? 0;
                 normalized[key] = { 
-                    value: item.value, 
+                    value: String(defaultVal),  // 默认填充当前配置值
+                    defaultValue: defaultVal,
                     description: item.description || key
                 };
             } else if (item !== undefined) {
                 // Legacy format
+                const defaultVal = item ?? 0;
                 normalized[key] = { 
-                    value: item, 
+                    value: String(defaultVal),  // 默认填充当前配置值
+                    defaultValue: defaultVal,
                     description: key 
                 };
             }
@@ -98,6 +105,7 @@ export function LedgerCurrencies() {
         setIsDialogOpen(true);
     };
 
+    // 更新配置项的值，保持为字符串格式
     const updateConfig = (key, value) => {
         setFormData(prev => ({
             ...prev,
@@ -105,10 +113,28 @@ export function LedgerCurrencies() {
                 ...prev.config,
                 [key]: {
                     ...prev.config[key],
-                    value: parseFloat(value) || 0
+                    value: value
                 }
             }
         }));
+    };
+
+    // 保存时将配置项的值转换为数字格式
+    // 如果用户未输入（空字符串），则使用默认值
+    const serializeConfig = (config) => {
+        const serialized = {};
+        Object.keys(config).forEach(key => {
+            const item = config[key];
+            // 空值使用默认值，否则解析用户输入
+            const finalValue = item.value === '' 
+                ? item.defaultValue 
+                : (parseFloat(item.value) || 0);
+            serialized[key] = {
+                value: finalValue,
+                description: item.description
+            };
+        });
+        return serialized;
     };
 
     const handleSaveCurrency = async () => {
@@ -118,7 +144,7 @@ export function LedgerCurrencies() {
             name: formData.name,
             symbol: formData.symbol,
             isActive: formData.isActive,
-            config: JSON.stringify(formData.config)
+            config: JSON.stringify(serializeConfig(formData.config))
         };
         
         try {
@@ -273,7 +299,8 @@ export function LedgerCurrencies() {
                                         </Label>
                                         <Input 
                                             type="number" 
-                                            value={item.value ?? 0}
+                                            value={item.value}
+                                            placeholder={String(item.defaultValue)}
                                             onChange={(e) => updateConfig(key, e.target.value)}
                                         />
                                     </div>

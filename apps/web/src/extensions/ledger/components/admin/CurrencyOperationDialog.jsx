@@ -26,7 +26,7 @@ import {
 export function CurrencyOperationDialog({ open, onOpenChange, onSubmit, submitting, mode = 'grant', currencies = [] }) {
     const [formData, setFormData] = useState({
         user: null,
-        amount: 0,
+        amount: '',
         currency: '',
         description: '',
     });
@@ -62,21 +62,25 @@ export function CurrencyOperationDialog({ open, onOpenChange, onSubmit, submitti
 
     const currentConfig = config[mode];
 
+    // 解析 amount 字符串为数字
+    const amountNumber = formData.amount === '' ? 0 : parseFloat(formData.amount);
+    const isAmountValid = formData.amount !== '' && !isNaN(amountNumber) && amountNumber > 0;
+
     const handleSubmit = () => {
-        if (!formData.user || !formData.currency || formData.amount <= 0) {
+        if (!formData.user || !formData.currency || !isAmountValid) {
             return;
         }
         onSubmit({
             userId: formData.user.id,
             currency: formData.currency,
-            amount: formData.amount,
+            amount: amountNumber,
             description: formData.description,
             type: mode
         });
     };
 
     const handleClose = () => {
-        setFormData({ user: null, amount: 0, currency: '', description: '' });
+        setFormData({ user: null, amount: '', currency: '', description: '' });
         onOpenChange(false);
     };
 
@@ -89,7 +93,7 @@ export function CurrencyOperationDialog({ open, onOpenChange, onSubmit, submitti
             submitText={currentConfig.buttonText}
             loading={submitting}
             onSubmit={handleSubmit}
-            disabled={!formData.user || !formData.currency || formData.amount <= 0}
+            disabled={!formData.user || !formData.currency || !isAmountValid}
             submitClassName={currentConfig.buttonVariant === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}
         >
             <div className="space-y-4">
@@ -126,7 +130,7 @@ export function CurrencyOperationDialog({ open, onOpenChange, onSubmit, submitti
                         min="0"
                         step="0.01"
                         value={formData.amount}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, amount: e.target.value }))}
                         placeholder={currentConfig.amountPlaceholder}
                     />
                 </div>
