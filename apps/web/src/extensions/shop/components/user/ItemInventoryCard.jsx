@@ -41,18 +41,18 @@ export function ItemInventoryCard({ item, onEquip, onUnequip, actioning }) {
             )}
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="line-clamp-2 min-h-[2.5rem]">
           {item.itemDescription || getItemTypeLabel(item.itemType)}
         </CardDescription>
       </CardHeader>
 
       {item.itemImageUrl && (
         <CardContent>
-          <div className="relative w-full aspect-square overflow-hidden">
+          <div className="relative w-full aspect-square overflow-hidden flex items-center justify-center">
             <img
               src={item.itemImageUrl}
               alt={item.itemName}
-              className="object-contain"
+              className="object-contain max-h-full"
             />
           </div>
         </CardContent>

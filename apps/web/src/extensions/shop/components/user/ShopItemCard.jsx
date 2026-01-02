@@ -32,16 +32,16 @@ export function ShopItemCard({ item, userBalance, onPurchase, isAuthenticated })
             </Badge>
           )}
         </div>
-        <CardDescription>{item.description || '暂无描述'}</CardDescription>
+        <CardDescription className="line-clamp-2 min-h-[2.5rem]">{item.description || '暂无描述'}</CardDescription>
       </CardHeader>
 
       {item.imageUrl ? (
         <CardContent>
-          <div className="relative w-full aspect-square overflow-hidden">
+          <div className="relative w-full aspect-square overflow-hidden flex items-center justify-center">
             <img
               src={item.imageUrl}
               alt={item.name}
-              className="object-contain"
+              className="object-contain max-h-full"
             />
           </div>
         </CardContent>
