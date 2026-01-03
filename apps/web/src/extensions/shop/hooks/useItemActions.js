@@ -12,9 +12,10 @@ export function useItemActions() {
   const equip = useCallback(async (userItemId, onSuccess) => {
     setActioningItemId(userItemId);
     try {
-      await shopApi.equipItem(userItemId);
+      const response = await shopApi.equipItem(userItemId);
       toast.success('装备成功');
-      if (onSuccess) await onSuccess();
+      // 将响应传递给回调，支持局部更新
+      if (onSuccess) await onSuccess(response);
     } catch (err) {
       console.error('装备失败:', err);
       toast.error(err.message || '装备失败');
@@ -26,9 +27,10 @@ export function useItemActions() {
   const unequip = useCallback(async (userItemId, onSuccess) => {
     setActioningItemId(userItemId);
     try {
-      await shopApi.unequipItem(userItemId);
+      const response = await shopApi.unequipItem(userItemId);
       toast.success('卸下成功');
-      if (onSuccess) await onSuccess();
+      // 将响应传递给回调，支持局部更新
+      if (onSuccess) await onSuccess(response);
     } catch (err) {
       console.error('卸下失败:', err);
       toast.error(err.message || '卸下失败');

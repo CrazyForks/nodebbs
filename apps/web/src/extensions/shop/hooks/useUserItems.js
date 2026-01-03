@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 /**
  * 获取用户已购买物品的 Hook
  * @param {Object} options - { type }
- * @returns {Object} { items, loading, error, refetch }
+ * @returns {Object} { items, loading, error, refetch, setItemEquipped, setItemEquippedWithUnequipSameType }
  */
 export function useUserItems(options = {}) {
   const { type } = options;
@@ -32,6 +32,32 @@ export function useUserItems(options = {}) {
     }
   }, [type]);
 
+  // 设置单个物品的装备状态（用于卸下后的更新）
+  const setItemEquipped = useCallback((itemId, isEquipped) => {
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === itemId ? { ...item, isEquipped } : item
+      )
+    );
+  }, []);
+
+  // 设置物品装备状态并处理同类型互斥（用于装备后的更新）
+  // 装备新物品时，将同类型的其他物品标记为未装备
+  const setItemEquippedWithUnequipSameType = useCallback((itemId, itemType) => {
+    setItems((prevItems) =>
+      prevItems.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, isEquipped: true };
+        }
+        // 如果是同类型且已装备，则标记为未装备
+        if (item.itemType === itemType && item.isEquipped) {
+          return { ...item, isEquipped: false };
+        }
+        return item;
+      })
+    );
+  }, []);
+
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
@@ -41,5 +67,7 @@ export function useUserItems(options = {}) {
     loading,
     error,
     refetch: fetchItems,
+    setItemEquipped,
+    setItemEquippedWithUnequipSameType,
   };
 }

@@ -424,6 +424,39 @@ export async function unequipItem(userId, userItemId) {
   }
 }
 
+/**
+ * 获取用户当前装备的头像框
+ * @param {number} userId
+ * @returns {Promise<Object|null>}
+ */
+export async function getEquippedAvatarFrame(userId) {
+  try {
+    const [frame] = await db
+      .select({
+        id: userItems.id,
+        itemType: shopItems.type,
+        itemName: shopItems.name,
+        itemMetadata: shopItems.metadata,
+        imageUrl: shopItems.imageUrl,
+      })
+      .from(userItems)
+      .innerJoin(shopItems, eq(userItems.itemId, shopItems.id))
+      .where(
+        and(
+          eq(userItems.userId, userId),
+          eq(userItems.isEquipped, true),
+          eq(shopItems.type, 'avatar_frame')
+        )
+      )
+      .limit(1);
+
+    return frame || null;
+  } catch (error) {
+    console.error('[商城] 获取装备头像框失败:', error);
+    return null;
+  }
+}
+
 // ============= 管理员功能 =============
 
 /**

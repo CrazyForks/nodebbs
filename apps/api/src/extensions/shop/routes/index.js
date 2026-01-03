@@ -10,6 +10,7 @@ import {
   updateShopItem,
   deleteShopItem,
   giftItem,
+  getEquippedAvatarFrame,
 } from '../services/shopService.js';
 import db from '../../../db/index.js';
 import { users } from '../../../db/schema.js';
@@ -185,7 +186,11 @@ export default async function shopRoutes(fastify, options) {
     try {
       const { userItemId } = request.params;
       const result = await equipItem(request.user.id, userItemId);
-      return result;
+      
+      // 只返回 avatarFrame，前端根据操作类型直接更新 isEquipped
+      const avatarFrame = await getEquippedAvatarFrame(request.user.id);
+      
+      return { ...result, avatarFrame };
     } catch (error) {
       if (error.message.includes('未找到')) {
         return reply.code(404).send({ error: error.message });
@@ -214,7 +219,12 @@ export default async function shopRoutes(fastify, options) {
     try {
       const { userItemId } = request.params;
       const result = await unequipItem(request.user.id, userItemId);
-      return result;
+      
+      // 只返回 avatarFrame，卸下头像框后为 null
+      // 前端根据操作类型直接更新 isEquipped
+      const avatarFrame = await getEquippedAvatarFrame(request.user.id);
+      
+      return { ...result, avatarFrame };
     } catch (error) {
       if (error.message.includes('未找到')) {
         return reply.code(404).send({ error: error.message });

@@ -6,11 +6,13 @@ import { useUserItems } from '@/extensions/shop/hooks/useUserItems';
 import { useItemActions } from '@/extensions/shop/hooks/useItemActions';
 import { ItemTypeSelector } from '@/extensions/shop/components/shared/ItemTypeSelector';
 import { ItemInventoryGrid } from '../../components/user/ItemInventoryGrid';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserItemsPage() {
   const [itemType, setItemType] = useState('all');
+  const { updateUser } = useAuth();
   
-  const { items, loading, refetch } = useUserItems({ type: itemType });
+  const { items, loading, setItemEquipped, setItemEquippedWithUnequipSameType } = useUserItems({ type: itemType });
   
   // Show all items including badges
   const displayedItems = items;
@@ -18,11 +20,28 @@ export default function UserItemsPage() {
   const { equip, unequip, actioningItemId } = useItemActions();
 
   const handleEquip = async (userItemId) => {
-    await equip(userItemId, refetch);
+    // 获取当前物品信息用于判断类型
+    const item = items.find(i => i.id === userItemId);
+    
+    await equip(userItemId, (response) => {
+      // 直接将物品标记为已装备（处理同类型互斥）
+      setItemEquippedWithUnequipSameType(userItemId, item?.itemType);
+      // 更新用户头像框
+      if (response.avatarFrame !== undefined) {
+        updateUser({ avatarFrame: response.avatarFrame });
+      }
+    });
   };
 
   const handleUnequip = async (userItemId) => {
-    await unequip(userItemId, refetch);
+    await unequip(userItemId, (response) => {
+      // 直接将物品标记为未装备
+      setItemEquipped(userItemId, false);
+      // 更新用户头像框（卸下后可能为 null）
+      if (response.avatarFrame !== undefined) {
+        updateUser({ avatarFrame: response.avatarFrame });
+      }
+    });
   };
 
   return (
