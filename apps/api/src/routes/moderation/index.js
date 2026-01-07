@@ -1,5 +1,5 @@
 import db from '../../db/index.js';
-import { reports, posts, topics, users, notifications, moderationLogs } from '../../db/schema.js';
+import { reports, posts, topics, users, moderationLogs } from '../../db/schema.js';
 import { eq, sql, desc, and, ne, like, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -281,16 +281,16 @@ export default async function moderationRoutes(fastify, options) {
 
     // 发送通知给举报人
     try {
-      await db.insert(notifications).values({
+      await fastify.notification.send({
         userId: report.reporterId,
         type: action === 'resolve' ? 'report_resolved' : 'report_dismissed',
         triggeredByUserId: request.user.id,
         message: getReportNotificationMessage(report.reportType, action),
-        metadata: JSON.stringify({
+        metadata: {
           reportId: report.id,
           reportType: report.reportType,
           targetId: report.targetId
-        })
+        }
       });
     } catch (error) {
       // 通知发送失败不影响举报处理

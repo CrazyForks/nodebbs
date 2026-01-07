@@ -1,6 +1,6 @@
 import { getBadges, getUserBadges } from '../services/badgeService.js';
 import db from '../../../db/index.js';
-import { users, badges, notifications } from '../../../db/schema.js';
+import { users, badges } from '../../../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function badgeRoutes(fastify, options) {
@@ -191,19 +191,17 @@ export default async function badgeRoutes(fastify, options) {
     const result = await grantBadge(userId, badgeId, 'admin_manual');
 
     // 发送通知
-    await db.insert(notifications).values({
+    await fastify.notification.send({
       userId: userId,
       type: 'badge_earned',
       triggeredByUserId: request.user.id,
       message: `恭喜！你获得了 "${badgeExists.name}" 勋章`,
-      metadata: JSON.stringify({
+      metadata: {
         badgeId: badgeExists.id,
         badgeName: badgeExists.name,
         iconUrl: badgeExists.iconUrl,
         slug: badgeExists.slug
-      }),
-      createdAt: new Date(),
-      isRead: false
+      }
     });
 
     return { success: true, badge: result, message: '徽章授予成功' };

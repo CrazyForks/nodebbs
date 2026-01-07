@@ -13,23 +13,18 @@ export default async function badgeListeners(fastify) {
         if (newBadges && newBadges.length > 0) {
           fastify.log.info(`[Badges] User ${userId} unlocked ${newBadges.length} new badges`);
           
-          const { notifications } = await import('../../db/schema.js');
-          const db = (await import('../../db/index.js')).default;
-
           // 为每个新徽章创建通知
           for (const badge of newBadges) {
-            await db.insert(notifications).values({
+            await fastify.notification.send({
               userId,
               type: 'badge_earned',
               message: `恭喜！你获得了一枚新勋章：${badge.name}`,
-              isRead: false,
-              createdAt: new Date(),
-              metadata: JSON.stringify({
+              metadata: {
                  badgeId: badge.id,
                  badgeName: badge.name,
                  iconUrl: badge.iconUrl,
                  slug: badge.slug
-              })
+              }
             });
           }
         }

@@ -3,11 +3,11 @@ import {
   shopItems,
   userItems,
   users,
-  notifications,
 } from '../../../db/schema.js';
 import { sysAccounts, sysTransactions, sysCurrencies } from '../../ledger/schema.js';
 import { eq, and, desc, sql, asc } from 'drizzle-orm';
 import { grantBadge } from '../../badges/services/badgeService.js';
+import { notificationService } from '../../../services/notificationService.js';
 
 /**
  * 获取商店商品列表
@@ -533,7 +533,7 @@ export async function deleteShopItem(id) {
  */
 export async function giftItem(senderId, receiverId, itemId, message) {
   try {
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       // 1. 获取商品信息
       const [item] = await tx
         .select()
@@ -607,13 +607,13 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       // 5. 记录交易日志 (发送者)
       await tx.insert(sysTransactions).values({
         userId: senderId,
-        accountId: senderAccount.id, // Fixed: Added missing accountId
+        accountId: senderAccount.id,
         currencyCode,
         amount: -item.price,
         balanceAfter: newBalance,
         type: 'gift_sent',
         referenceType: 'shop_item',
-        referenceId: String(itemId), // Using itemId as ref
+        referenceId: String(itemId),
         relatedUserId: receiverId,
         description: `赠送给 ${receiver.username || '用户'}: ${item.name}`,
         metadata: JSON.stringify({
@@ -638,22 +638,7 @@ export async function giftItem(senderId, receiverId, itemId, message) {
         metadata,
       });
 
-      // 7. 发送通知给接收者
-      await tx.insert(notifications).values({
-        userId: receiverId,
-        type: 'gift_received',
-        triggeredByUserId: senderId,
-        message: `你收到了一份礼物：${item.name}`,
-        createdAt: new Date(),
-        isRead: false,
-        metadata: JSON.stringify({
-          itemId: item.id,
-          itemName: item.name,
-          message,
-        })
-      });
-
-      // 8. 如果是勋章，自动佩戴/检查逻辑 (复用 existing logic)
+      // 7. 如果是勋章，自动佩戴/检查逻辑
       if (item.type === 'badge') {
         let badgeId = null;
         try {
@@ -683,8 +668,38 @@ export async function giftItem(senderId, receiverId, itemId, message) {
           .where(eq(shopItems.id, itemId));
       }
 
-      return { message: '赠送成功', balance: newBalance };
+      return { 
+        message: '赠送成功', 
+        balance: newBalance,
+        // 返回通知所需数据
+        notificationData: {
+          receiverId,
+          senderId,
+          itemName: item.name,
+          itemId: item.id,
+          giftMessage: message
+        }
+      };
     });
+
+    // 事务成功后发送通知（独立于事务，失败不影响礼物赠送）
+    try {
+      await notificationService.send({
+        userId: result.notificationData.receiverId,
+        type: 'gift_received',
+        triggeredByUserId: result.notificationData.senderId,
+        message: `你收到了一份礼物：${result.notificationData.itemName}`,
+        metadata: {
+          itemId: result.notificationData.itemId,
+          itemName: result.notificationData.itemName,
+          message: result.notificationData.giftMessage,
+        }
+      });
+    } catch (notifyError) {
+      console.error('[商城] 发送礼物通知失败:', notifyError);
+    }
+
+    return { message: result.message, balance: result.balance };
   } catch (error) {
     console.error('[商城] 赠送失败:', error);
     throw error;

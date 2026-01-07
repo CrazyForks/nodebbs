@@ -1,5 +1,5 @@
 import db from '../../db/index.js';
-import { posts, topics, users, likes, notifications, subscriptions, moderationLogs, blockedUsers, userItems, shopItems } from '../../db/schema.js';
+import { posts, topics, users, likes, subscriptions, moderationLogs, blockedUsers, userItems, shopItems } from '../../db/schema.js';
 import { eq, sql, desc, and, inArray, ne, like, or, not } from 'drizzle-orm';
 import { getSetting } from '../../utils/settings.js';
 import { userEnricher } from '../../services/userEnricher.js';
@@ -701,7 +701,7 @@ export default async function postRoutes(fastify, options) {
     if (topic.userId !== request.user.id) {
       const blocked = await isBlocked(request.user.id, topic.userId);
       if (!blocked) {
-        await db.insert(notifications).values({
+        await fastify.notification.send({
           userId: topic.userId,
           type: 'reply',
           triggeredByUserId: request.user.id,
@@ -719,7 +719,7 @@ export default async function postRoutes(fastify, options) {
         // 检查是否存在拉黑关系
         const blocked = await isBlocked(request.user.id, replyToPost.userId);
         if (!blocked) {
-          await db.insert(notifications).values({
+          await fastify.notification.send({
             userId: replyToPost.userId,
             type: 'reply',
             triggeredByUserId: request.user.id,
@@ -783,7 +783,7 @@ export default async function postRoutes(fastify, options) {
       const validSubscribers = subscribers.filter(sub => !blockedSubscriberIds.has(sub.userId));
 
       if (validSubscribers.length > 0) {
-        const notificationValues = validSubscribers.map(sub => ({
+        const notificationList = validSubscribers.map(sub => ({
           userId: sub.userId,
           type: 'topic_reply',
           triggeredByUserId: request.user.id,
@@ -792,7 +792,7 @@ export default async function postRoutes(fastify, options) {
           message: `${request.user.username} 在 "${topic.title}" 中回复了`
         }));
 
-        await db.insert(notifications).values(notificationValues);
+        await fastify.notification.sendBatch(notificationList);
       }
     }
 
@@ -1072,7 +1072,7 @@ export default async function postRoutes(fastify, options) {
       // 检查是否存在拉黑关系
       const blocked = await isBlocked(request.user.id, post.userId);
       if (!blocked) {
-        await db.insert(notifications).values({
+        await fastify.notification.send({
           userId: post.userId,
           type: 'like',
           triggeredByUserId: request.user.id,

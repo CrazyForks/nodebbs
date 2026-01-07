@@ -4,7 +4,7 @@ import {
   getCreditRanking,
 } from '../services/rewardService.js';
 import db from '../../../db/index.js';
-import { posts, users, notifications } from '../../../db/schema.js';
+import { posts, users } from '../../../db/schema.js';
 import { eq, sql, inArray, and, count, sum } from 'drizzle-orm';
 
 export default async function rewardsRoutes(fastify, options) {
@@ -108,18 +108,17 @@ export default async function rewardsRoutes(fastify, options) {
       });
 
       // 发送通知
-      await db.insert(notifications).values({
+      await fastify.notification.send({
         userId: post.userId,
         type: notificationType,
         triggeredByUserId: request.user.id,
         topicId: post.topicId,
         postId: postId,
         message: message || defaultMessage,
-        isRead: false,
-        metadata: JSON.stringify({
+        metadata: {
           amount,
           isTopic
-        })
+        }
       });
 
       return {

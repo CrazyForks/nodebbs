@@ -1,5 +1,5 @@
 import db from '../../db/index.js';
-import { messages, users, notifications, blockedUsers } from '../../db/schema.js';
+import { messages, users, blockedUsers } from '../../db/schema.js';
 import { eq, sql, desc, and, or, like } from 'drizzle-orm';
 
 export default async function messageRoutes(fastify) {
@@ -450,17 +450,17 @@ export default async function messageRoutes(fastify) {
         .returning();
 
       // Create notification for recipient
-      await db.insert(notifications).values({
+      await fastify.notification.send({
         userId: recipientId,
         type: 'message',
         triggeredByUserId: request.user.id,
         message: `${request.user.username} 给你发送了一条新消息${
           subject ? `：${subject}` : ''
         }`,
-        metadata: JSON.stringify({
+        metadata: {
           messageId: newMessage.id,
           subject: subject || null
-        })
+        }
       });
 
       return newMessage;
