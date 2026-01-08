@@ -35,7 +35,8 @@ export default async function badgeRoutes(fastify, options) {
             ownershipInfo.set(bid, {
                 isOwned: true,
                 earnedAt: ub.earnedAt,
-                isDisplayed: ub.isDisplayed
+                isDisplayed: ub.isDisplayed,
+                userBadgeId: ub.id  // 用户勋章记录ID，用于更新展示设置
             });
         });
 
@@ -264,5 +265,42 @@ export default async function badgeRoutes(fastify, options) {
     const { id } = request.params;
     await deleteBadge(id);
     return { success: true };
+  });
+
+  // 用户：更新自己的勋章展示设置
+  fastify.patch('/user/:userBadgeId', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['badges'],
+      description: '更新用户勋章展示设置',
+      params: {
+        type: 'object',
+        required: ['userBadgeId'],
+        properties: {
+          userBadgeId: { type: 'integer' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          isDisplayed: { type: 'boolean' },
+          displayOrder: { type: 'integer' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { updateUserBadgeDisplay } = await import('../services/badgeService.js');
+    const { userBadgeId } = request.params;
+    const userId = request.user.id;
+    
+    const result = await updateUserBadgeDisplay(userBadgeId, userId, request.body);
+    if (!result) {
+      return reply.code(404).send({ error: '勋章不存在或无权操作' });
+    }
+    
+    // 清除用户缓存，确保 /auth/me 返回最新的勋章数据
+    await fastify.clearUserCache(userId);
+    
+    return { success: true, userBadge: result };
   });
 }

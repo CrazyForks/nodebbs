@@ -379,3 +379,34 @@ export async function getPassiveEffects(userId) {
   }
 }
 
+/**
+ * 更新用户勋章的展示设置
+ * @param {number} userBadgeId - userBadges 表的主键 ID
+ * @param {number} userId - 用户 ID（用于权限校验）
+ * @param {Object} data - { isDisplayed?: boolean, displayOrder?: number }
+ * @returns {Promise<object|null>} 更新后的记录，或 null 表示未找到/无权限
+ */
+export async function updateUserBadgeDisplay(userBadgeId, userId, data) {
+  const updateData = {};
+  
+  if (data.isDisplayed !== undefined) {
+    updateData.isDisplayed = data.isDisplayed;
+  }
+  if (data.displayOrder !== undefined) {
+    updateData.displayOrder = data.displayOrder;
+  }
+  
+  if (Object.keys(updateData).length === 0) {
+    return null;
+  }
+  
+  updateData.updatedAt = new Date();
+  
+  const [result] = await db
+    .update(userBadges)
+    .set(updateData)
+    .where(and(eq(userBadges.id, userBadgeId), eq(userBadges.userId, userId)))
+    .returning();
+  
+  return result || null;
+}

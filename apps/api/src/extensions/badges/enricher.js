@@ -19,7 +19,8 @@ export default function registerBadgeEnricher(fastify) {
 
     try {
       const badges = await getUserBadges(user.id);
-      user.badges = badges;
+      // 只展示用户设置为显示的勋章
+      user.badges = badges.filter(b => b.isDisplayed !== false);
     } catch (err) {
       console.error(`[BadgeEnricher] Failed to enrich user ${user.id}:`, err);
       user.badges = [];
@@ -49,7 +50,8 @@ export default function registerBadgeEnricher(fastify) {
 
       users.forEach((user) => {
         if (user.id && badgesMap[user.id]) {
-          user.badges = badgesMap[user.id];
+          // 只展示用户设置为显示的勋章
+          user.badges = badgesMap[user.id].filter(b => b.isDisplayed !== false);
         } else {
           user.badges = [];
         }
