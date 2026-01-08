@@ -75,29 +75,23 @@ export default function BadgesList({ userId }) {
   return (
     <div className="space-y-8">
       {/* 头部统计 */}
-      <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              勋章收藏家
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              收集勋章，展示你的成就与贡献
-            </p>
+      <div className="bg-muted/30 p-4 rounded-xl border border-border/50 flex items-center justify-between">
+        <div className="text-sm font-medium text-muted-foreground">
+          当前收集进度
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-bold text-primary">{ownedCount}</span>
+            <span className="text-muted-foreground">/ {totalCount} 已获得</span>
           </div>
-          <div className="text-right">
-             <div className="text-2xl font-bold text-primary">
-              {ownedCount} / {totalCount}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              已获得
-            </div>
-            {ownedCount > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
-                展示中: {displayedCount} 枚
+          {ownedCount > 0 && (
+            <>
+              <div className="w-px h-4 bg-border mx-2" />
+              <div className="text-muted-foreground">
+                展示中: <span className="font-medium text-foreground">{displayedCount}</span>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
