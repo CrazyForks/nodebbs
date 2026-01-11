@@ -339,14 +339,14 @@ function CaptchaProviderCard({
             {provider.provider === 'cap' && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>API 端点（可选）</Label>
+                  <Label>API 端点</Label>
                   <Input
                     value={formData.config.apiEndpoint || ''}
                     onChange={(e) => updateConfig('apiEndpoint', e.target.value)}
-                    placeholder="http://localhost:3000"
+                    placeholder="http://localhost:3000/[SiteKey]/"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Standalone 模式需要配置，留空使用直接验证
+                    
                   </p>
                 </div>
                 <div className="space-y-2">
