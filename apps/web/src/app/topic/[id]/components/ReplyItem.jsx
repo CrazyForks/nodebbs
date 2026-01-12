@@ -85,7 +85,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
     <>
       <div
         id={`post-${localReply.id}`}
-        className={`bg-card border rounded-lg hover:border-border/80 transition-all duration-300 group ${
+        className={`bg-card border-b border-x-0 border-t-0 sm:border sm:rounded-lg hover:border-border/80 transition-all duration-300 group ${
           isPending
             ? 'border-chart-5/30 bg-chart-5/5'
             : isRejected
@@ -96,7 +96,7 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
         }`}
         data-post-number={localReply.postNumber}
       >
-        <div className='p-4 sm:p-5'>
+        <div className='p-3 sm:p-5'>
           {/* 头部信息区 */}
           <div className='flex items-start justify-between gap-4 mb-4'>
             <div className='flex items-start gap-3'>

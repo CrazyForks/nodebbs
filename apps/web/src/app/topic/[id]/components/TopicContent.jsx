@@ -163,10 +163,10 @@ export default function TopicContent() {
 
       {/* 话题内容 - 首帖 */}
       <div
-        className='bg-card border border-border rounded-lg mb-6'
+        className='bg-card border-b sm:border sm:border-border sm:rounded-lg mb-6'
         data-post-number='1'
       >
-        <div className='px-4 sm:px-6 py-5'>
+        <div className='px-3 sm:px-6 py-4 sm:py-5'>
           <article className='max-w-none prose prose-stone dark:prose-invert break-all'>
             <MarkdownRender content={topic.content} />
           </article>

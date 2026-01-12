@@ -16,7 +16,7 @@ import Time from '@/components/common/Time';
 // 空状态组件
 export function EmptyState() {
   return (
-    <div className='text-center py-16 border border-border rounded-lg bg-card'>
+    <div className='text-center py-16 border-0 sm:border sm:border-border sm:rounded-lg bg-card'>
       <BookOpen className='h-12 w-12 mx-auto mb-4 text-muted-foreground/50' />
       <div className='font-semibold mb-2'>暂无话题</div>
       <p className='text-sm text-muted-foreground mb-4 max-w-md mx-auto'>
@@ -38,10 +38,10 @@ export function TopicItem({ topic }) {
     topic.categoryName || topic.category?.name || '未知分类';
 
   return (
-    <div className='px-4 py-4 hover:bg-accent/50 transition-colors group'>
-      <div className='flex items-start gap-4 w-full'>
-        {/* 左侧：作者头像 */}
-        <div className='shrink-0'>
+    <div className='px-3 py-3 hover:bg-accent/50 transition-colors group'>
+      <div className='flex items-start gap-3 w-full'>
+        {/* 左侧：作者头像 - 稍微减小 gap */}
+        <div className='shrink-0 mt-1'>
           <Link href={`/users/${topic.username}`}>
             <UserAvatar
               url={topic.userAvatar}
@@ -57,7 +57,7 @@ export function TopicItem({ topic }) {
         <div className='flex-1 min-w-0'>
           {/* 标题行 */}
             {/* 标题行 - 使用 inline-block 以支持自然换行 */}
-            <div className='mb-2 leading-snug'>
+            <div className='mb-1.5 leading-snug relative'>
               {topic.isPinned && (
                 <Pin className='inline-block w-4 h-4 text-chart-5 mr-1.5 align-middle relative -top-[1px]' />
               )}
@@ -66,8 +66,7 @@ export function TopicItem({ topic }) {
               )}
               <Link
                 href={`/topic/${topic.id}`}
-               
-                className='text-lg font-medium text-foreground group-hover:text-primary visited:text-muted-foreground transition-colors align-middle break-all'
+                className='text-base sm:text-lg font-medium text-foreground group-hover:text-primary visited:text-muted-foreground transition-colors align-middle break-all before:absolute before:inset-0 before:z-0'
               >
                 {topic.title}
               </Link>
@@ -94,7 +93,6 @@ export function TopicItem({ topic }) {
             {/* 作者名 */}
             <Link
               href={`/users/${topic.username}`}
-             
               className='font-medium text-muted-foreground hover:text-primary transition-colors'
             >
               {topic.userName || topic.username}
@@ -200,7 +198,7 @@ export function TopicListUI({
 
   return (
     <>
-      <div className='bg-card border border-border rounded-lg overflow-hidden w-full'>
+      <div className='bg-card sm:border sm:border-border sm:rounded-lg overflow-hidden w-full'>
         {/* 话题列表 */}
         <div className='divide-y divide-border'>
           {topics.map((topic) => (
@@ -221,4 +219,3 @@ export function TopicListUI({
     </>
   );
 }
-
