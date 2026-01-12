@@ -53,9 +53,9 @@ export default async function CategoryPage({ params, searchParams }) {
   return (
     <>
       {/* 分类标题 & 排序切换 */}
-      <div className='flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4'>
+      <div className='flex flex-col gap-2 mb-2 px-3 sm:px-0 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:mb-4'>
         <div>
-          <div className='flex items-center gap-2 mb-2'>
+          <div className='flex items-center gap-2'>
             <div
               className='w-3 h-3 rounded-sm'
               style={{ backgroundColor: category.color }}
@@ -63,13 +63,13 @@ export default async function CategoryPage({ params, searchParams }) {
             <h1 className='text-2xl font-semibold'>{category.name}</h1>
           </div>
           {category.description && (
-            <p className='text-sm text-muted-foreground'>
+            <p className='text-sm text-muted-foreground mt-1'>
               {category.description}
             </p>
           )}
         </div>
 
-        <TopicSortTabs defaultValue={sort} className='w-full sm:w-auto' />
+        <TopicSortTabs defaultValue={sort} className='w-auto' />
       </div>
 
       {/* 话题列表 */}
@@ -80,7 +80,6 @@ export default async function CategoryPage({ params, searchParams }) {
         totalPages={totalPages}
         limit={LIMIT}
         showPagination={true}
-
         useUrlPagination={true}
       />
     </>

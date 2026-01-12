@@ -36,7 +36,7 @@ export default function ReplyForm({
 
   if (!isAuthenticated) {
     return (
-      <div className='mt-6 bg-card border border-border rounded-lg p-6 text-center'>
+      <div className='mt-4 sm:mt-6 bg-card border-x-0 border-y sm:border sm:border-border sm:rounded-lg p-6 text-center'>
         <p className='text-muted-foreground mb-4'>请先登录后再发表评论</p>
         <Button onClick={openLoginDialog}>登录</Button>
       </div>
@@ -51,7 +51,7 @@ export default function ReplyForm({
   };
 
   return (
-    <div className='mt-6'>
+    <div className='mt-4 sm:mt-6'>
       {/* 话题已删除提示 */}
       {isDeleted && (
         <div className='mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex items-center space-x-3'>
@@ -84,9 +84,9 @@ export default function ReplyForm({
         </div>
       )}
 
-      <div className='bg-card border border-border rounded-lg'>
+      <div className='bg-card border-y sm:border sm:border-border sm:rounded-lg'>
         {/* 回复框头部 */}
-        <div className='flex items-center space-x-3 px-4 py-3 bg-muted border-b border-border rounded-t-lg'>
+        <div className='flex items-center space-x-3 px-3 py-2 sm:px-4 sm:py-3 bg-muted border-b border-border sm:rounded-t-lg'>
           <UserAvatar url={user?.avatar} name={user?.username} size='sm' />
           <span className='text-sm font-medium text-card-foreground'>
             写下你的评论
@@ -94,9 +94,9 @@ export default function ReplyForm({
         </div>
 
         {/* 回复输入区域 */}
-        <div className='p-4'>
+        <div className='p-3 sm:p-4'>
           <MarkdownEditor
-            editorClassName='min-h-[150px]'
+            editorClassName='min-h-[150px] text-base sm:text-sm'
             placeholder={isDeleted ? '已删除的话题不能回复' : '发表你的评论...'}
             value={replyContent}
             onChange={setReplyContent}
@@ -107,7 +107,7 @@ export default function ReplyForm({
         </div>
 
         {/* 回复框底部 */}
-        <div className='px-4 py-3 bg-muted border-t border-border rounded-b-lg'>
+        <div className='px-3 py-2 sm:px-4 sm:py-3 bg-muted border-t border-border sm:rounded-b-lg'>
           <div className='flex items-center justify-between'>
             <div className='text-sm text-muted-foreground'>
             </div>
@@ -117,6 +117,7 @@ export default function ReplyForm({
                   <Button
                     variant='outline'
                     size='sm'
+                    className='h-9 sm:h-8'
                     onClick={handleToggleTopicStatus}
                   >
                     {isClosed ? '重新开启' : '关闭话题'}
@@ -124,7 +125,7 @@ export default function ReplyForm({
                 )}
               <Button
                 size='sm'
-                className='bg-chart-2 hover:bg-chart-2/90 text-primary-foreground'
+                className='bg-chart-2 hover:bg-chart-2/90 text-primary-foreground h-9 sm:h-8 px-4 sm:px-3'
                 onClick={handleSubmitReply}
                 disabled={
                   submitting ||
