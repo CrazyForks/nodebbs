@@ -5,6 +5,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkDirective from 'remark-directive';
 import remarkMedia from './plugins/remark-media';
+import remarkRestoreDirectives from './plugins/remark-restore-directives';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -14,7 +15,7 @@ import CopyButton from '@/components/common/CopyButton';
 function MarkdownRender({ content }) {
   return (
     <Markdown
-      remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkDirective, remarkMedia]}
+      remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkDirective, remarkMedia, remarkRestoreDirectives]}
       components={{
         a: ({ node, ...props }) => (
           <Link {...props} target='_blank' rel='noopener noreferrer' />
