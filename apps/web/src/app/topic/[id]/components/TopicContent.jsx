@@ -4,9 +4,7 @@ import Link from '@/components/common/Link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  MessageSquare,
   Heart,
-  Lock,
   Pin,
   Archive,
   Loader2,
@@ -78,18 +76,8 @@ export default function TopicContent() {
       )}
 
       {/* 话题标题 */}
-      <div className='mb-6'>
-        <div className='flex items-start gap-3'>
-          <div className='shrink-0 mt-1.5'>
-            {topic.isDeleted ? (
-              <Archive className='h-6 w-6 text-destructive/80' />
-            ) : topic.isClosed ? (
-              <Lock className='h-6 w-6 text-muted-foreground/70' />
-            ) : (
-              <MessageSquare className='h-6 w-6 text-chart-2/80' />
-            )}
-          </div>
-
+      <div className='px-3 pt-4 sm:px-0 sm:pt-0 mb-6'>
+        <div className='flex items-start'>
           <div className='flex-1 min-w-0'>
             <h1 className='text-3xl font-bold mb-3 leading-tight text-foreground break-all'>
               {topic.isPinned && (
