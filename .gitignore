@@ -21,6 +21,7 @@ coverage
 .vscode
 .agent
 .claude
+.shared
 
 # Build Outputs
 .next/
