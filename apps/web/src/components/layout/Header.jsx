@@ -341,10 +341,10 @@ export default function Header() {
                         openLoginDialog();
                         setIsMobileMenuOpen(false);
                       }}
-                      className='w-full h-10 justify-start px-3 cursor-pointer'
+                      className='w-full h-10 justify-center px-3 cursor-pointer'
                       variant="default"
                     >
-                      <User className='h-4 w-4 mr-2' />
+                      <User className='h-4 w-4' />
                       登录
                     </Button>
                   )}
