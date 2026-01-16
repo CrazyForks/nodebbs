@@ -2,12 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Palette, Sun, Moon, Monitor, Check } from 'lucide-react';
 import { useTheme as useCustomTheme } from '@/contexts/ThemeContext';
@@ -33,17 +31,17 @@ export default function ThemeSwitcher() {
   ];
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button variant='ghost' size='icon' className='h-9 w-9' title='切换主题'>
           <Palette className='h-4 w-4' />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='min-w-48'>
+      </PopoverTrigger>
+      <PopoverContent align='end' className='min-w-48 w-auto p-2'>
         {/* 主题风格 - 色块选择 */}
-        <DropdownMenuLabel className='text-xs font-medium text-muted-foreground'>
+        <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground'>
           主题风格
-        </DropdownMenuLabel>
+        </div>
         <div className='px-2 pb-2 flex gap-2'>
           {themes.map((t) => (
             <button
@@ -69,12 +67,12 @@ export default function ThemeSwitcher() {
           ))}
         </div>
 
-        <DropdownMenuSeparator />
+        <div className="h-px bg-border my-1" />
 
         {/* 颜色模式 - Tab 形式 */}
-        <DropdownMenuLabel className='text-xs font-medium text-muted-foreground'>
+        <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground'>
           颜色模式
-        </DropdownMenuLabel>
+        </div>
         <div className='px-2 pb-2'>
           <Tabs value={theme} onValueChange={setTheme}>
             <TabsList className='w-full'>
@@ -90,12 +88,12 @@ export default function ThemeSwitcher() {
           </Tabs>
         </div>
 
-        <DropdownMenuSeparator />
+        <div className="h-px bg-border my-1" />
 
         {/* 字号 */}
-        <DropdownMenuLabel className='text-xs font-medium text-muted-foreground'>
+        <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground'>
           字号
-        </DropdownMenuLabel>
+        </div>
         <div className='px-2 pb-2'>
           <Tabs value={fontSize} onValueChange={setFontSize}>
             <TabsList className='w-full'>
@@ -107,7 +105,7 @@ export default function ThemeSwitcher() {
             </TabsList>
           </Tabs>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -32,6 +32,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import NotificationPopover from '@/components/common/NotificationPopover';
 import ThemeSwitcher from '@/components/common/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,6 +69,7 @@ export default function Header() {
     if (searchQuery.trim()) {
       router.push(`/search?s=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
+      setIsMobileMenuOpen(false);
     }
   };
 
@@ -271,75 +277,82 @@ export default function Header() {
               </>
             )}
 
-            {/* 移动端菜单按钮 */}
-            <Button
-              variant='ghost'
-              size='icon'
-              className='lg:hidden hover:bg-accent/50'
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X /> : <Menu />}
-            </Button>
+            {/* 移动端菜单 */}
+            <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='lg:hidden hover:bg-accent/50'
+                >
+                  {isMobileMenuOpen ? <X /> : <Menu />}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={0} className="w-screen mt-[1px] rounded-none shadow-none border-x-0 border-b lg:hidden p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                {/* 移动端搜索 */}
+                <div className='p-4'>
+                  <form onSubmit={handleSearch} className='relative'>
+                    <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 pointer-events-none' />
+                    <Input
+                      type='text'
+                      placeholder='搜索话题、用户...'
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className='pl-9 h-9 bg-muted/50'
+                    />
+                  </form>
+                </div>
+
+                {/* 移动端导航 */}
+                <div className='flex flex-col space-y-1 p-4 pt-0'>
+                  {navigationItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className='flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground'
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <item.icon className='h-4 w-4' />
+                      <span className='font-medium text-sm'>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+                
+                <div className="h-px bg-border mx-4" />
+
+                {/* 移动端操作按钮 */}
+                <div className="p-4 space-y-3">
+                  {!loading && isAuthenticated && (
+                    <Link 
+                      href='/create' 
+                      className="w-full cursor-pointer focus:bg-transparent p-0 block"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Button className='w-full h-10 bg-chart-2 hover:bg-chart-2/90 text-primary-foreground shadow-sm justify-center px-3'>
+                        <Plus className='h-4 w-4' />
+                        发布话题
+                      </Button>
+                    </Link>
+                  )}
+
+                  {!loading && !isAuthenticated && (
+                    <Button
+                      onClick={() => {
+                        openLoginDialog();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className='w-full h-10 justify-start px-3 cursor-pointer'
+                      variant="default"
+                    >
+                      <User className='h-4 w-4 mr-2' />
+                      登录
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
-
-        {/* 移动端导航菜单 */}
-        {isMobileMenuOpen && (
-          <div className='lg:hidden border-t border-border py-4 animate-in slide-in-from-top-2 duration-200'>
-            {/* 移动端搜索 */}
-            <div className='mb-4'>
-              <form onSubmit={handleSearch} className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 pointer-events-none' />
-                <Input
-                  type='text'
-                  placeholder='搜索话题、用户...'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='pl-9 h-10 bg-muted/50 border-0'
-                />
-              </form>
-            </div>
-
-            {/* 移动端导航 */}
-            <nav className='space-y-1 mb-4'>
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className='flex items-center space-x-3 px-3 py-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all'
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <item.icon className='h-4 w-4' />
-                  <span className='font-medium text-sm'>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-
-            {/* 移动端发布按钮 */}
-            {!loading && isAuthenticated && (
-              <Link href='/create' onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className='w-full h-10 bg-chart-2 hover:bg-chart-2/90 text-primary-foreground shadow-sm'>
-                  <Plus className='h-4 w-4' />
-                  发布话题
-                </Button>
-              </Link>
-            )}
-
-            {/* 移动端登录按钮 */}
-            {!loading && !isAuthenticated && (
-              <Button
-                onClick={() => {
-                  openLoginDialog();
-                  setIsMobileMenuOpen(false);
-                }}
-                className='w-full h-10'
-              >
-                <User className='h-4 w-4' />
-                登录
-              </Button>
-            )}
-          </div>
-        )}
       </div>
     </header>
   );
