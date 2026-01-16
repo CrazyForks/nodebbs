@@ -80,7 +80,7 @@ export function useUsernameChange() {
     if (!user) return null;
 
     const cooldownDays = settings.username_change_cooldown_days?.value || 30;
-    const changeLimit = settings.username_change_limit?.value || 3;
+    const changeLimit = settings.username_change_limit?.value ?? 3;
     const changeCount = user.usernameChangeCount || 0;
     const lastChangedAt = user.usernameChangedAt;
 

@@ -5,6 +5,20 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 
 export function UserManagementSettings({ settings, handleBooleanChange, handleNumberChange, saving }) {
+  // blur 时保存
+  const handleBlur = (key, e, originalValue) => {
+    const value = e.target.value.trim();
+    if (value === '') {
+      // 恢复原值
+      e.target.value = originalValue;
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue !== originalValue) {
+      handleNumberChange(key, value);
+    }
+  };
+
   return (
     <div className='space-y-4'>
       <div>
@@ -60,13 +74,18 @@ export function UserManagementSettings({ settings, handleBooleanChange, handleNu
                     </p>
                   </div>
                   <Input
+                    key={`cooldown-${settings.username_change_cooldown_days.value}`}
                     id='username_change_cooldown_days'
                     type='number'
                     min='0'
                     className='w-full'
-                    value={settings.username_change_cooldown_days.value}
-                    onChange={(e) =>
-                      handleNumberChange('username_change_cooldown_days', e.target.value)
+                    defaultValue={settings.username_change_cooldown_days.value}
+                    onBlur={(e) =>
+                      handleBlur(
+                        'username_change_cooldown_days',
+                        e,
+                        settings.username_change_cooldown_days.value
+                      )
                     }
                     disabled={saving}
                   />
@@ -89,13 +108,18 @@ export function UserManagementSettings({ settings, handleBooleanChange, handleNu
                     </p>
                   </div>
                   <Input
+                    key={`limit-${settings.username_change_limit.value}`}
                     id='username_change_limit'
                     type='number'
                     min='0'
                     className='w-full'
-                    value={settings.username_change_limit.value}
-                    onChange={(e) =>
-                      handleNumberChange('username_change_limit', e.target.value)
+                    defaultValue={settings.username_change_limit.value}
+                    onBlur={(e) =>
+                      handleBlur(
+                        'username_change_limit',
+                        e,
+                        settings.username_change_limit.value
+                      )
                     }
                     disabled={saving}
                   />
@@ -202,14 +226,19 @@ export function UserManagementSettings({ settings, handleBooleanChange, handleNu
                   </p>
                 </div>
                 <Input
+                  key={`verification-${settings.email_change_verification_expires_minutes.value}`}
                   id='email_change_verification_expires_minutes'
                   type='number'
                   min='5'
                   max='60'
                   className='w-32'
-                  value={settings.email_change_verification_expires_minutes.value}
-                  onChange={(e) =>
-                    handleNumberChange('email_change_verification_expires_minutes', e.target.value)
+                  defaultValue={settings.email_change_verification_expires_minutes.value}
+                  onBlur={(e) =>
+                    handleBlur(
+                      'email_change_verification_expires_minutes',
+                      e,
+                      settings.email_change_verification_expires_minutes.value
+                    )
                   }
                   disabled={saving}
                 />
