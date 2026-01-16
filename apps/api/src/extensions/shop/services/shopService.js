@@ -5,6 +5,7 @@ import {
   users,
 } from '../../../db/schema.js';
 import { sysAccounts, sysTransactions, sysCurrencies } from '../../ledger/schema.js';
+import { userBadges } from '../../badges/schema.js';
 import { eq, and, desc, sql, asc } from 'drizzle-orm';
 import { grantBadge } from '../../badges/services/badgeService.js';
 import { notificationService } from '../../../services/notificationService.js';
@@ -117,6 +118,32 @@ export async function buyItem(userId, itemId) {
 
       if (existingItem) {
         throw new Error('您已经拥有该商品');
+      }
+
+      // 2.5 对于勋章类型商品，检查用户是否已拥有该勋章
+      if (item.type === 'badge') {
+        let badgeId = null;
+        try {
+          let meta = item.metadata ? JSON.parse(item.metadata) : {};
+          if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
+          }
+          badgeId = meta.badgeId;
+        } catch (e) {
+          // ignore parse error
+        }
+
+        if (badgeId) {
+          const [existingBadge] = await tx
+            .select()
+            .from(userBadges)
+            .where(and(eq(userBadges.userId, userId), eq(userBadges.badgeId, badgeId)))
+            .limit(1);
+
+          if (existingBadge) {
+            throw new Error('您已经拥有该勋章');
+          }
+        }
       }
 
       // 3. 检查用户积分余额 (Ledger: sys_accounts)
@@ -590,7 +617,33 @@ export async function giftItem(senderId, receiverId, itemId, message) {
       if (existingItem) {
         throw new Error('对方已经拥有该商品');
       }
-      
+
+      // 3.5 对于勋章类型商品，检查接收者是否已拥有该勋章
+      if (item.type === 'badge') {
+        let badgeId = null;
+        try {
+          let meta = item.metadata ? JSON.parse(item.metadata) : {};
+          if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
+          }
+          badgeId = meta.badgeId;
+        } catch (e) {
+          // ignore parse error
+        }
+
+        if (badgeId) {
+          const [existingBadge] = await tx
+            .select()
+            .from(userBadges)
+            .where(and(eq(userBadges.userId, receiverId), eq(userBadges.badgeId, badgeId)))
+            .limit(1);
+
+          if (existingBadge) {
+            throw new Error('对方已经拥有该勋章');
+          }
+        }
+      }
+
       // 4. 扣除发送者积分
       const newBalance = Number(senderAccount.balance) - item.price;
       const newTotalSpent = Number(senderAccount.totalSpent) + item.price;
