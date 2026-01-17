@@ -46,13 +46,22 @@ export default function UserItemsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-          <Package className="h-6 w-6" />
-          我的道具
-        </h1>
-        <p className="text-muted-foreground">管理你的专属装扮</p>
+      {/* Hero Header - Compact & Theme Consistent */}
+      <div className="relative overflow-hidden rounded-2xl bg-muted/30 border border-border/50 p-6">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start text-center md:text-left justify-between gap-6">
+          
+          <div className="space-y-2 max-w-2xl">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center justify-center md:justify-start gap-3">
+              <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                 <Package className="h-5 w-5" />
+              </span>
+              我的道具
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base max-w-lg">
+               管理您的专属装扮与收藏，自由搭配个人风格。
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Item Type Selector & Grid */}

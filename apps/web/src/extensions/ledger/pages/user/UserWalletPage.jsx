@@ -71,20 +71,31 @@ export default function UserWalletPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
-            我的钱包
-          </h1>
-          <p className="text-muted-foreground">查看您的资产余额及交易明细</p>
+      {/* Hero Header - Compact & Theme Consistent */}
+      <div className="relative overflow-hidden rounded-2xl bg-muted/30 border border-border/50 p-6">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start text-center md:text-left justify-between gap-6">
+          
+          <div className="space-y-2 max-w-2xl">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center justify-center md:justify-start gap-3">
+              <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                 <Wallet className="h-5 w-5" />
+              </span>
+              我的钱包
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base max-w-lg">
+               查看您的资产余额及交易明细，管理您的数字财富。
+            </p>
+          </div>
+
+          <div className="flex-shrink-0">
+            <Link href="/rank">
+              <Button variant="outline" className="gap-2 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors border-border/50 shadow-sm">
+                <Trophy className="h-4 w-4 text-yellow-500" />
+                查看排行榜
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Link href="/rank">
-          <Button variant="outline" className="gap-2">
-            <Trophy className="h-4 w-4 text-yellow-500" />
-            查看排行榜
-          </Button>
-        </Link>
       </div>
 
       {loading && !checkInStatus ? (

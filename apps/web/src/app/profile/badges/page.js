@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import BadgesList from '@/extensions/badges/components/BadgesList';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Medal } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { BadgeUnlockDialog } from '@/extensions/shop/components/user/BadgeUnlockDialog';
@@ -42,20 +41,31 @@ export default function MyBadgesPage() {
 
   return (
     <>
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Medal className="h-5 w-5 text-amber-500" />
-            我的勋章
-          </CardTitle>
-          <CardDescription>
-            查看您获得的所有荣誉勋章
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="flex flex-col space-y-8">
+        {/* Custom Hero Header */}
+        {/* Hero Header - Compact & Theme Consistent */}
+        <div className="relative overflow-hidden rounded-2xl bg-muted/30 border border-border/50 p-6">
+          <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start text-center md:text-left justify-between gap-6">
+            
+            <div className="space-y-2 max-w-2xl">
+               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center justify-center md:justify-start gap-3">
+                <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                   <Medal className="h-5 w-5" />
+                </span>
+                我的勋章
+              </h1>
+              <p className="text-muted-foreground text-sm md:text-base max-w-lg">
+                收集独特勋章，展示您的专属成就与社区特权。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="w-full">
           <BadgesList userId={user?.id} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <BadgeUnlockDialog 
         open={unlockDialogOpen} 

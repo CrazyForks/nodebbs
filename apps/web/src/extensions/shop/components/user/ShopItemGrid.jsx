@@ -15,9 +15,14 @@ import { ShopItemCard } from './ShopItemCard';
  */
 export function ShopItemGrid({ items, accounts = [], onPurchase, isAuthenticated, loading }) {
   if (loading) {
-    return <Loading text="加载中..." className="py-12" />;
+    return (
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/20 animate-pulse border border-border/50" />
+        ))}
+      </div>
+    );
   }
-
   if (items.length === 0) {
     return (
       <Card className="shadow-none">
@@ -35,7 +40,7 @@ export function ShopItemGrid({ items, accounts = [], onPurchase, isAuthenticated
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {items.map((item) => {
         const balance = accounts.find(a => a.currency.code === item.currencyCode)?.balance || 0;
         return (

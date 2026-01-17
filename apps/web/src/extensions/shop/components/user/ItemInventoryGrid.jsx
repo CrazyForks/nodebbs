@@ -17,7 +17,13 @@ import { getItemTypeLabel } from '@/extensions/shop/utils/itemTypes';
  */
 export function ItemInventoryGrid({ items, onEquip, onUnequip, actioningItemId, loading, itemType }) {
   if (loading) {
-    return <Loading text="加载中..." className="py-12" />;
+    return (
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/20 animate-pulse border border-border/50" />
+        ))}
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -42,7 +48,7 @@ export function ItemInventoryGrid({ items, onEquip, onUnequip, actioningItemId, 
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {items.map((item) => (
         <ItemInventoryCard
           key={item.id}

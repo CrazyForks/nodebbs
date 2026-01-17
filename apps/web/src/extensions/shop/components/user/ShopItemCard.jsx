@@ -19,41 +19,55 @@ export function ShopItemCard({ item, userBalance, onPurchase, isAuthenticated })
   const canPurchase = isAuthenticated && !isOutOfStock && canAfford;
 
   return (
-    <Card className="shadow-none hover:border-primary/30">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <ItemTypeIcon type={item.type} />
-            <CardTitle className="text-lg">{item.name}</CardTitle>
+    <Card className="shadow-sm hover:border-primary/30 flex flex-col h-full border-border/50">
+      <CardHeader className="p-3 md:p-6 space-y-1 md:space-y-1.5 pb-0">
+        <div className="flex items-start justify-between min-w-0 gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2 min-w-0 flex-1">
+            <div className="hidden md:block">
+               <ItemTypeIcon type={item.type} />
+            </div>
+            <CardTitle className="text-sm md:text-lg font-bold truncate leading-tight w-full" title={item.name}>
+                {item.name}
+            </CardTitle>
           </div>
           {item.stock !== null && item.stock <= 10 && item.stock > 0 && (
-            <Badge variant="destructive" className="text-xs">
-              仅剩 {item.stock}
+            <Badge variant="destructive" className="text-[10px] md:text-xs px-1 h-5 md:h-auto whitespace-nowrap flex-shrink-0">
+              仅 {item.stock}
             </Badge>
           )}
         </div>
-        <CardDescription className="line-clamp-2 min-h-[2.5rem]">{item.description || '暂无描述'}</CardDescription>
+        <CardDescription className="text-xs md:text-sm line-clamp-1 md:line-clamp-2 min-h-0 md:min-h-[2.5rem]">
+            {item.description || '暂无描述'}
+        </CardDescription>
       </CardHeader>
 
-      {item.imageUrl ? (
-        <CardContent>
-          <div className="relative w-full aspect-square overflow-hidden flex items-center justify-center">
+      <CardContent className="flex-1 p-3 md:p-6 pt-2 md:pt-0 flex items-center justify-center">
+        {item.imageUrl ? (
+          <div className="relative w-full aspect-square overflow-hidden flex items-center justify-center rounded-lg bg-muted/20">
             <img
               src={item.imageUrl}
               alt={item.name}
-              className="object-contain max-h-full"
+              className="object-contain max-h-full transition-transform duration-300 hover:scale-110"
             />
           </div>
-        </CardContent>
-      ) : <div className='p-6 pt-0'><div className='w-full aspect-square' /></div>}
+        ) : (
+             <div className="w-full aspect-square bg-muted/10 rounded-lg flex items-center justify-center">
+                <ItemTypeIcon type={item.type} className="h-8 w-8 text-muted-foreground/30" />
+             </div>
+        )}
+      </CardContent>
 
-      <CardFooter className="flex items-center justify-between">
-        <CreditsBadge amount={item.price} currencyCode={item.currencyCode} variant="large" />
+      <CardFooter className="p-3 md:p-6 pt-0 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="w-full md:w-auto flex justify-center md:justify-start">
+             <CreditsBadge amount={item.price} currencyCode={item.currencyCode} variant="default" className="scale-90 md:scale-100 origin-left" />
+        </div>
         <Button
           onClick={() => onPurchase(item)}
           disabled={!canPurchase}
+          size="sm"
+          className="w-full md:w-auto h-8 md:h-10 text-xs md:text-sm"
         >
-          {isOutOfStock ? '已售罄' : '购买'}
+          {isOutOfStock ? '售罄' : '购买'}
         </Button>
       </CardFooter>
     </Card>

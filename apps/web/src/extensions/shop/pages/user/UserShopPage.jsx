@@ -8,7 +8,6 @@ import { useDefaultCurrencyName, DEFAULT_CURRENCY_CODE } from '@/contexts/Extens
 import { shopApi, rewardsApi, ledgerApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useShopItems } from '@/extensions/shop/hooks/useShopItems';
-import { BalanceCard } from '@/extensions/ledger/components/user/BalanceCard';
 import { ItemTypeSelector } from '@/extensions/shop/components/shared/ItemTypeSelector';
 import { PurchaseDialog } from '../../components/user/PurchaseDialog';
 import { ItemPurchaseSuccessDialog } from '../../components/user/ItemPurchaseSuccessDialog';
@@ -119,20 +118,37 @@ export default function UserShopPage() {
 
   return (
     <div className="space-y-6">
-      {/* 页面头部 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6" />
-            {currencyName}商城
-          </h1>
-          <p className="text-muted-foreground">使用{currencyName}购买专属装扮</p>
-        </div>
+      {/* Hero Header - Compact & Theme Consistent */}
+      <div className="relative overflow-hidden rounded-2xl bg-muted/30 border border-border/50 p-6">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start text-center md:text-left justify-between gap-6">
+          
+          <div className="space-y-2 max-w-2xl">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center justify-center md:justify-start gap-3">
+              <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                 <ShoppingCart className="h-5 w-5" />
+              </span>
+              {currencyName}商城
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base max-w-lg">
+              探索独家装扮，定制您的个性化形象。使用{currencyName}兑换专属商品。
+            </p>
+          </div>
 
-        {/* 余额显示 */}
-        {isAuthenticated && (
-          <BalanceCard balance={currentPointsBalance} />
-        )}
+          {/* 余额卡片 - Compact */}
+          {isAuthenticated && (
+            <div className="flex-shrink-0 w-full md:w-auto">
+               <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl px-5 py-3 shadow-none min-w-[180px]">
+                  <div className="flex flex-col md:items-end items-center gap-1">
+                     <span className="text-xs font-medium text-muted-foreground">当前余额</span>
+                     <div className="text-2xl font-bold text-foreground flex items-baseline gap-1">
+                        {currentPointsBalance.toLocaleString()}
+                        <span className="text-xs font-normal text-muted-foreground">{currencyName}</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 商品类型选择器 & 网格 */}

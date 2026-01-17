@@ -66,9 +66,16 @@ export default function BadgesList({ userId }) {
   });
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-12 space-y-4">
-      <div className="w-8 h-8 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-      <p className="text-gray-500 text-sm">正在加载荣誉勋章...</p>
+    <div className="space-y-8 animate-pulse">
+      {/* Loading Header */}
+      <div className="h-14 w-full bg-muted/40 rounded-xl" />
+      
+      {/* Loading Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+         {Array.from({ length: 12 }).map((_, i) => (
+           <div key={i} className="aspect-[3/4] rounded-xl bg-muted/40" />
+         ))}
+      </div>
     </div>
   );
 

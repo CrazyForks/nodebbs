@@ -58,14 +58,14 @@ export default function BadgeCard({
   const renderEffects = () => {
     if (!hasEffects) return null;
     return (
-      <div className="space-y-1 mt-2">
-        <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
-           <Zap className="w-3 h-3" /> 佩戴效果
+      <div className="space-y-1 mt-2 pt-2 border-t border-border/50">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
+           <Zap className="w-3 h-3 fill-current" /> 佩戴增益
         </div>
-        <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside pl-1">
-          {effects.checkInBonus > 0 && <li>签到奖励 +{effects.checkInBonus} {currencyName}</li>}
-          {effects.checkInBonusPercent > 0 && <li>签到奖励 +{effects.checkInBonusPercent}%</li>}
-          {effects.replyCostReductionPercent > 0 && <li>回复消耗 -{effects.replyCostReductionPercent}%</li>}
+        <ul className="text-xs text-muted-foreground space-y-1 list-none">
+          {effects.checkInBonus > 0 && <li className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-amber-500"/>签到奖励 +{effects.checkInBonus} {currencyName}</li>}
+          {effects.checkInBonusPercent > 0 && <li className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-amber-500"/>签到奖励 +{effects.checkInBonusPercent}%</li>}
+          {effects.replyCostReductionPercent > 0 && <li className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-amber-500"/>回复消耗 -{effects.replyCostReductionPercent}%</li>}
         </ul>
       </div>
     );
@@ -82,86 +82,106 @@ export default function BadgeCard({
 
   return (
     <TooltipProvider>
-      <Tooltip delayDuration={300}>
+      <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
           <div 
             className={`
-              group relative flex flex-col items-center p-3 rounded-xl border border-border/50 transition-all duration-300 cursor-default h-full
+              group relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-500 cursor-default h-full isolate overflow-hidden
               ${isUnlocked 
-                ? 'bg-card border-primary/20 hover:border-primary/30' 
-                : 'bg-muted/40 border-transparent hover:bg-muted/60'
+                ? 'bg-gradient-to-b from-card to-muted/20 border-primary/10 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1' 
+                : 'bg-muted/20 border-transparent hover:bg-muted/30 hover:border-border/30'
               }
             `}
           >
-            {/* 顶部状态栏：始终渲染占位以保持网格对齐 */}
-            <div className="w-full flex justify-between items-start min-h-[24px] mb-2">
-              {/* 左侧：效果标记 */}
+            {/* Glossy Effect (Unlocked only) */}
+            {isUnlocked && (
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            )}
+
+            {/* Top Bar */}
+            <div className="w-full flex justify-between items-start min-h-[24px] mb-3 relative z-10">
+              {/* Effect Indicator */}
               {hasEffects ? (
-                 <div className="p-1">
-                   <Zap className="w-3.5 h-3.5 text-amber-500 opacity-80" />
+                 <div className="p-1 rounded-full bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20">
+                   <Zap className="w-3.5 h-3.5 fill-current" />
                  </div>
               ) : <div />}
 
-              {/* 右侧：展示切换按钮 */}
+              {/* Display Toggle Button */}
               {isUnlocked && onToggleDisplay && (
                 <button 
                   type="button"
                   className={`
-                    p-1 rounded-full transition-all duration-200
+                    p-1.5 rounded-full transition-all duration-300 backdrop-blur-sm
                     ${isDisplayed 
-                      ? 'text-primary/80 hover:text-primary hover:bg-primary/10' 
-                      : 'text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted'
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20 hover:bg-primary/20' 
+                      : 'bg-muted/50 text-muted-foreground ring-1 ring-border/50 hover:bg-muted hover:text-foreground'
                     }
-                    ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    ${isUpdating ? 'opacity-50 cursor-not-allowed animate-pulse' : 'cursor-pointer'}
                   `}
                   onClick={handleToggle}
                   disabled={isUpdating}
                   title={isDisplayed ? '点击隐藏' : '点击展示'}
                 >
-                  {isDisplayed ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {isDisplayed ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 </button>
               )}
             </div>
 
-            {/* 图标区域 */}
-            <div className="w-full aspect-square mb-3">
+            {/* Icon Area */}
+            <div className="relative w-full aspect-square mb-4 group-hover:scale-105 transition-transform duration-500">
+               {isUnlocked && (
+                 <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-700" />
+               )}
                <img 
                  src={badge.iconUrl} 
                  alt={badge.name} 
-                 className={`w-full h-full object-contain drop-shadow-sm ${!isUnlocked && 'grayscale opacity-40'}`}
+                 className={`
+                    w-full h-full object-contain relative z-10 filter drop-shadow-md transition-all duration-500
+                    ${!isUnlocked && 'grayscale opacity-30 contrast-75'}
+                 `}
                />
                {!isUnlocked && (
-                 <div className="absolute inset-0 flex items-center justify-center">
-                   <Lock className="w-5 h-5 text-muted-foreground/50 drop-shadow-sm" />
+                 <div className="absolute inset-0 flex items-center justify-center z-20">
+                   <div className="bg-background/80 backdrop-blur-sm p-2 rounded-full shadow-sm border border-border/50">
+                     <Lock className="w-4 h-4 text-muted-foreground" />
+                   </div>
                  </div>
                )}
             </div>
             
-            {/* 文本区域 */}
-            <h3 className={`font-bold text-sm text-center mb-1 line-clamp-1 ${isUnlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {badge.name}
-            </h3>
-            
-            <div className="text-xs text-center min-h-[1.5em] flex items-center justify-center w-full px-1">
-              {isUnlocked ? (
-                <span className="text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-full">
-                  已获得
-                </span>
-              ) : (
-                <span className="text-muted-foreground/60 line-clamp-2" title={conditionText}>
-                  {badge.description || conditionText}
-                </span>
-              )}
+            {/* Text Area */}
+            <div className="relative z-10 w-full text-center space-y-1">
+                <h3 className={`font-bold text-sm truncate px-2 ${isUnlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {badge.name}
+                </h3>
+                
+                <div className="text-xs min-h-[1.5em] flex items-center justify-center w-full">
+                {isUnlocked ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 bg-primary/5 text-primary rounded-full border border-primary/10">
+                         <Award className="w-3 h-3" />
+                         已获得
+                    </span>
+                ) : (
+                    <span className="text-muted-foreground/50 line-clamp-1 text-[11px]" title={conditionText}>
+                    {badge.description || conditionText}
+                    </span>
+                )}
+                </div>
             </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-[200px] p-4 bg-muted/95 backdrop-blur-sm text-popover-foreground [&_.z-50]:!bg-muted/95 [&_.z-50]:!fill-muted/95">
+        <TooltipContent 
+          side="bottom" 
+          arrowClassName="fill-background/95 bg-background/95" 
+          className="max-w-[220px] p-4 bg-background/95 backdrop-blur-xl border-border/50 shadow-xl z-50"
+        >
            <div className="space-y-3">
-             <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs font-semibold text-primary">
-                  <Award className="w-3 h-3" /> 获取条件
+             <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-primary/80">
+                  <Award className="w-3.5 h-3.5" /> 获取条件
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                    {badge.description || conditionText}
                 </p>
              </div>
