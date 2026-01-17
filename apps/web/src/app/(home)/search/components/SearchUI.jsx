@@ -23,14 +23,14 @@ export function SearchUI({
   return (
     <>
       {/* 搜索标题 */}
-      <div className='p-3 sm:px-0'>
-        <div className='flex items-center space-x-3 mb-2'>
+      <div className='p-3 sm:px-0 sm:pt-0 space-y-3'>
+        <div className='flex items-center space-x-3'>
           <Search className='h-6 w-6 text-foreground' />
           <h1 className='text-2xl font-bold text-foreground'>搜索结果</h1>
         </div>
 
         {searchQuery && (
-          <div className='flex items-center space-x-2 mt-3'>
+          <div className='flex items-center space-x-2'>
             <span className='text-muted-foreground'>搜索关键词:</span>
             <Badge variant='secondary' className='text-base px-3 py-1'>
               {searchQuery}
@@ -117,7 +117,7 @@ export function SearchUI({
 
       {/* 空搜索状态 */}
       {!searchQuery && (
-        <div className='text-center py-20 bg-card border border-border rounded-lg'>
+        <div className='text-center py-20 mx-3 sm:mx-0 bg-card border border-border rounded-lg'>
           <Search className='h-16 w-16 text-muted-foreground/50 mx-auto mb-4' />
           <div className='text-xl font-medium text-foreground mb-2'>
             请输入搜索关键词

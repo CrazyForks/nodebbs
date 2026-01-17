@@ -53,8 +53,8 @@ export default async function CategoryPage({ params, searchParams }) {
   return (
     <>
       {/* 分类标题 & 排序切换 */}
-      <div className='flex flex-col gap-2 mb-2 px-3 sm:px-0 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:mb-4'>
-        <div>
+      <div className='flex flex-col gap-2 mb-3 px-3 sm:px-0 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:mb-4'>
+        <div className='pt-3 sm:pt-0'>
           <div className='flex items-center gap-2'>
             <div
               className='w-3 h-3 rounded-sm'
