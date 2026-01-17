@@ -26,7 +26,7 @@ export function SearchUsersTab({
   // 空状态
   if (total === 0) {
     return (
-      <div className='text-center py-16 bg-card border border-border rounded-lg'>
+      <div className='text-center py-16 mx-3 sm:mx-0 bg-card border border-border rounded-lg'>
         <User className='h-12 w-12 text-muted-foreground/50 mx-auto mb-4' />
         <div className='text-lg font-medium text-foreground mb-2'>
           未找到相关用户
@@ -39,8 +39,8 @@ export function SearchUsersTab({
   }
 
   return (
-    <div className='mt-6'>
-      <div className='mb-4 text-sm text-muted-foreground'>
+    <div className='space-y-3'>
+      <div className='px-3 sm:px-0 text-sm text-muted-foreground'>
         找到{' '}
         <span className='font-semibold text-foreground'>{total}</span>{' '}
         个相关用户

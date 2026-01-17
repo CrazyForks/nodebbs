@@ -23,7 +23,7 @@ export function SearchUI({
   return (
     <>
       {/* 搜索标题 */}
-      <div className='mb-6'>
+      <div className='p-3 sm:px-0'>
         <div className='flex items-center space-x-3 mb-2'>
           <Search className='h-6 w-6 text-foreground' />
           <h1 className='text-2xl font-bold text-foreground'>搜索结果</h1>
@@ -46,8 +46,8 @@ export function SearchUI({
 
       {/* 搜索类型标签页 */}
       {searchQuery && (
-        <Tabs value={searchType} onValueChange={onSearchTypeChange} className='mb-6'>
-          <TabsList>
+        <Tabs value={searchType} onValueChange={onSearchTypeChange} className='gap-3'>
+          <TabsList className='mx-3 sm:mx-0'>
             <TabsTrigger value='topics' className='flex items-center gap-1.5'>
               <FileText className='h-4 w-4' />
               <span>话题</span>

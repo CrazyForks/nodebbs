@@ -14,9 +14,9 @@ export function SearchTopicsTab({
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className='mt-6'>
+    <div className='space-y-3'>
       {!loading && !typeLoading && total > 0 && (
-        <div className='mb-4 text-sm text-muted-foreground'>
+        <div className='px-3 sm:px-0 text-sm text-muted-foreground'>
           找到{' '}
           <span className='font-semibold text-foreground'>
             {total}
