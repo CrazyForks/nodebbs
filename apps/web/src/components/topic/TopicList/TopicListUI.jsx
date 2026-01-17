@@ -16,7 +16,7 @@ import Time from '@/components/common/Time';
 // 空状态组件
 export function EmptyState() {
   return (
-    <div className='text-center py-20 border-0 sm:border sm:border-border sm:rounded-xl bg-card shadow-sm'>
+    <div className='text-center py-20 border-0 sm:border sm:border-border sm:rounded-xl bg-card'>
       <div className='w-16 h-16 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center'>
         <BookOpen className='h-8 w-8 text-muted-foreground/50' />
       </div>
@@ -25,7 +25,7 @@ export function EmptyState() {
         还没有人发布话题，成为第一个吧！
       </p>
       <Link href='/create'>
-        <Button size='default' className='shadow-sm'>
+        <Button size='default'>
           <Plus className='h-4 w-4' />
           发布第一个话题
         </Button>
@@ -236,7 +236,7 @@ export function TopicListUI({
 
   return (
     <>
-      <div className='bg-card sm:border sm:border-border sm:rounded-xl overflow-hidden w-full shadow-sm'>
+      <div className='bg-card sm:border sm:border-border sm:rounded-xl overflow-hidden w-full'>
         {/* 话题列表 */}
         <div className='divide-y divide-border/60'>
           {topics.map((topic) => (
