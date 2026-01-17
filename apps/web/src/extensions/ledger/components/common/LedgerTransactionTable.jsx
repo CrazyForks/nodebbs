@@ -3,6 +3,15 @@ import { DataTable } from '@/components/common/DataTable';
 import { Loading } from '@/components/common/Loading';
 import { TransactionTypeBadge } from './TransactionTypeBadge';
 import Time from '@/components/common/Time';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // 简单的辅助函数，避免依赖 rewards 扩展
 function formatAmount(amount) {
@@ -178,7 +187,30 @@ export function LedgerTransactionTable({
   ];
 
   const content = loading ? (
-    <Loading text="加载中..." className="py-12" />
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column, index) => (
+              <TableHead key={index} className={column.width}>
+                {column.label}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 5 }).map((_, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {columns.map((column, colIndex) => (
+                <TableCell key={colIndex}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   ) : (
     <DataTable
       columns={columns}

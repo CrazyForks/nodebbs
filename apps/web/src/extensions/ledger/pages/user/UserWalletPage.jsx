@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wallet, Loader2, Trophy, TrendingUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Wallet, Trophy, TrendingUp } from 'lucide-react';
 import Link from '@/components/common/Link';
 import { ledgerApi } from '../../api';
 import { DEFAULT_CURRENCY_CODE } from '../../constants';
@@ -86,7 +87,29 @@ export default function UserWalletPage() {
         </Link>
       </div>
 
-      {checkInStatus && (
+      {loading && !checkInStatus ? (
+        <Card className="shadow-none">
+          <CardHeader>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-7 w-16" />
+              </div>
+              <div className="flex flex-col border-l pl-4 gap-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : checkInStatus && (
         <CheckInStatus
           checkInStreak={checkInStatus.checkInStreak}
           lastCheckInDate={checkInStatus.lastCheckInDate}
@@ -96,9 +119,21 @@ export default function UserWalletPage() {
       {/* Accounts Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading && accounts.length === 0 ? (
-          <div className="col-span-full flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+           Array.from({ length: 3 }).map((_, index) => (
+             <Card key={index} className="shadow-none">
+               <CardHeader className="pb-2">
+                 <Skeleton className="h-4 w-24" />
+               </CardHeader>
+               <CardContent>
+                 <div className="flex items-center gap-2 mb-4">
+                   <Skeleton className="h-9 w-32" />
+                 </div>
+                 <div className="flex items-center gap-4">
+                   <Skeleton className="h-3 w-24" />
+                 </div>
+               </CardContent>
+             </Card>
+           ))
         ) : (
           accounts.map(account => (
             <Card key={account.currency.code} className="relative overflow-hidden shadow-none">
