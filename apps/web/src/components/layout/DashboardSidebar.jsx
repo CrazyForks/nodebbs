@@ -107,39 +107,31 @@ export default function DashboardSidebar() {
     return pathname.startsWith(href);
   };
 
-  const renderMenuItem = (item) => {
+  const renderMenuItem = (item, isTopLevel = false) => {
     const Icon = item.icon;
-    
+
     // 处理有子菜单的项
     if (item.children) {
       const isOpen = openMenus[item.key];
       // 检查子菜单是否有激活项
       const hasActiveChild = item.children.some(child => isActive(child.href));
-      
+
       return (
-        <div key={item.key} className="space-y-1">
+        <div key={item.key} className="mb-4">
           <button
             onClick={() => toggleMenu(item.key)}
-            className={cn(
-              "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md transition-colors",
-              hasActiveChild
-                ? "text-foreground font-medium"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            )}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </div>
+            <span>{item.label}</span>
             {isOpen ? (
-              <ChevronDown className="h-4 w-4 opacity-50" />
+              <ChevronDown className="h-3 w-3" />
             ) : (
-              <ChevronRight className="h-4 w-4 opacity-50" />
+              <ChevronRight className="h-3 w-3" />
             )}
           </button>
-          
+
           {isOpen && (
-            <div className="pl-4 space-y-1 border-l ml-4 my-1">
+            <div className="mt-1 space-y-0.5">
               {item.children.map(child => renderMenuItem(child))}
             </div>
           )}
@@ -149,33 +141,58 @@ export default function DashboardSidebar() {
 
     // 处理普通菜单项
     const active = isActive(item.href, item.exact);
+
+    // 顶级独立菜单项（如概览、系统配置）
+    if (isTopLevel) {
+      return (
+        <div key={item.href} className="mb-4">
+          <Link
+            href={item.href}
+            className={cn(
+              "group flex items-center gap-2.5 mx-2 px-3 py-2 text-sm rounded-md transition-all duration-200",
+              active
+                ? "text-primary font-medium bg-primary/10"
+                : "text-foreground/80 hover:text-foreground hover:bg-muted/50"
+            )}
+          >
+            <Icon className={cn(
+              "h-4 w-4 transition-colors",
+              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+            )} />
+            <span>{item.label}</span>
+          </Link>
+        </div>
+      );
+    }
+
+    // 子菜单项
     return (
       <Link
         key={item.href}
         href={item.href}
-       
         className={cn(
-          "flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+          "group flex items-center gap-2.5 mx-2 px-3 py-2 text-sm rounded-md transition-all duration-200",
           active
-            ? "bg-muted font-medium text-foreground"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            ? "text-primary font-medium bg-primary/10"
+            : "text-foreground/80 hover:text-foreground hover:bg-muted/50"
         )}
       >
-        <div className="flex items-center gap-3">
-          <Icon className="h-4 w-4" />
-          <span>{item.label}</span>
-        </div>
+        <Icon className={cn(
+          "h-4 w-4 transition-colors",
+          active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+        )} />
+        <span>{item.label}</span>
       </Link>
     );
   };
 
   return (
     <>
-      <h1 className="text-lg text-center font-semibold p-4 bg-muted text-muted-foreground rounded-xl">
-        管理后台
-      </h1>
-      <nav className="space-y-1">
-        {navItems.map(item => renderMenuItem(item))}
+      <div className="p-4 bg-muted rounded-lg">
+        <h1 className="text-lg text-center font-semibold text-muted-foreground">管理后台</h1>
+      </div>
+      <nav className="py-3">
+        {navItems.map(item => renderMenuItem(item, !item.children))}
       </nav>
     </>
   );

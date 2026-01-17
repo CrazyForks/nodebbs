@@ -158,37 +158,29 @@ export default function ProfileSidebar() {
 
   const renderMenuItem = (item) => {
     const Icon = item.icon;
-    
+
     // 处理有子菜单的项
     if (item.children) {
       const isOpen = openMenus[item.key];
       // 检查子菜单是否有激活项
       const hasActiveChild = item.children.some(child => isActive(child.href));
-      
+
       return (
-        <div key={item.key} className="space-y-1">
+        <div key={item.key} className="mb-4">
           <button
             onClick={() => toggleMenu(item.key)}
-            className={cn(
-              "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md transition-colors",
-              hasActiveChild
-                ? "text-foreground font-medium"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            )}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground/70 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </div>
+            <span>{item.label}</span>
             {isOpen ? (
-              <ChevronDown className="h-4 w-4 opacity-50" />
+              <ChevronDown className="h-3 w-3" />
             ) : (
-              <ChevronRight className="h-4 w-4 opacity-50" />
+              <ChevronRight className="h-3 w-3" />
             )}
           </button>
-          
+
           {isOpen && (
-            <div className="pl-4 space-y-1 border-l ml-4 my-1">
+            <div className="mt-1 space-y-0.5">
               {item.children.map(child => renderMenuItem(child))}
             </div>
           )}
@@ -202,21 +194,23 @@ export default function ProfileSidebar() {
       <Link
         key={item.href}
         href={item.href}
-       
         className={cn(
-          "flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+          "group flex items-center justify-between gap-3 mx-2 px-3 py-2 text-sm rounded-md transition-all duration-200",
           active
-            ? "bg-muted font-medium text-foreground"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            ? "text-primary font-medium bg-primary/10"
+            : "text-foreground/80 hover:text-foreground hover:bg-muted/50"
         )}
       >
-        <div className="flex items-center gap-3">
-          <Icon className="h-4 w-4" />
+        <div className="flex items-center gap-2.5">
+          <Icon className={cn(
+            "h-4 w-4 transition-colors",
+            active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          )} />
           <span>{item.label}</span>
         </div>
         {item.badge && (
-          <Badge variant="destructive" className="text-xs">
-            {item.badge}
+          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-[10px] font-medium">
+            {item.badge > 99 ? '99+' : item.badge}
           </Badge>
         )}
       </Link>
@@ -224,7 +218,7 @@ export default function ProfileSidebar() {
   };
 
   return (
-    <nav className="space-y-1">
+    <nav className="py-3">
       {menuItems.map(item => renderMenuItem(item))}
     </nav>
   );
