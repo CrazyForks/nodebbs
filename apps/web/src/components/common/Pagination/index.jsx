@@ -99,11 +99,11 @@ export function Pager({
 
           {pages.map((p, idx) =>
             p === '...' ? (
-              <PaginationItem key={`ellipsis-${idx}`}>
+              <PaginationItem key={`ellipsis-${idx}`} className="hidden sm:block">
                 <PaginationEllipsis />
               </PaginationItem>
             ) : (
-              <PaginationItem key={p}>
+              <PaginationItem key={p} className={p === page ? '' : 'hidden sm:block'}>
                 <PaginationLink
                   onClick={() => handlePageChange(p)}
                   isActive={p === page}
