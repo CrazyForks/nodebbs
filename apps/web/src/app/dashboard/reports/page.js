@@ -5,13 +5,7 @@ import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +18,6 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  MoreHorizontal,
   CheckSquare,
   XSquare,
 } from 'lucide-react';
@@ -280,42 +273,32 @@ export default function ReportsManagement() {
     {
       key: 'actions',
       label: '操作',
-      width: 'w-[80px]',
       align: 'right',
       sticky: 'right',
       render: (_, row) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='sm'>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuItem onClick={() => openDetailDialog(row)}>
-              <Eye className='h-4 w-4' />
-              查看详情
-            </DropdownMenuItem>
-            {row.status === 'pending' && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => openResolveDialog(row, 'resolve')}
-                  className='text-green-600'
-                >
-                  <CheckSquare className='h-4 w-4' />
-                  处理举报
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => openResolveDialog(row, 'dismiss')}
-                  className='text-gray-600'
-                >
-                  <XSquare className='h-4 w-4' />
-                  驳回举报
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          items={[
+            {
+              label: '查看详情',
+              icon: Eye,
+              onClick: () => openDetailDialog(row),
+            },
+            { separator: true },
+            {
+              label: '处理举报',
+              icon: CheckSquare,
+              variant: 'default',
+              onClick: () => openResolveDialog(row, 'resolve'),
+              hidden: row.status !== 'pending',
+            },
+            {
+              label: '驳回举报',
+              icon: XSquare,
+              onClick: () => openResolveDialog(row, 'dismiss'),
+              hidden: row.status !== 'pending',
+            },
+          ]}
+        />
       ),
     },
   ];

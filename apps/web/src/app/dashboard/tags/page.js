@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
 import { Plus, Edit, Trash2, Loader2, Tag as TagIcon } from 'lucide-react';
@@ -210,28 +211,25 @@ export default function TagsManagement() {
           {
             key: 'actions',
             label: '操作',
-            width: 'w-[100px]',
             align: 'right',
             sticky: 'right',
             render: (_, tag) => (
-              <div className="flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openEditDialog(tag)}
-                  className="h-8 w-8 p-0"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openDeleteDialog(tag)}
-                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <ActionMenu
+                mode="inline"
+                items={[
+                  {
+                    label: '编辑',
+                    icon: Edit,
+                    onClick: () => openEditDialog(tag),
+                  },
+                  {
+                    label: '删除',
+                    icon: Trash2,
+                    onClick: () => openDeleteDialog(tag),
+                    variant: 'destructive',
+                  },
+                ]}
+              />
             ),
           },
         ]}

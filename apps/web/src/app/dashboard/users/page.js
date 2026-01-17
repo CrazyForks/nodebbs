@@ -5,6 +5,7 @@ import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import UserAvatar from '@/components/user/UserAvatar';
 import {
   Select,
@@ -15,17 +16,10 @@ import {
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Ban, ShieldCheck, UserCog, Trash2, MoreHorizontal, UserPlus, Pencil, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Ban, ShieldCheck, UserCog, Trash2, UserPlus, Pencil, CheckCircle2, XCircle } from 'lucide-react';
 import { userApi, moderationApi } from '@/lib/api';
 import { toast } from 'sonner';
 import Time from '@/components/common/Time';
@@ -438,69 +432,55 @@ export default function UsersManagement() {
           {
             key: 'actions',
             label: '操作',
-            width: 'w-[80px]',
             align: 'right',
             sticky: 'right',
             render: (_, user) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => openEditDialog(user)}
-                    disabled={!canModifyUser(user)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    编辑用户
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => openRoleDialog(user)}
-                    disabled={!canModifyUser(user)}
-                  >
-                    <UserCog className="h-4 w-4" />
-                    修改角色
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {user.isBanned ? (
-                    <DropdownMenuItem
-                      onClick={() => openUnbanDialog(user)}
-                      className="text-green-600"
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                      解封用户
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={() => openBanDialog(user)}
-                      disabled={!canModifyUser(user)}
-                      className="text-orange-600"
-                    >
-                      <Ban className="h-4 w-4" />
-                      封禁用户
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => openDeleteDialog(user, 'soft')}
-                    disabled={!canModifyUser(user)}
-                    className="text-orange-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    软删除
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => openDeleteDialog(user, 'hard')}
-                    disabled={!canModifyUser(user)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    彻底删除
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ActionMenu
+                items={[
+                  {
+                    label: '编辑用户',
+                    icon: Pencil,
+                    onClick: () => openEditDialog(user),
+                    disabled: !canModifyUser(user),
+                  },
+                  {
+                    label: '修改角色',
+                    icon: UserCog,
+                    onClick: () => openRoleDialog(user),
+                    disabled: !canModifyUser(user),
+                  },
+                  { separator: true },
+                  {
+                    label: '解封用户',
+                    icon: ShieldCheck,
+                    onClick: () => openUnbanDialog(user),
+                    hidden: !user.isBanned,
+                  },
+                  {
+                    label: '封禁用户',
+                    icon: Ban,
+                    variant: 'warning',
+                    onClick: () => openBanDialog(user),
+                    disabled: !canModifyUser(user),
+                    hidden: user.isBanned,
+                  },
+                  { separator: true },
+                  {
+                    label: '软删除',
+                    icon: Trash2,
+                    variant: 'warning',
+                    onClick: () => openDeleteDialog(user, 'soft'),
+                    disabled: !canModifyUser(user),
+                  },
+                  {
+                    label: '彻底删除',
+                    icon: Trash2,
+                    variant: 'destructive',
+                    onClick: () => openDeleteDialog(user, 'hard'),
+                    disabled: !canModifyUser(user),
+                  },
+                ]}
+              />
             ),
           },
         ]}

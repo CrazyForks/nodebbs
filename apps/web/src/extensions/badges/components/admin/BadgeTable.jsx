@@ -1,9 +1,8 @@
 import React from 'react';
 import { DataTable } from '@/components/common/DataTable';
-import { Button } from '@/components/ui/button';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Trash2 } from 'lucide-react';
-import { Edit } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 
 export function BadgeTable({ items, loading, onEdit, onDelete }) {
   const columns = [
@@ -51,26 +50,24 @@ export function BadgeTable({ items, loading, onEdit, onDelete }) {
       key: 'actions',
       label: '操作',
       align: 'right',
+      sticky: 'right',
       render: (_, item) => (
-        <div className="flex justify-end space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onEdit(item)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            onClick={() => {
-              onDelete(item.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <ActionMenu
+          mode="inline"
+          items={[
+            {
+              label: '编辑',
+              icon: Edit,
+              onClick: () => onEdit(item),
+            },
+            {
+              label: '删除',
+              icon: Trash2,
+              onClick: () => onDelete(item.id),
+              variant: 'destructive',
+            },
+          ]}
+        />
       ),
     },
   ];

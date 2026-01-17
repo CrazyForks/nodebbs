@@ -5,19 +5,12 @@ import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { postApi } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   Loader2,
-  MoreHorizontal,
   Trash2,
   Eye,
   Clock,
@@ -239,42 +232,33 @@ export default function AdminPostsPage() {
     {
       key: 'actions',
       label: '操作',
-      width: 'w-[80px]',
       align: 'right',
       sticky: 'right',
       render: (_, row) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='sm'>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuItem asChild>
-              <Link href={`/topic/${row.topicId}#post-${row.id}`} target='_blank'>
-                <Eye className='h-4 w-4' />
-                查看回复
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {!row.isDeleted && (
-              <DropdownMenuItem
-                onClick={() => handleDeleteClick(row, 'soft')}
-                className='text-orange-600'
-              >
-                <Trash2 className='h-4 w-4' />
-                软删除
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onClick={() => handleDeleteClick(row, 'hard')}
-              className='text-destructive'
-            >
-              <Trash2 className='h-4 w-4' />
-              彻底删除
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          items={[
+            {
+              label: '查看回复',
+              icon: Eye,
+              href: `/topic/${row.topicId}#post-${row.id}`,
+              target: '_blank',
+            },
+            { separator: true },
+            {
+              label: '软删除',
+              icon: Trash2,
+              variant: 'warning',
+              onClick: () => handleDeleteClick(row, 'soft'),
+              hidden: row.isDeleted,
+            },
+            {
+              label: '彻底删除',
+              icon: Trash2,
+              variant: 'destructive',
+              onClick: () => handleDeleteClick(row, 'hard'),
+            },
+          ]}
+        />
       ),
     },
   ];

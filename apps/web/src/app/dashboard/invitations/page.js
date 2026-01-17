@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DataTable } from '@/components/common/DataTable';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import UserAvatar from '@/components/user/UserAvatar';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
@@ -385,36 +386,30 @@ export default function AdminInvitationsPage() {
           {
             key: 'actions',
             label: '操作',
-            width: 'w-[80px]',
             align: 'right',
             sticky: 'right',
             render: (_, code) => (
-              <div className="flex items-center justify-end gap-1">
-                {code.status === 'active' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openDisableDialog(code)}
-                    title="禁用"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  >
-                    <Ban className="h-4 w-4" />
-                  </Button>
-                )}
-                {code.status === 'disabled' &&
-                  code.usedCount < code.maxUses &&
-                  (!code.expiresAt || new Date(code.expiresAt) > new Date()) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEnableDialog(code)}
-                      title="恢复"
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  )}
-              </div>
+              <ActionMenu
+                mode="inline"
+                items={[
+                  {
+                    label: '禁用',
+                    icon: Ban,
+                    onClick: () => openDisableDialog(code),
+                    variant: 'destructive',
+                    hidden: code.status !== 'active',
+                  },
+                  {
+                    label: '恢复',
+                    icon: RotateCcw,
+                    onClick: () => openEnableDialog(code),
+                    hidden:
+                      code.status !== 'disabled' ||
+                      code.usedCount >= code.maxUses ||
+                      (code.expiresAt && new Date(code.expiresAt) <= new Date()),
+                  },
+                ]}
+              />
             ),
           },
         ]}

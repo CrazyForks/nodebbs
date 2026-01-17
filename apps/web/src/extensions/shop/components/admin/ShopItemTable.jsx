@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DataTable } from '@/components/common/DataTable';
-import { Button } from '@/components/ui/button';
+import { ActionMenu } from '@/components/common/ActionMenu';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -132,23 +132,24 @@ export function ShopItemTable({ items, loading, pagination, onEdit, onDelete }) 
       label: '操作',
       key: 'operation',
       align: 'right',
+      sticky: 'right',
       render: (value, row) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(row)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => openDeleteDialog(row)}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
+        <ActionMenu
+          mode="inline"
+          items={[
+            {
+              label: '编辑',
+              icon: Edit,
+              onClick: () => onEdit(row),
+            },
+            {
+              label: '删除',
+              icon: Trash2,
+              onClick: () => openDeleteDialog(row),
+              variant: 'destructive',
+            },
+          ]}
+        />
       ),
     },
   ];

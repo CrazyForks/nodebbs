@@ -77,6 +77,11 @@ export function DataTable({
     }
 
     if (column.sticky) {
+      // sticky 列默认使用最小内容宽度（除非显式设置了 width）
+      if (!column.width) {
+        style.width = '1%';
+      }
+
       if (column.sticky === 'left') {
         style.left = '0';
         style.boxShadow = '2px 0 5px -2px rgba(0, 0, 0, 0.1)';
@@ -94,7 +99,7 @@ export function DataTable({
     const classes = [column.width];
 
     if (column.sticky) {
-      classes.push('sticky z-10');
+      classes.push('sticky z-10 whitespace-nowrap');
 
       // 背景色
       if (isHeader) {
