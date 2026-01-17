@@ -66,12 +66,6 @@ export function LedgerTransactions() {
         fetchTransactions();
     }, [pagination.page, filterCurrency, filterUser]);
 
-    const handleReset = () => {
-        setFilterUser(null);
-        setFilterCurrency('all');
-        setPagination(prev => ({ ...prev, page: 1 }));
-    };
-
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 mb-4 items-end">
@@ -94,11 +88,6 @@ export function LedgerTransactions() {
                             ))}
                         </SelectContent>
                     </Select>
-                </div>
-                <div className="pb-2">
-                    <Button variant="ghost" onClick={handleReset}>
-                        重置筛选
-                    </Button>
                 </div>
             </div>
 
