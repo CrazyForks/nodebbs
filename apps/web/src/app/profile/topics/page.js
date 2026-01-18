@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/common/PageHeader';
 import { CreatedTopics } from './components/CreatedTopics';
 import { FavoriteTopics } from './components/FavoriteTopics';
 
@@ -24,14 +25,10 @@ export default function MyTopicsPage() {
 
   return (
     <div className='space-y-4'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='text-2xl font-bold text-card-foreground mb-2'>
-            我的话题
-          </h1>
-          <p className='text-muted-foreground'>查看发布和收藏的话题</p>
-        </div>
-      </div>
+      <PageHeader
+        title='我的话题'
+        description='查看发布和收藏的话题'
+      />
       <Tabs
         defaultValue='created'
         value={currentTab}

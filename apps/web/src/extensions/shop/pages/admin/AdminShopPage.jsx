@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ShoppingCart, Plus } from 'lucide-react';
 import { shopApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -73,20 +74,16 @@ export default function AdminShopPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6" />
-            商城管理
-          </h1>
-          <p className="text-muted-foreground">管理{currencyName}商城的商品</p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4" />
-          新建商品
-        </Button>
-      </div>
+      <PageHeader
+        title='商城管理'
+        description={`管理${currencyName}商城的商品`}
+        actions={
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" />
+            新建商品
+          </Button>
+        }
+      />
 
       {/* Shop Items Table */}
       <ShopItemTable

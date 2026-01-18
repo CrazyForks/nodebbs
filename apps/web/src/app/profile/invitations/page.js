@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormDialog } from '@/components/common/FormDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Plus, X, Clock, Ticket } from 'lucide-react';
 import CopyButton from '@/components/common/CopyButton';
 import { Loading } from '@/components/common/Loading';
@@ -68,13 +69,10 @@ export default function InvitationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-2">我的邀请码</h2>
-        <p className="text-sm text-muted-foreground">
-          管理您的邀请码，邀请好友加入社区
-        </p>
-      </div>
+      <PageHeader
+        title='我的邀请码'
+        description='管理您的邀请码，邀请好友加入社区'
+      />
 
       {/* 配额信息卡片 */}
       {quota ? (

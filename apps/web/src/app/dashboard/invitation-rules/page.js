@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { toast } from 'sonner';
 import { Shield, Edit, Plus, Trash2 } from 'lucide-react';
 import { Loading } from '@/components/common/Loading';
@@ -194,19 +195,16 @@ export default function InvitationRulesPage() {
 
   return (
     <div className='space-y-6'>
-      {/* 页面标题 */}
-      <div className='flex items-center justify-between'>
-        <div>
-          <h2 className='text-2xl font-semibold mb-2'>邀请规则管理</h2>
-          <p className='text-sm text-muted-foreground'>
-            为不同角色配置邀请码生成规则
-          </p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className='h-4 w-4' />
-          新建规则
-        </Button>
-      </div>
+      <PageHeader
+        title='邀请规则管理'
+        description='为不同角色配置邀请码生成规则'
+        actions={
+          <Button onClick={handleCreate}>
+            <Plus className='h-4 w-4' />
+            新建规则
+          </Button>
+        }
+      />
 
       {/* 规则列表 */}
       <div className='grid gap-4'>

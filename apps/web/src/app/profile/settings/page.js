@@ -1,6 +1,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/common/PageHeader';
 import { User, Lock, Shield } from 'lucide-react';
 
 // 导入 Tab 组件（各自内部管理状态）
@@ -15,12 +16,10 @@ import { SecurityTab } from './components/SecurityTab';
 export default function SettingsPage() {
   return (
     <div>
-      <div className='mb-6'>
-        <h1 className='text-2xl font-bold text-card-foreground mb-2'>
-          个人设置
-        </h1>
-        <p className='text-muted-foreground'>管理你的账户信息和偏好设置</p>
-      </div>
+      <PageHeader
+        title='个人设置'
+        description='管理你的账户信息和偏好设置'
+      />
 
       <Tabs defaultValue='profile' className='space-y-6'>
         <TabsList className='grid grid-cols-3'>

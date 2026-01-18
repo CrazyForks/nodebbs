@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Medal, Plus } from 'lucide-react';
 import { badgesApi } from '@/extensions/badges/api';
 import { toast } from 'sonner';
@@ -110,24 +111,21 @@ export default function AdminBadgesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-            <Medal className="h-6 w-6" />
-            勋章管理
-          </h1>
-          <p className="text-muted-foreground">管理系统中的所有荣誉勋章</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title='勋章管理'
+        description='管理系统中的所有荣誉勋章'
+        actions={
+          <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowAssignmentDialog(true)}>
-                授予/撤销
+              授予/撤销
             </Button>
             <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            新建勋章
+              <Plus className="h-4 w-4" />
+              新建勋章
             </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <BadgeTable
         items={items}

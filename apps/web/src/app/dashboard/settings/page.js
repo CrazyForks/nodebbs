@@ -13,6 +13,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { toast } from 'sonner';
 import { Settings, ToggleLeft, Gauge, Layers, Mail, Shield } from 'lucide-react';
 import { Loading } from '@/components/common/Loading';
+import { PageHeader } from '@/components/common/PageHeader';
 
 // 导入组件
 import { GeneralSettings } from './components/GeneralSettings';
@@ -113,13 +114,10 @@ export default function SystemSettingsPage() {
 
   return (
     <div className='space-y-6'>
-      {/* Page header */}
-      <div>
-        <h2 className='text-2xl font-semibold mb-2'>系统配置</h2>
-        <p className='text-sm text-muted-foreground'>
-          管理论坛的全局设置和功能开关
-        </p>
-      </div>
+      <PageHeader
+        title='系统配置'
+        description='管理论坛的全局设置和功能开关'
+      />
 
       {/* 移动端选择器 */}
       <div className='md:hidden'>

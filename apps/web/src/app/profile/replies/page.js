@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from '@/components/common/Link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
+import { MessageCircle, ExternalLink, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { postApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -12,6 +13,99 @@ import UserAvatar from '@/components/user/UserAvatar';
 import { Loading } from '@/components/common/Loading';
 import { Pager } from '@/components/common/Pagination';
 import Time from '@/components/common/Time';
+
+// 单个回复卡片组件
+function ReplyCard({ reply }) {
+  const [expanded, setExpanded] = useState(false);
+  const contentLength = reply.content?.length || 0;
+  const shouldTruncate = contentLength > 200;
+
+  const displayContent = shouldTruncate && !expanded
+    ? reply.content.slice(0, 200) + '...'
+    : reply.content;
+
+  return (
+    <div className='bg-card border border-border rounded-lg overflow-hidden transition-all duration-200 hover:border-primary/30 hover:shadow-sm'>
+      {/* 话题信息头部 */}
+      <Link
+        href={`/topic/${reply.topicId}#post-${reply.id}`}
+        className='block px-3 py-2 md:px-4 md:py-2.5 bg-muted/50 border-b border-border hover:bg-muted transition-colors group'
+      >
+        <div className='flex items-center justify-between gap-2'>
+          <div className='flex items-center gap-2 min-w-0 flex-1'>
+            <span className='text-xs text-muted-foreground shrink-0'>回复于</span>
+            <span className='text-sm font-medium text-card-foreground truncate group-hover:text-primary transition-colors'>
+              {reply.topicTitle}
+            </span>
+          </div>
+          <ExternalLink className='h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity' />
+        </div>
+      </Link>
+
+      {/* 回复内容 */}
+      <div className='p-3 md:p-4'>
+        <div className='flex gap-3'>
+          <UserAvatar
+            url={reply.userAvatar}
+            name={reply.username}
+            size='sm'
+            className='shrink-0'
+          />
+
+          <div className='flex-1 min-w-0'>
+            {/* 用户信息和元数据 */}
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mb-2'>
+              <span className='text-sm font-medium text-card-foreground'>
+                {reply.userName || reply.username}
+              </span>
+              <span className='text-xs text-muted-foreground'>
+                <Time date={reply.createdAt} fromNow />
+              </span>
+              {reply.likeCount > 0 && (
+                <Badge variant='secondary' className='text-xs h-5 px-1.5 gap-0.5'>
+                  <Heart className='h-3 w-3' />
+                  {reply.likeCount}
+                </Badge>
+              )}
+              {reply.editCount > 0 && (
+                <span className='text-xs text-muted-foreground'>
+                  · 编辑 {reply.editCount} 次
+                </span>
+              )}
+            </div>
+
+            {/* 回复正文 */}
+            <div className='text-sm text-card-foreground leading-relaxed break-words whitespace-pre-wrap'>
+              {displayContent}
+            </div>
+
+            {/* 展开/收起按钮 */}
+            {shouldTruncate && (
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-7 px-2 mt-2 text-xs text-muted-foreground hover:text-primary'
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded ? (
+                  <>
+                    <ChevronUp className='h-3.5 w-3.5 mr-1' />
+                    收起
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className='h-3.5 w-3.5 mr-1' />
+                    展开全部
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RepliesPage() {
   const { user } = useAuth();
@@ -47,15 +141,13 @@ export default function RepliesPage() {
     }
   };
 
-  // 加载状态
-  if (loading) {
-    return (
-      <Loading text='加载中...' className='py-12' />
-    );
-  }
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // 错误状态
-  if (error) {
+  if (error && !loading) {
     return (
       <div className='bg-card border border-border rounded-lg p-12 text-center'>
         <MessageCircle className='h-12 w-12 text-destructive mx-auto mb-4' />
@@ -69,84 +161,20 @@ export default function RepliesPage() {
   }
 
   return (
-    <div>
-      <div className='mb-6'>
-        <div className='flex items-center justify-between mb-4'>
-          <div>
-            <h1 className='text-2xl font-bold text-card-foreground mb-2'>
-              我的回复
-            </h1>
-            <p className='text-muted-foreground'>你参与讨论的所有回复</p>
-          </div>
-          <Badge variant='secondary' className='flex items-center space-x-1'>
-            <MessageCircle className='h-3 w-3' />
-            <span>{total} 条回复</span>
-          </Badge>
-        </div>
-      </div>
+    <div className='space-y-4'>
+      <PageHeader
+        title='我的回复'
+        description='你参与讨论的所有回复'
+      />
 
       {/* 回复列表 */}
-      {replies.length > 0 ? (
-        <div className='space-y-4'>
-          {replies.map((reply) => {
-            return (
-              <div
-                key={reply.id}
-                className='bg-card border border-border rounded-lg overflow-hidden hover:border-primary/30'
-              >
-                {/* 话题信息 */}
-                <div className='px-4 py-2 bg-muted border-b border-border'>
-                  <Link
-                    href={`/topic/${reply.topicId}`}
-                    className='text-sm text-muted-foreground hover:text-primary transition-colors flex items-center space-x-2'
-                  >
-                    <span>回复于话题：</span>
-                    <span className='font-medium text-card-foreground'>
-                      {reply.topicTitle}
-                    </span>
-                    <ArrowRight className='h-3 w-3' />
-                  </Link>
-                </div>
-
-                {/* 回复内容 */}
-                <div className='p-4'>
-                  <div className='flex items-start space-x-3'>
-                    <UserAvatar
-                      url={reply.userAvatar}
-                      name={reply.username}
-                      size='sm'
-                    />
-
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center space-x-2 mb-2'>
-                        <span className='text-sm font-medium text-card-foreground'>
-                          {reply.userName || reply.username}
-                        </span>
-                        <span className='text-xs text-muted-foreground'>
-                          <Time date={reply.createdAt} fromNow />
-                        </span>
-                        {reply.likeCount > 0 && (
-                          <Badge variant='outline' className='text-xs'>
-                            {reply.likeCount} 点赞
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className='text-sm text-card-foreground leading-relaxed break-all'>
-                        {reply.content}
-                      </div>
-
-                      {reply.editCount > 0 && (
-                        <div className='mt-2 text-xs text-muted-foreground'>
-                          已编辑 {reply.editCount} 次
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {loading ? (
+        <Loading text='加载中...' className='py-12' />
+      ) : replies.length > 0 ? (
+        <div className='space-y-3'>
+          {replies.map((reply) => (
+            <ReplyCard key={reply.id} reply={reply} />
+          ))}
 
           {/* 分页 */}
           {total > limit && (
@@ -154,13 +182,13 @@ export default function RepliesPage() {
               total={total}
               page={page}
               pageSize={limit}
-              onPageChange={(page) => setPage(page)}
+              onPageChange={handlePageChange}
             />
           )}
         </div>
       ) : (
         <div className='bg-card border border-border rounded-lg p-12 text-center'>
-          <MessageCircle className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+          <MessageCircle className='h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50' />
           <h3 className='text-lg font-medium text-card-foreground mb-2'>
             还没有回复
           </h3>

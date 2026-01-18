@@ -12,6 +12,7 @@ import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Plus, Edit, Trash2, Loader2, Lock } from 'lucide-react';
 import { categoryApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -234,19 +235,16 @@ export default function CategoriesManagement() {
 
   return (
     <div className='space-y-6'>
-      {/* Page header */}
-      <div className='flex items-center justify-between'>
-        <div>
-          <h2 className='text-2xl font-semibold mb-2'>分类管理</h2>
-          <p className='text-sm text-muted-foreground'>
-            管理论坛的分类和子分类
-          </p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className='h-4 w-4' />
-          创建分类
-        </Button>
-      </div>
+      <PageHeader
+        title='分类管理'
+        description='管理论坛的分类和子分类'
+        actions={
+          <Button onClick={openCreateDialog}>
+            <Plus className='h-4 w-4' />
+            创建分类
+          </Button>
+        }
+      />
 
       {/* Tab 切换 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

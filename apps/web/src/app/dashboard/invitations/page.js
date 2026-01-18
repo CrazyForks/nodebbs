@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
+import { PageHeader } from '@/components/common/PageHeader';
 import UserAvatar from '@/components/user/UserAvatar';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
@@ -215,13 +216,10 @@ export default function AdminInvitationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-2">邀请码管理</h2>
-        <p className="text-sm text-muted-foreground">
-          管理所有邀请码的生成和使用情况
-        </p>
-      </div>
+      <PageHeader
+        title='邀请码管理'
+        description='管理所有邀请码的生成和使用情况'
+      />
 
       {/* 统计卡片 */}
       {stats && (

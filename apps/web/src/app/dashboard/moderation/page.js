@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock } from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ModerationLogs } from './components/ModerationLogs';
 import { PendingContent } from './components/PendingContent';
 import { moderationApi } from '@/lib/api';
@@ -37,11 +38,10 @@ export default function ContentModerationPage() {
 
   return (
     <div className='space-y-6'>
-      {/* Page header */}
-      <div>
-        <h2 className='text-2xl font-semibold mb-2'>内容审核</h2>
-        <p className='text-sm text-muted-foreground'>审核待发布的话题和回复</p>
-      </div>
+      <PageHeader
+        title='内容审核'
+        description='审核待发布的话题和回复'
+      />
 
       {/* Stats */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>

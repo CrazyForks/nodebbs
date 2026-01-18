@@ -3,6 +3,7 @@
 import Link from '@/components/common/Link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Bell, CheckCheck, Trash2, Loader2 } from 'lucide-react';
 import { getNotificationIcon, getNotificationMessage } from '@/lib/notification';
 import UserAvatar from '@/components/user/UserAvatar';
@@ -62,83 +63,69 @@ export default function NotificationsPage() {
 
   return (
     <div>
-      <div className='mb-6'>
-        <div className='flex items-center justify-between mb-4'>
-          <div>
-            <h1 className='text-2xl font-bold text-card-foreground mb-2'>
-              消息通知
-            </h1>
-            <p className='text-muted-foreground'>查看你的所有通知消息</p>
-          </div>
-          <div className='flex items-center space-x-2'>
-            {unreadCount > 0 && (
-              <Badge variant='destructive' className='flex items-center space-x-1'>
-                <Bell className='h-3 w-3' />
-                <span>{unreadCount} 条未读</span>
-              </Badge>
-            )}
-          </div>
+      <PageHeader
+        title='消息通知'
+        description='查看你的所有通知消息'
+      />
+
+      {/* 筛选和操作按钮 */}
+      <div className='flex items-center justify-between mb-4'>
+        <div className='flex items-center space-x-2'>
+          <Badge
+            variant={filter === 'all' ? 'default' : 'outline'}
+            className='cursor-pointer'
+            onClick={() => handleFilterChange('all')}
+          >
+            全部 ({total})
+          </Badge>
+          <Badge
+            variant={filter === 'unread' ? 'default' : 'outline'}
+            className='cursor-pointer'
+            onClick={() => handleFilterChange('unread')}
+          >
+            未读 ({unreadCount})
+          </Badge>
+          <Badge
+            variant={filter === 'read' ? 'default' : 'outline'}
+            className='cursor-pointer'
+            onClick={() => handleFilterChange('read')}
+          >
+            已读 ({readCount})
+          </Badge>
         </div>
 
-        {/* 筛选和操作按钮 */}
-        <div className='flex items-center justify-between mb-4'>
-          <div className='flex items-center space-x-2'>
-            <Badge
-              variant={filter === 'all' ? 'default' : 'outline'}
-              className='cursor-pointer'
-              onClick={() => handleFilterChange('all')}
+        <div className='flex items-center space-x-2'>
+          {unreadCount > 0 && (
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={markAllAsRead}
+              disabled={isActionLoading('read-all')}
             >
-              全部 ({total})
-            </Badge>
-            <Badge
-              variant={filter === 'unread' ? 'default' : 'outline'}
-              className='cursor-pointer'
-              onClick={() => handleFilterChange('unread')}
+              {isActionLoading('read-all') ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <CheckCheck className='h-4 w-4' />
+              )}
+              全部标记为已读
+            </Button>
+          )}
+          {readCount > 0 && (
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={deleteAllRead}
+              disabled={isActionLoading('delete-all-read')}
+              className='text-red-500 hover:text-red-600'
             >
-              未读 ({unreadCount})
-            </Badge>
-            <Badge
-              variant={filter === 'read' ? 'default' : 'outline'}
-              className='cursor-pointer'
-              onClick={() => handleFilterChange('read')}
-            >
-              已读 ({readCount})
-            </Badge>
-          </div>
-
-          <div className='flex items-center space-x-2'>
-            {unreadCount > 0 && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={markAllAsRead}
-                disabled={isActionLoading('read-all')}
-              >
-                {isActionLoading('read-all') ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <CheckCheck className='h-4 w-4' />
-                )}
-                全部标记为已读
-              </Button>
-            )}
-            {readCount > 0 && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={deleteAllRead}
-                disabled={isActionLoading('delete-all-read')}
-                className='text-red-500 hover:text-red-600'
-              >
-                {isActionLoading('delete-all-read') ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <Trash2 className='h-4 w-4' />
-                )}
-                删除所有已读
-              </Button>
-            )}
-          </div>
+              {isActionLoading('delete-all-read') ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Trash2 className='h-4 w-4' />
+              )}
+              删除所有已读
+            </Button>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from '@/components/common/Link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ShieldOff, UserX, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { blockedUsersApi } from '@/lib/api';
@@ -88,24 +89,10 @@ export default function BlockedUsersPage() {
 
   return (
     <div>
-      <div className='mb-6'>
-        <div className='flex items-center justify-between mb-4'>
-          <div>
-            <h1 className='text-2xl font-bold text-card-foreground mb-2'>
-              拉黑用户
-            </h1>
-            <p className='text-muted-foreground'>
-              管理你拉黑的用户，拉黑后将无法互相发送站内信
-            </p>
-          </div>
-          {!loading && total > 0 && (
-            <Badge variant='secondary' className='flex items-center space-x-1'>
-              <ShieldOff className='h-3 w-3' />
-              <span>{total} 个用户</span>
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title='拉黑用户'
+        description='管理你拉黑的用户，拉黑后将无法互相发送站内信'
+      />
 
       {/* 拉黑用户列表 */}
       {blockedUsers.length > 0 ? (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Users, FolderTree, FileText, MessageSquare } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 
@@ -63,13 +64,10 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-2">数据概览</h2>
-        <p className="text-sm text-muted-foreground">
-          查看论坛的关键统计数据和活动概况
-        </p>
-      </div>
+      <PageHeader
+        title='数据概览'
+        description='查看论坛的关键统计数据和活动概况'
+      />
 
       {/* Stats grid - GitHub style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

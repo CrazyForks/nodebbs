@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
+import { PageHeader } from '@/components/common/PageHeader';
 import UserAvatar from '@/components/user/UserAvatar';
 import {
   Select,
@@ -312,19 +313,16 @@ export default function UsersManagement() {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold mb-2">用户管理</h2>
-          <p className="text-sm text-muted-foreground">
-            管理用户账号、角色和权限
-          </p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          创建用户
-        </Button>
-      </div>
+      <PageHeader
+        title='用户管理'
+        description='管理用户账号、角色和权限'
+        actions={
+          <Button onClick={openCreateDialog}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            创建用户
+          </Button>
+        }
+      />
 
       {/* 用户列表 */}
       <DataTable

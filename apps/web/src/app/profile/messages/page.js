@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from '@/components/common/Link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/common/PageHeader';
 import {
   Mail,
   Loader2,
@@ -109,13 +110,11 @@ export default function MessagesPage() {
 
   return (
     <div>
-      <div className='mb-6'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold text-foreground mb-1'>站内信</h1>
-            <p className='text-sm text-muted-foreground'>查看你的私信会话</p>
-          </div>
-          {totalUnread > 0 && (
+      <PageHeader
+        title='站内信'
+        description='查看你的私信会话'
+        actions={
+          totalUnread > 0 && (
             <Badge
               variant='default'
               className='flex items-center space-x-1.5 px-3 py-1'
@@ -123,9 +122,9 @@ export default function MessagesPage() {
               <Mail className='h-3.5 w-3.5' />
               <span>{totalUnread} 条未读</span>
             </Badge>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* 会话列表 */}
       {conversations.length > 0 ? (

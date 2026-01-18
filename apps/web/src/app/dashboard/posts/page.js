@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { postApi } from '@/lib/api';
 import { toast } from 'sonner';
 import {
@@ -265,12 +266,10 @@ export default function AdminPostsPage() {
 
   return (
     <div>
-      <div className='mb-6'>
-        <h1 className='text-2xl font-bold text-foreground mb-1'>回复管理</h1>
-        <p className='text-sm text-muted-foreground'>
-          管理所有回复，支持查看和删除操作
-        </p>
-      </div>
+      <PageHeader
+        title='回复管理'
+        description='管理所有回复，支持查看和删除操作'
+      />
 
       {/* 数据表格 */}
       <DataTable

@@ -2,6 +2,7 @@
 
 import { Wallet, List as ListIcon, Coins } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/common/PageHeader';
 import { LedgerOverview } from '../../components/admin/LedgerOverview';
 import { LedgerTransactions } from '../../components/admin/LedgerTransactions';
 import { LedgerCurrencies } from '../../components/admin/LedgerCurrencies';
@@ -9,15 +10,10 @@ import { LedgerCurrencies } from '../../components/admin/LedgerCurrencies';
 export default function LedgerAdminPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground mb-2 flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
-            货币管理
-          </h1>
-          <p className="text-muted-foreground">管理系统货币类型及相关金融设置</p>
-        </div>
-      </div>
+      <PageHeader
+        title='货币管理'
+        description='管理系统货币类型及相关金融设置'
+      />
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>

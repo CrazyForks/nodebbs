@@ -8,6 +8,7 @@ import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { moderationApi } from '@/lib/api';
@@ -339,12 +340,10 @@ export default function ReportsManagement() {
 
   return (
     <div>
-      <div className='mb-6'>
-        <h1 className='text-2xl font-bold text-foreground mb-1'>举报管理</h1>
-        <p className='text-sm text-muted-foreground'>
-          管理用户提交的举报，处理违规内容
-        </p>
-      </div>
+      <PageHeader
+        title='举报管理'
+        description='管理用户提交的举报，处理违规内容'
+      />
 
       {/* 数据表格 */}
       <DataTable

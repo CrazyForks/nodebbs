@@ -11,6 +11,7 @@ import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDialog } from '@/components/common/AlertDialog';
 import { FormDialog } from '@/components/common/FormDialog';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Plus, Edit, Trash2, Loader2, Tag as TagIcon } from 'lucide-react';
 import { tagApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -151,19 +152,16 @@ export default function TagsManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold mb-2">标签管理</h2>
-          <p className="text-sm text-muted-foreground">
-            管理话题标签和分类标记
-          </p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4" />
-          创建标签
-        </Button>
-      </div>
+      <PageHeader
+        title='标签管理'
+        description='管理话题标签和分类标记'
+        actions={
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" />
+            创建标签
+          </Button>
+        }
+      />
 
       {/* Tags table */}
       <DataTable
