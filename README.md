@@ -24,48 +24,38 @@
 - **Node.js**: 22+
 
 
-### 一键部署（推荐）
+### 部署
+
+NodeBBS 提供**交互式 CLI 部署工具**，支持源码部署和镜像部署两种方式，任选其一即可。
+
+#### 方式一：源码部署（直接使用最新源码）
 
 ```bash
-# 运行交互式部署工具
-# 前置提醒：请先安装 CLI 工具
-# npm install -g nodebbs (或者使用 npx nodebbs)
-# 详情: https://www.npmjs.com/nodebbs
-
+git clone https://github.com/aiprojecthub/nodebbs.git
+cd nodebbs
 npx nodebbs
 ```
 
-脚本支持三种环境选择：
-- **标准生产环境** (2C4G+)
-- **低配环境** (1C1G/1C2G)
-- **基础环境** - 无资源限制
-
-
-## 📝 常用命令
-
-### 常用命令
+#### 方式二：镜像部署（快速启动）
 
 ```bash
-$ nodebbs
-? 选择命令:
-❯ start         启动服务
-  stop          停止服务
-  restart       重启服务
-  upgrade       升级服务
-  status        查看服务状态
-  logs          查看服务日志  [+]
-  shell         进入容器终端  [+]
-  db            数据库操作 (备份, 迁移, 种子数据等)  [+]
-  pack          生成离线部署包
-  clean         清理 Docker 缓存和残留资源
-  help          显示帮助信息
-  ❌ 退出
-
-↑↓ navigate • ⏎ select
+mkdir nodebbs && cd nodebbs
+npx nodebbs
 ```
 
-更多命令和详细说明，请访问 NodeBBS 命令行项目主页：
-https://www.npmjs.com/nodebbs
+### ℹ️ 说明
+
+* `nodebbs cli` 是一个 **交互式部署工具**，会引导你完成全部初始化配置
+* 使用前请确保已安装 CLI 工具：
+
+```bash
+npm install -g nodebbs
+# 或直接使用
+npx nodebbs
+```
+
+* CLI 详细说明与参数文档：
+  👉 [https://www.npmjs.com/nodebbs](https://www.npmjs.com/nodebbs)
 
 ## ✨ 功能预览
 

@@ -173,9 +173,9 @@ const AboutContent = () => {
                 <div>
                   <div className="flex items-center gap-2 text-sm font-medium mb-3">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs">1</span>
-                    克隆仓库
+                    克隆仓库（源码部署）
                   </div>
-                  <CodeBlock code="git clone https://github.com/anthropics/nodebbs.git" />
+                  <CodeBlock code="git clone https://github.com/aiprojecthub/nodebbs.git" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-sm font-medium mb-3">
