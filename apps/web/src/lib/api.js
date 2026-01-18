@@ -936,11 +936,13 @@ export const invitationsApi = {
   },
 };
 
-// ============= 积分系统 API =============
 // ============= 积分系统 API (Imported from Feature) =============
 export { rewardsApi } from '../extensions/rewards/api';
 export { shopApi } from '../extensions/shop/api';
 export { ledgerApi } from '../extensions/ledger/api';
+
+// ============= 广告系统 API =============
+export { adsApi } from '../extensions/ads/api';
 
 // 导出 API 客户端实例
 export default apiClient;

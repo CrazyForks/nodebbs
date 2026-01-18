@@ -29,6 +29,7 @@ import { initBadges, listBadges, cleanBadges } from './badges.js';
 import { initLedger, listCurrencies, cleanLedger } from './ledger.js';
 import { initShopItems, cleanShopItems } from './shop.js';
 import { initCaptchaProviders, listCaptchaProviders } from './captcha.js';
+import { initAdSlots, listAdSlots, cleanAds } from './ads.js';
 
 const { Pool } = pg;
 
@@ -65,6 +66,7 @@ function showHelp() {
   - 初始化邀请规则配置（user、vip、moderator、admin）
   - 初始化奖励系统配置（系统开关、获取规则、消费规则）
   - 初始化 Ledger 系统（默认货币）
+  - 初始化广告位数据（预设广告位）
 
 示例:
   # 添加缺失的配置（不覆盖现有配置）
@@ -89,6 +91,7 @@ function listAllSettings() {
   listInvitationRules();
   listCurrencies();
   listBadges();
+  listAdSlots();
 }
 
 /**
@@ -131,6 +134,9 @@ async function initAllSettings(reset = false) {
 
     // 9. 初始化 CAPTCHA 提供商配置
     const captchaResult = await initCaptchaProviders(db, reset);
+
+    // 10. 初始化广告位数据
+    const adsResult = await initAdSlots(db, reset);
 
     // 显示统计信息
     console.log('\n' + '='.repeat(80));
@@ -226,6 +232,16 @@ async function initAllSettings(reset = false) {
     }
     console.log(`  - 总计: ${captchaResult.total} 个提供商\n`);
 
+    // 广告位统计
+    console.log(`广告位统计:`);
+    if (reset) {
+      console.log(`  - 重置: ${adsResult.updatedCount} 个广告位`);
+    } else {
+      console.log(`  - 新增: ${adsResult.addedCount} 个广告位`);
+      console.log(`  - 跳过: ${adsResult.skippedCount} 个广告位（已存在）`);
+    }
+    console.log(`  - 总计: ${adsResult.total} 个广告位\n`);
+
     // 显示按分类的统计
     console.log('系统设置按分类统计:');
     Object.entries(SETTINGS_BY_CATEGORY).forEach(([category, settings]) => {
@@ -271,6 +287,8 @@ async function main() {
       await cleanShopItems(db);
       // 2. Clean Badges (and User Badges)
       await cleanBadges(db);
+      // 3. Clean Ads (and Ad Slots)
+      await cleanAds(db);
     } catch (error) {
       console.error('清空失败:', error);
     } finally {

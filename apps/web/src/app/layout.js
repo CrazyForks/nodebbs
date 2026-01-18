@@ -13,6 +13,7 @@ import ProgressBar from '@/components/common/ProgressBar';
 import { getLayoutData, generateThemeScript, getLayoutMetadata } from '@/lib/server/layout';
 import { Toaster } from '@/components/common/Toaster';
 import { ConfirmPopoverPortal } from '@/components/common/ConfirmPopover';
+import { AdsProvider } from '@/extensions/ads/components';
 
 // 强制动态渲染，因为需要读取 cookies
 export const dynamic = 'force-dynamic';
@@ -69,12 +70,14 @@ export default async function RootLayout({ children }) {
           <SettingsProvider initialSettings={settings}>
             <AuthProvider initialUser={user}>
               <ExtensionProvider activeCurrencies={activeCurrencies}>
+                <AdsProvider>
                 <ProgressBar>
                   <AppLayout apiInfo={apiInfo}>{children}</AppLayout>
                   <AutoCheckIn />
                   <Toaster/>
                   <ConfirmPopoverPortal />
                 </ProgressBar>
+                </AdsProvider>
               </ExtensionProvider>
             </AuthProvider>
           </SettingsProvider>

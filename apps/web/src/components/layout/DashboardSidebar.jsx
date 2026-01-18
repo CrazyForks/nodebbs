@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   Gift,
   Medal,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -95,7 +96,10 @@ export default function DashboardSidebar() {
         { href: '/dashboard/badges', icon: Medal, label: '勋章管理' },
       ],
     },
-    
+
+    // 运营管理 - 广告
+    { href: '/dashboard/ads', icon: Megaphone, label: '广告管理' },
+
     // 系统配置 - 独立项
     { href: '/dashboard/settings', icon: Settings, label: '系统配置' },
   ];

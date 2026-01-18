@@ -898,3 +898,6 @@ export * from '../extensions/badges/schema.js';
 
 // ============ Ledger System (账本系统) ============
 export * from '../extensions/ledger/schema.js';
+
+// ============ Ads System (广告系统) ============
+export * from '../extensions/ads/schema.js';
