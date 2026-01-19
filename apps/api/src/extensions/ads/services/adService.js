@@ -199,8 +199,8 @@ export async function createAd(data) {
       linkUrl: data.linkUrl || null,
       targetBlank: data.targetBlank !== false,
       priority: data.priority || 0,
-      startAt: data.startAt || null,
-      endAt: data.endAt || null,
+      startAt: data.startAt ? new Date(data.startAt) : null,
+      endAt: data.endAt ? new Date(data.endAt) : null,
       isActive: data.isActive !== false,
       remark: data.remark || null,
     })
@@ -222,8 +222,12 @@ export async function updateAd(id, data) {
   if (data.linkUrl !== undefined) updateData.linkUrl = data.linkUrl;
   if (data.targetBlank !== undefined) updateData.targetBlank = data.targetBlank;
   if (data.priority !== undefined) updateData.priority = data.priority;
-  if (data.startAt !== undefined) updateData.startAt = data.startAt;
-  if (data.endAt !== undefined) updateData.endAt = data.endAt;
+  if (data.startAt !== undefined) {
+    updateData.startAt = data.startAt ? new Date(data.startAt) : null;
+  }
+  if (data.endAt !== undefined) {
+    updateData.endAt = data.endAt ? new Date(data.endAt) : null;
+  }
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.remark !== undefined) updateData.remark = data.remark;
 

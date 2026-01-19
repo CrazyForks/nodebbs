@@ -410,7 +410,7 @@ export default async function adsRoutes(fastify, options) {
       return ad;
     } catch (error) {
       fastify.log.error('[广告管理] 更新广告失败:', error);
-      return reply.code(500).send({ error: '更新失败' });
+      return reply.code(500).send({ error: '更新失败', details: error.message });
     }
   });
 
