@@ -512,22 +512,39 @@ export default async function moderationRoutes(fastify, options) {
     const { type = 'all', page = 1, limit = 20, search } = request.query;
     const offset = (page - 1) * limit;
 
-    const items = [];
-
-    // 获取待审核话题（包含第一条回复的内容）
-    if (type === 'all' || type === 'topic') {
-      // 构建话题查询条件
-      const topicConditions = [eq(topics.approvalStatus, 'pending')];
-
-      // 添加搜索条件
+    // 辅助函数：构建话题查询条件（搜索时同时匹配标题和内容）
+    const buildTopicConditions = () => {
+      const conditions = [eq(topics.approvalStatus, 'pending')];
       if (search && search.trim()) {
-        topicConditions.push(
+        conditions.push(
           or(
             like(topics.title, `%${search.trim()}%`),
             like(posts.content, `%${search.trim()}%`)
           )
         );
       }
+      return conditions;
+    };
+
+    // 辅助函数：构建回复查询条件
+    const buildPostConditions = () => {
+      const conditions = [
+        eq(posts.approvalStatus, 'pending'),
+        ne(posts.postNumber, 1) // 排除第一条回复
+      ];
+      if (search && search.trim()) {
+        conditions.push(like(posts.content, `%${search.trim()}%`));
+      }
+      return conditions;
+    };
+
+    // 策略：根据 type 选择查询方式
+    // type=topic 或 type=post 时，直接分页查询
+    // type=all 时，先获取元数据列表，合并排序后分页，再批量获取详情
+
+    if (type === 'topic') {
+      // 仅查询话题
+      const topicConditions = buildTopicConditions();
 
       const pendingTopics = await db
         .select({
@@ -545,24 +562,35 @@ export default async function moderationRoutes(fastify, options) {
         .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
         .where(and(...topicConditions))
         .orderBy(desc(topics.createdAt))
-        .limit(type === 'topic' ? limit : Math.floor(limit / 2))
-        .offset(type === 'topic' ? offset : 0);
+        .limit(limit)
+        .offset(offset);
 
-      items.push(...pendingTopics);
+      // 统计总数
+      let topicCountQuery = db
+        .select({ count: count() })
+        .from(topics);
+
+      if (search && search.trim()) {
+        topicCountQuery = topicCountQuery
+          .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
+          .where(and(...topicConditions));
+      } else {
+        topicCountQuery = topicCountQuery.where(and(...topicConditions));
+      }
+
+      const [{ count: total }] = await topicCountQuery;
+
+      return {
+        items: pendingTopics,
+        page,
+        limit,
+        total
+      };
     }
 
-    // 获取待审核回复（排除第一条回复，因为第一条回复随话题一起审核）
-    if (type === 'all' || type === 'post') {
-      // 构建回复查询条件
-      const postConditions = [
-        eq(posts.approvalStatus, 'pending'),
-        ne(posts.postNumber, 1) // 排除第一条回复
-      ];
-
-      // 添加搜索条件
-      if (search && search.trim()) {
-        postConditions.push(like(posts.content, `%${search.trim()}%`));
-      }
+    if (type === 'post') {
+      // 仅查询回复
+      const postConditions = buildPostConditions();
 
       const pendingPosts = await db
         .select({
@@ -581,67 +609,118 @@ export default async function moderationRoutes(fastify, options) {
         .innerJoin(topics, eq(posts.topicId, topics.id))
         .where(and(...postConditions))
         .orderBy(desc(posts.createdAt))
-        .limit(type === 'post' ? limit : Math.floor(limit / 2))
-        .offset(type === 'post' ? offset : 0);
+        .limit(limit)
+        .offset(offset);
 
-      items.push(...pendingPosts);
-    }
-
-    // 按时间排序
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // 获取总数（应用相同的搜索条件）
-    let total = 0;
-
-    if (type === 'all' || type === 'topic') {
-      // 构建话题统计条件
-      const topicCountConditions = [eq(topics.approvalStatus, 'pending')];
-
-      if (search && search.trim()) {
-        topicCountConditions.push(
-          or(
-            like(topics.title, `%${search.trim()}%`),
-            like(posts.content, `%${search.trim()}%`)
-          )
-        );
-
-        // 对于有搜索条件的情况，需要join posts表
-        const [{ count: topicCount }] = await db
-          .select({ count: count() })
-          .from(topics)
-          .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
-          .where(and(...topicCountConditions));
-        total += topicCount;
-      } else {
-        // 没有搜索条件时，直接统计
-        const [{ count: topicCount }] = await db
-          .select({ count: count() })
-          .from(topics)
-          .where(and(...topicCountConditions));
-        total += topicCount;
-      }
-    }
-
-    if (type === 'all' || type === 'post') {
-      // 构建回复统计条件
-      const postCountConditions = [
-        eq(posts.approvalStatus, 'pending'),
-        ne(posts.postNumber, 1) // 排除第一条回复
-      ];
-
-      if (search && search.trim()) {
-        postCountConditions.push(like(posts.content, `%${search.trim()}%`));
-      }
-
-      const [{ count: postCount }] = await db
+      const [{ count: total }] = await db
         .select({ count: count() })
         .from(posts)
-        .where(and(...postCountConditions));
-      total += postCount;
+        .where(and(...postConditions));
+
+      return {
+        items: pendingPosts,
+        page,
+        limit,
+        total
+      };
     }
 
+    // type === 'all'：合并查询策略
+    // 步骤1：获取话题和回复的元数据（ID + createdAt）
+    const topicConditions = buildTopicConditions();
+    const postConditions = buildPostConditions();
+
+    // 获取话题元数据
+    const topicMeta = await db
+      .select({
+        id: topics.id,
+        createdAt: topics.createdAt
+      })
+      .from(topics)
+      .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
+      .where(and(...topicConditions));
+
+    // 获取回复元数据
+    const postMeta = await db
+      .select({
+        id: posts.id,
+        createdAt: posts.createdAt
+      })
+      .from(posts)
+      .where(and(...postConditions));
+
+    // 步骤2：合并并添加类型标记
+    const allMeta = [
+      ...topicMeta.map(t => ({ ...t, itemType: 'topic' })),
+      ...postMeta.map(p => ({ ...p, itemType: 'post' }))
+    ];
+
+    // 步骤3：按时间降序排序
+    allMeta.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 步骤4：分页
+    const total = allMeta.length;
+    const pagedMeta = allMeta.slice(offset, offset + limit);
+
+    // 步骤5：根据分页后的 ID 批量获取详情
+    const topicIds = pagedMeta.filter(m => m.itemType === 'topic').map(m => m.id);
+    const postIds = pagedMeta.filter(m => m.itemType === 'post').map(m => m.id);
+
+    const items = [];
+
+    // 批量获取话题详情
+    if (topicIds.length > 0) {
+      const topicDetails = await db
+        .select({
+          id: topics.id,
+          type: sql`'topic'`,
+          title: topics.title,
+          content: sql`LEFT(${posts.content}, 200)`,
+          username: users.username,
+          userId: users.id,
+          createdAt: topics.createdAt,
+          categoryName: sql`NULL`
+        })
+        .from(topics)
+        .innerJoin(users, eq(topics.userId, users.id))
+        .leftJoin(posts, and(eq(posts.topicId, topics.id), eq(posts.postNumber, 1)))
+        .where(inArray(topics.id, topicIds));
+
+      items.push(...topicDetails);
+    }
+
+    // 批量获取回复详情
+    if (postIds.length > 0) {
+      const postDetails = await db
+        .select({
+          id: posts.id,
+          type: sql`'post'`,
+          title: sql`NULL`,
+          content: sql`LEFT(${posts.content}, 200)`,
+          username: users.username,
+          userId: users.id,
+          createdAt: posts.createdAt,
+          topicId: posts.topicId,
+          topicTitle: topics.title
+        })
+        .from(posts)
+        .innerJoin(users, eq(posts.userId, users.id))
+        .innerJoin(topics, eq(posts.topicId, topics.id))
+        .where(inArray(posts.id, postIds));
+
+      items.push(...postDetails);
+    }
+
+    // 步骤6：按元数据的顺序重新排序（保持分页顺序）
+    const idOrderMap = new Map(pagedMeta.map((m, idx) => [`${m.itemType}-${m.id}`, idx]));
+    items.sort((a, b) => {
+      const keyA = `${a.type}-${a.id}`;
+      const keyB = `${b.type}-${b.id}`;
+      return idOrderMap.get(keyA) - idOrderMap.get(keyB);
+    });
+
     return {
-      items: items.slice(0, limit),
+      items,
       page,
       limit,
       total
