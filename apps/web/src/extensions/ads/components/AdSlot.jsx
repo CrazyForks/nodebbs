@@ -1,8 +1,93 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAds } from '../contexts/AdsContext';
 import { cn } from '@/lib/utils';
+
+/**
+ * 单个广告项组件，处理展示上报逻辑
+ */
+function AdItem({ ad, slot, isBanner, recordClick, recordImpression }) {
+  const observerRef = useRef(null);
+  const hasRecorded = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasRecorded.current) {
+            hasRecorded.current = true;
+            recordImpression(ad.id);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [ad.id, recordImpression]);
+
+  const handleClick = () => recordClick(ad.id);
+
+  let content = null;
+
+  switch (ad.type) {
+    case 'image':
+      content = (
+        <a
+          href={ad.linkUrl || '#'}
+          target={ad.targetBlank ? '_blank' : '_self'}
+          rel={ad.targetBlank ? 'noopener noreferrer' : undefined}
+          onClick={handleClick}
+          className="block"
+        >
+          <img
+            src={ad.content}
+            alt={ad.title}
+            loading="lazy"
+            decoding="async"
+            className={cn(
+              'block mx-auto w-full h-auto',
+              isBanner ? 'object-cover' : 'object-contain'
+            )}
+            style={{
+              ...(isBanner ? { maxHeight: `${slot.height}px` } : { maxWidth: `${slot.width}px` }),
+              willChange: 'transform',
+              transform: 'translateZ(0)',
+            }}
+          />
+        </a>
+      );
+      break;
+
+    case 'html':
+      content = (
+        <div
+          onClick={handleClick}
+          dangerouslySetInnerHTML={{ __html: ad.content }}
+        />
+      );
+      break;
+
+    case 'script':
+      content = <ScriptAd ad={ad} />;
+      break;
+
+    default:
+      return null;
+  }
+
+  return (
+    <div ref={observerRef} className="ad-item-wrapper w-full h-full">
+      {content}
+    </div>
+  );
+}
 
 /**
  * 广告展示组件
@@ -13,60 +98,10 @@ import { cn } from '@/lib/utils';
  * @param {'cover' | 'contain' | 'fill' | 'none' | 'scale-down'} [props.imageFit='cover'] - 图片填充模式
  */
 export default function AdSlot({ slotCode, className, showEmpty = false, imageFit = 'cover' }) {
-  const { slot, ads, loading, error, recordClick } = useAds(slotCode);
+  const { slot, ads, loading, error, recordClick, recordImpression } = useAds(slotCode);
 
   // 判断是否为横幅广告（宽高比 > 2）
   const isBanner = slot?.width && slot?.height && slot.width / slot.height > 2;
-
-  // 渲染单个广告
-  const renderAd = (ad) => {
-    const handleClick = () => recordClick(ad.id);
-
-    switch (ad.type) {
-      case 'image':
-        return (
-          <a
-            key={ad.id}
-            href={ad.linkUrl || '#'}
-            target={ad.targetBlank ? '_blank' : '_self'}
-            rel={ad.targetBlank ? 'noopener noreferrer' : undefined}
-            onClick={handleClick}
-            className="block"
-          >
-            <img
-              src={ad.content}
-              alt={ad.title}
-              loading="lazy"
-              decoding="async"
-              className={cn(
-                'block mx-auto w-full h-auto',
-                isBanner ? 'object-cover' : 'object-contain'
-              )}
-              style={{
-                ...(isBanner ? { maxHeight: `${slot.height}px` } : { maxWidth: `${slot.width}px` }),
-                willChange: 'transform',
-                transform: 'translateZ(0)',
-              }}
-            />
-          </a>
-        );
-
-      case 'html':
-        return (
-          <div
-            key={ad.id}
-            onClick={handleClick}
-            dangerouslySetInnerHTML={{ __html: ad.content }}
-          />
-        );
-
-      case 'script':
-        return <ScriptAd key={ad.id} ad={ad} onLoad={handleClick} />;
-
-      default:
-        return null;
-    }
-  };
 
   // 加载中不显示
   if (loading) {
@@ -106,7 +141,16 @@ export default function AdSlot({ slotCode, className, showEmpty = false, imageFi
         containIntrinsicSize: slot ? `${slot.width}px ${slot.height}px` : 'auto',
       }}
     >
-      {ads.map(renderAd)}
+      {ads.map((ad) => (
+        <AdItem 
+          key={ad.id} 
+          ad={ad} 
+          slot={slot} 
+          isBanner={isBanner} 
+          recordClick={recordClick}
+          recordImpression={recordImpression}
+        />
+      ))}
     </div>
   );
 }

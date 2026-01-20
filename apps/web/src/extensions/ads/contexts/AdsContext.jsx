@@ -51,15 +51,6 @@ export function AdsProvider({ preloadSlots = [], children }) {
         },
       }));
 
-      // 记录广告展示
-      if (result.ads && result.ads.length > 0) {
-        result.ads.forEach((ad) => {
-          if (!impressionTracked.current.has(ad.id)) {
-            impressionTracked.current.add(ad.id);
-            adsApi.recordImpression(ad.id).catch(() => {});
-          }
-        });
-      }
 
       return result;
     } catch (error) {
@@ -84,6 +75,15 @@ export function AdsProvider({ preloadSlots = [], children }) {
   const recordClick = useCallback((adId) => {
     if (adId) {
       adsApi.recordClick(adId).catch(() => {});
+    }
+  }, []);
+
+  /**
+   * 记录广告展示 (提供给组件调用)
+   */
+  const recordImpression = useCallback((adId) => {
+    if (adId) {
+      adsApi.recordImpression(adId).catch(() => {});
     }
   }, []);
 
@@ -125,6 +125,7 @@ export function AdsProvider({ preloadSlots = [], children }) {
     slotsData,
     fetchSlotAds,
     recordClick,
+    recordImpression,
     refreshSlot,
     refreshAll,
     isSlotRequested,
@@ -150,7 +151,7 @@ export function useAdsContext() {
  * @returns {{ slot: Object|null, ads: Array, loading: boolean, error: Error|null, refresh: Function, recordClick: Function }}
  */
 export function useAds(slotCode) {
-  const { slotsData, fetchSlotAds, recordClick, refreshSlot, isSlotRequested } = useAdsContext();
+  const { slotsData, fetchSlotAds, recordClick, recordImpression, refreshSlot, isSlotRequested } = useAdsContext();
 
   const slotData = slotsData[slotCode] || {
     slot: null,
@@ -174,5 +175,6 @@ export function useAds(slotCode) {
     ...slotData,
     refresh,
     recordClick,
+    recordImpression,
   };
 }
