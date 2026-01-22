@@ -1,7 +1,7 @@
 import { visit } from 'unist-util-visit';
 
 // 允许的 directive 名称白名单
-const ALLOWED_DIRECTIVES = ['video', 'audio'];
+const ALLOWED_DIRECTIVES = ['video', 'audio', 'sticker', 'poll'];
 
 /**
  * 这个插件用于还原非预期的 directive 节点为原始文本
@@ -43,7 +43,22 @@ export default function remarkRestoreDirectives() {
  * @returns {string} 原始文本
  */
 function reconstructDirectiveText(node) {
-  let text = ':' + node.name;
+  // 根据节点类型确定正确的前缀
+  let prefix = ':';
+  if (node.type === 'leafDirective') prefix = '::';
+  if (node.type === 'containerDirective') prefix = ':::';
+  
+  let text = prefix + node.name;
+  
+  // 还原属性（如果有）
+  const attributes = node.attributes || {};
+  const attrKeys = Object.keys(attributes);
+  if (attrKeys.length > 0) {
+    const attrStr = attrKeys
+      .map(key => `${key}="${attributes[key]}"`)
+      .join(' ');
+    text += `{${attrStr}}`;
+  }
   
   // 处理子节点内容
   if (node.children && node.children.length > 0) {
@@ -53,13 +68,23 @@ function reconstructDirectiveText(node) {
           return child.value || '';
         }
         // 递归处理嵌套的 directive
-        if (child.type === 'textDirective') {
+        if (
+          child.type === 'textDirective' ||
+          child.type === 'leafDirective' ||
+          child.type === 'containerDirective'
+        ) {
           return reconstructDirectiveText(child);
         }
         return '';
       })
       .join('');
-    text += childText;
+    
+    // textDirective 子节点用 [] 包裹
+    if (node.type === 'textDirective' && childText) {
+      text += `[${childText}]`;
+    } else {
+      text += childText;
+    }
   }
   
   return text;

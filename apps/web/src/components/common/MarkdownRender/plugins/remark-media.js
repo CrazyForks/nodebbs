@@ -16,11 +16,14 @@ export default function remarkMedia() {
         // Ensure src exists
         if (!attributes.src && !attributes.url) return;
 
+        // 解构分离 src/url，避免剩余属性覆盖
+        const { src, url, ...restAttributes } = attributes;
+        
         data.hName = node.name; // 'video' or 'audio'
         data.hProperties = {
-          src: attributes.src || attributes.url,
+          src: src || url,
           controls: true,
-          ...attributes,
+          ...restAttributes,
         };
       }
     });

@@ -506,3 +506,14 @@ html {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--primary) 40%, transparent) transparent;
 }
+
+/* 行内表情包样式 */
+.inline-sticker {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0.125em;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
