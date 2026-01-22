@@ -1,6 +1,6 @@
 import db from '../../../db/index.js';
 import { adSlots, ads } from '../schema.js';
-import { eq, and, desc, asc, lte, gte, or, isNull, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, lte, gte, or, isNull, sql, count, inArray } from 'drizzle-orm';
 
 // ============ 广告位服务 ============
 
@@ -279,6 +279,70 @@ export async function getActiveAdsBySlotCode(slotCode) {
     slot,
     ads: result,
   };
+}
+
+/**
+ * 获取多个广告位的有效广告 (Batch)
+ * @param {string[]} slotCodes
+ */
+export async function getActiveAdsBySlotCodes(slotCodes) {
+  const now = new Date();
+
+  // 1. 获取所有相关的广告位
+  const slots = await db
+    .select()
+    .from(adSlots)
+    .where(and(
+      inArray(adSlots.code, slotCodes),
+      eq(adSlots.isActive, true)
+    ));
+
+  if (slots.length === 0) {
+    // 即使没有找到任何 slots，也应该返回默认结构
+    const result = {};
+    slotCodes.forEach(code => {
+      result[code] = { slot: null, ads: [] };
+    });
+    return result;
+  }
+
+  const slotIds = slots.map(s => s.id);
+
+  // 2. 获取这些广告位下的有效广告
+  const allAds = await db
+    .select()
+    .from(ads)
+    .where(
+      and(
+        inArray(ads.slotId, slotIds),
+        eq(ads.isActive, true),
+        or(isNull(ads.startAt), lte(ads.startAt, now)),
+        or(isNull(ads.endAt), gte(ads.endAt, now))
+      )
+    )
+    .orderBy(desc(ads.priority), desc(ads.createdAt));
+
+  // 3. 组装结果
+  const result = {};
+  
+  // 初始化所有请求的 slotCode 为空结果
+  slotCodes.forEach(code => {
+    result[code] = { slot: null, ads: [] };
+  });
+
+  // 填充实际数据
+  slots.forEach(slot => {
+    const slotAds = allAds
+      .filter(ad => ad.slotId === slot.id)
+      .slice(0, slot.maxAds); // 应用 maxAds 限制
+      
+    result[slot.code] = {
+      slot,
+      ads: slotAds
+    };
+  });
+
+  return result;
 }
 
 /**

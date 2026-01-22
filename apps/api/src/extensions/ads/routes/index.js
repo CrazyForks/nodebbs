@@ -11,12 +11,62 @@ import {
   updateAd,
   deleteAd,
   getActiveAdsBySlotCode,
+  getActiveAdsBySlotCodes,
   recordImpression,
   recordClick,
 } from '../services/adService.js';
 
+/**
+ * 过滤敏感字段 (点击量、展示量、备注)
+ */
+function sanitizeAd(ad) {
+  if (!ad) return null;
+  const { impressions, clicks, remark, ...safeAd } = ad;
+  return safeAd;
+}
+
 export default async function adsRoutes(fastify, options) {
   // ============ 公开接口 (保持不变) ============
+
+  // 获取多个广告位的广告（Batch）
+  fastify.get('/display/batch', {
+    schema: {
+      tags: ['ads'],
+      description: '批量获取广告位的有效广告',
+      querystring: {
+        type: 'object',
+        required: ['slots'],
+        properties: {
+          slots: { type: 'string', description: '逗号分隔的广告位代码' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { slots } = request.query;
+      if (!slots) {
+        return {};
+      }
+      const slotCodes = slots.split(',').map(s => s.trim()).filter(Boolean);
+      if (slotCodes.length === 0) {
+        return {};
+      }
+      
+      const result = await getActiveAdsBySlotCodes(slotCodes);
+      
+      // 过滤敏感信息
+      Object.keys(result).forEach(key => {
+        if (result[key] && result[key].ads) {
+          result[key].ads = result[key].ads.map(sanitizeAd);
+        }
+      });
+
+      return result;
+    } catch (error) {
+      fastify.log.error('[广告] 批量获取广告失败:', error);
+      return reply.code(500).send({ error: '获取失败' });
+    }
+  });
 
   // 获取指定广告位的广告（用于前端展示）
   fastify.get('/display/:slotCode', {
@@ -35,6 +85,12 @@ export default async function adsRoutes(fastify, options) {
     try {
       const { slotCode } = request.params;
       const result = await getActiveAdsBySlotCode(slotCode);
+
+      // 过滤敏感信息
+      if (result && result.ads) {
+        result.ads = result.ads.map(sanitizeAd);
+      }
+
       return result;
     } catch (error) {
       fastify.log.error('[广告] 获取广告位广告失败:', error);
@@ -94,10 +150,10 @@ export default async function adsRoutes(fastify, options) {
 
   // 获取广告位列表
   fastify.get('/slots', {
-    preHandler: [fastify.optionalAuth],
+    preHandler: [fastify.requireAdmin],
     schema: {
-      tags: ['ads'],
-      description: '获取广告位列表',
+      tags: ['ads', 'admin'],
+      description: '获取广告位列表（仅管理员）',
       querystring: {
         type: 'object',
         properties: {
@@ -109,8 +165,7 @@ export default async function adsRoutes(fastify, options) {
     try {
       const { includeInactive: includeInactiveParam } = request.query;
       
-      const isAdmin = request.user?.role === 'admin';
-      const includeInactive = isAdmin && (includeInactiveParam === true || includeInactiveParam === 'true');
+      const includeInactive = includeInactiveParam === true || includeInactiveParam === 'true';
       
       const slots = await getAdSlots({ includeInactive });
       return slots;
@@ -122,10 +177,10 @@ export default async function adsRoutes(fastify, options) {
 
   // 获取单个广告位
   fastify.get('/slots/:id', {
-    preHandler: [fastify.optionalAuth],
+    preHandler: [fastify.requireAdmin],
     schema: {
-      tags: ['ads'],
-      description: '获取单个广告位',
+      tags: ['ads', 'admin'],
+      description: '获取单个广告位（仅管理员）',
       params: {
         type: 'object',
         required: ['id'],
@@ -140,13 +195,6 @@ export default async function adsRoutes(fastify, options) {
       const slot = await getAdSlotById(id);
       
       if (!slot) {
-        return reply.code(404).send({ error: '广告位不存在' });
-      }
-
-      const isAdmin = request.user?.role === 'admin';
-      
-      // 如果未激活且非管理员，返回 404
-      if (!slot.isActive && !isAdmin) {
         return reply.code(404).send({ error: '广告位不存在' });
       }
 
@@ -274,10 +322,10 @@ export default async function adsRoutes(fastify, options) {
 
   // 获取广告列表
   fastify.get('/', {
-    preHandler: [fastify.optionalAuth],
+    preHandler: [fastify.requireAdmin],
     schema: {
-      tags: ['ads'],
-      description: '获取广告列表',
+      tags: ['ads', 'admin'],
+      description: '获取广告列表（仅管理员）',
       querystring: {
         type: 'object',
         properties: {
@@ -293,8 +341,7 @@ export default async function adsRoutes(fastify, options) {
   }, async (request, reply) => {
     try {
       const { page, limit, slotId, type, isActive, includeInactive: includeInactiveParam } = request.query;
-      const isAdmin = request.user?.role === 'admin';
-      const includeInactive = isAdmin && (includeInactiveParam === true || includeInactiveParam === 'true');
+      const includeInactive = includeInactiveParam === true || includeInactiveParam === 'true';
 
       const queryParams = {
         slotId,
@@ -304,20 +351,7 @@ export default async function adsRoutes(fastify, options) {
         includeInactive
       };
 
-      if (isAdmin) {
-        if (isActive !== undefined) queryParams.isActive = isActive;
-      } else {
-        // 非管理员：
-        // 1. 如果请求 isActive=false，返回空（不允许看非激活）
-        // 2. 如果请求 isActive=true，允许
-        // 3. 如果未指定，includeInactive=false 会确保只返回激活的
-        if (isActive === false) {
-          return { items: [], total: 0, page, limit, totalPages: 0 };
-        }
-        if (isActive === true) {
-          queryParams.isActive = true;
-        }
-      }
+      if (isActive !== undefined) queryParams.isActive = isActive;
 
       const result = await getAds(queryParams);
       return result;
@@ -329,10 +363,10 @@ export default async function adsRoutes(fastify, options) {
 
   // 获取单个广告
   fastify.get('/:id', {
-    preHandler: [fastify.optionalAuth],
+    preHandler: [fastify.requireAdmin],
     schema: {
-      tags: ['ads'],
-      description: '获取单个广告',
+      tags: ['ads', 'admin'],
+      description: '获取单个广告（仅管理员）',
       params: {
         type: 'object',
         required: ['id'],
@@ -347,13 +381,6 @@ export default async function adsRoutes(fastify, options) {
       const ad = await getAdById(id);
       
       if (!ad) {
-        return reply.code(404).send({ error: '广告不存在' });
-      }
-
-      const isAdmin = request.user?.role === 'admin';
-      
-      // 如果未激活且非管理员，返回 404
-      if (!ad.isActive && !isAdmin) {
         return reply.code(404).send({ error: '广告不存在' });
       }
 

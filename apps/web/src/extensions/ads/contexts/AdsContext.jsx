@@ -19,55 +19,124 @@ export function AdsProvider({ preloadSlots = [], children }) {
   // 已请求过的广告位（防止重复请求）
   const requestedSlots = useRef(new Set());
 
+  // 批量请求队列和定时器
+  const batchQueue = useRef([]);
+  const batchTimeout = useRef(null);
+
   /**
-   * 获取指定广告位的广告数据
+   * 处理批量请求队列
    */
-  const fetchSlotAds = useCallback(async (slotCode) => {
-    if (!slotCode) return;
+  const processBatch = useCallback(async () => {
+    // 取出队列中的所有项
+    const queueItems = [...batchQueue.current];
+    batchQueue.current = []; // 清空队列
 
-    // 标记已请求
-    requestedSlots.current.add(slotCode);
+    if (queueItems.length === 0) return;
 
-    // 设置加载状态
-    setSlotsData((prev) => ({
-      ...prev,
-      [slotCode]: {
-        ...prev[slotCode],
-        loading: true,
-        error: null,
-      },
-    }));
+    // 提取唯一的 slotCodes
+    const uniqueSlotCodes = [...new Set(queueItems.map((item) => item.code))];
+
+    // 1. 批量设置加载状态 (触发一次重渲染)
+    setSlotsData((prev) => {
+      const next = { ...prev };
+      uniqueSlotCodes.forEach((code) => {
+        next[code] = {
+          ...(next[code] || {}),
+          loading: true,
+          error: null,
+        };
+      });
+      return next;
+    });
 
     try {
-      const result = await adsApi.getAdsBySlot(slotCode);
+      // 2. 发起批量 API 请求
+      const results = await adsApi.getAdsBySlots(uniqueSlotCodes);
 
-      setSlotsData((prev) => ({
-        ...prev,
-        [slotCode]: {
-          slot: result.slot,
-          ads: result.ads || [],
-          loading: false,
-          error: null,
-        },
-      }));
+      // 3. 批量更新成功状态 (触发一次重渲染)
+      setSlotsData((prev) => {
+        const next = { ...prev };
 
+        // 更新返回的数据
+        Object.entries(results).forEach(([code, data]) => {
+          next[code] = {
+            ...(next[code] || {}),
+            slot: data.slot,
+            ads: data.ads || [],
+            loading: false,
+            error: null,
+          };
+        });
 
-      return result;
+        // 处理未返回数据的 slot (防御性处理)
+        uniqueSlotCodes.forEach((code) => {
+          if (!results[code]) {
+            next[code] = {
+              ...(next[code] || {}),
+              slot: null,
+              ads: [],
+              loading: false,
+              error: null,
+            };
+          }
+        });
+
+        return next;
+      });
+
+      // 4. Resolve 所有相关的 Promise
+      queueItems.forEach(({ code, resolve }) => {
+        resolve(results[code] || { slot: null, ads: [] });
+      });
     } catch (error) {
-      console.error(`获取广告位 ${slotCode} 失败:`, error);
+      console.error('批量获取广告失败:', error);
 
-      setSlotsData((prev) => ({
-        ...prev,
-        [slotCode]: {
-          ...prev[slotCode],
-          loading: false,
-          error,
-        },
-      }));
+      // 批量更新错误状态
+      setSlotsData((prev) => {
+        const next = { ...prev };
+        uniqueSlotCodes.forEach((code) => {
+          next[code] = {
+            ...(next[code] || {}),
+            loading: false,
+            error,
+          };
+        });
+        return next;
+      });
 
-      return null;
+      // Reject 所有相关的 Promise
+      queueItems.forEach(({ reject }) => {
+        reject(error);
+      });
     }
   }, []);
+
+  /**
+   * 获取指定广告位的广告数据 (加入批量队列)
+   */
+  const fetchSlotAds = useCallback((slotCode) => {
+    return new Promise((resolve, reject) => {
+      if (!slotCode) {
+        resolve(null);
+        return;
+      }
+
+      // 标记为已请求
+      requestedSlots.current.add(slotCode);
+
+      // 加入队列
+      batchQueue.current.push({ code: slotCode, resolve, reject });
+
+      // 重置定时器 (防抖 50ms)
+      if (batchTimeout.current) {
+        clearTimeout(batchTimeout.current);
+      }
+
+      batchTimeout.current = setTimeout(() => {
+        processBatch();
+      }, 50);
+    });
+  }, [processBatch]);
 
   /**
    * 记录广告点击
@@ -91,6 +160,10 @@ export function AdsProvider({ preloadSlots = [], children }) {
    * 刷新指定广告位
    */
   const refreshSlot = useCallback((slotCode) => {
+    // 强制刷新：先移除已请求标记
+    if (requestedSlots.current.has(slotCode)) {
+      requestedSlots.current.delete(slotCode);
+    }
     return fetchSlotAds(slotCode);
   }, [fetchSlotAds]);
 

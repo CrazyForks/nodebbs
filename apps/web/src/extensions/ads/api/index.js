@@ -7,6 +7,12 @@ export const adsApi = {
     return apiClient.get(`/ads/display/${slotCode}`);
   },
 
+  // 批量获取广告位的广告
+  async getAdsBySlots(slotCodes) {
+    if (!slotCodes || slotCodes.length === 0) return {};
+    return apiClient.get('/ads/display/batch', { slots: slotCodes.join(',') });
+  },
+
   // 记录广告展示
   async recordImpression(adId) {
     return apiClient.post(`/ads/${adId}/impression`);
