@@ -66,7 +66,6 @@ export default function UserWalletPage() {
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
