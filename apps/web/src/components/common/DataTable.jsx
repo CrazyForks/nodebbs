@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Inbox } from 'lucide-react';
+import { Search, Inbox, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Pager } from './Pagination';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -161,7 +161,18 @@ export function DataTable({
       )}
 
       {/* 表格容器 */}
-      <div className='relative bg-card/40 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden transition-all hover:border-border/80'>
+      <div className='relative bg-card/40 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden transition-all hover:border-border/80 group'>
+        
+        {/* Loading Overlay - 仅在非初始加载（已有数据）时显示 */}
+        {loading && data.length > 0 && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px] transition-all duration-300">
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-background/80 animate-in fade-in zoom-in-95 duration-200">
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              <span className="text-xs font-medium text-muted-foreground">加载中...</span>
+            </div>
+          </div>
+        )}
+
         <TableWrapper>
           <TableHeader className="bg-muted/30">
             <TableRow className="hover:bg-transparent border-b border-border/50">
@@ -180,8 +191,8 @@ export function DataTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              // Skeleton Loading State
+            {loading && data.length === 0 ? (
+              // Skeleton Loading State - 仅在初始加载（无数据）时显示
               Array.from({ length: Math.max(pagination?.limit || 5, 5) }).map((_, rowIndex) => (
                 <TableRow key={`skeleton-${rowIndex}`} className="border-b border-border/40 hover:bg-transparent">
                   {columns.map((column, colIndex) => (
@@ -217,10 +228,11 @@ export function DataTable({
               data.map((row, rowIndex) => (
                 <TableRow
                   key={row.id || rowIndex}
-                  onClick={() => onRowClick?.(row)}
+                  onClick={() => !loading && onRowClick?.(row)}
                   className={cn(
                     'group border-b border-border/40 transition-all duration-200',
-                    onRowClick ? 'cursor-pointer hover:bg-accent/40 hover:shadow-sm' : 'hover:bg-accent/50'
+                    onRowClick ? 'cursor-pointer hover:bg-accent/40 hover:shadow-sm' : 'hover:bg-accent/50',
+                    loading && 'opacity-50 pointer-events-none' // 加载时禁用交互但保持可见
                   )}
                 >
                   {columns.map((column) => (
