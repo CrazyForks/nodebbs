@@ -1,8 +1,11 @@
 /**
  * GitHub OAuth 路由
  */
-import { normalizeOAuthProfile } from '../helpers.js';
-import { generateRandomState, handleOAuthLogin } from '../helpers.js';
+import { 
+  normalizeOAuthProfile, 
+  generateRandomState, 
+  handleOAuthLogin 
+} from '../../../services/oauthService.js';
 import { isProd } from '../../../utils/env.js';
 
 /**

@@ -1,8 +1,11 @@
 /**
  * 微信 OAuth 路由（开放平台、公众号、小程序）
  */
-import { normalizeOAuthProfile } from '../helpers.js';
-import { generateRandomState, handleOAuthLogin } from '../helpers.js';
+import { 
+  normalizeOAuthProfile, 
+  generateRandomState, 
+  handleOAuthLogin 
+} from '../../../services/oauthService.js';
 import { isProd } from '../../../utils/env.js';
 
 /**

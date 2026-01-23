@@ -1,12 +1,15 @@
 /**
- * OAuth 路由通用辅助函数
+ * OAuth 通用服务
+ * 
+ * 原：apps/api/src/routes/oauth/helpers.js
+ * 迁移原因：职责分离，将业务逻辑从路由层移至服务层
  */
-import db from '../../db/index.js';
-import { users, accounts } from '../../db/schema.js';
+import db from '../db/index.js';
+import { users, accounts } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
-import { normalizeEmail } from '../../utils/normalization.js';
-import { getSetting } from '../../services/settings.js';
+import { normalizeEmail } from '../utils/normalization.js';
+import { getSetting } from './settings.js';
 
 /**
  * 生成随机 state 参数
