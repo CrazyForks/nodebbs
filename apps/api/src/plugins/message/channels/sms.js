@@ -9,7 +9,7 @@ import db from '../../../db/index.js';
 import { messageProviders } from '../schema.js';
 import { smsProviderSenders } from '../providers/sms/index.js';
 import { getSmsTemplate } from '../templates/sms/index.js';
-import { isDev } from '../../../utils/env.js';
+import { isDev } from '../../../config/env.js';
 
 export class SmsChannel extends BaseChannel {
   constructor(fastify) {

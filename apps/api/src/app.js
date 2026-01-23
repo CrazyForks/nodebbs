@@ -2,11 +2,11 @@
 
 import Fastify from 'fastify';
 import server from './server.js';
-import { isDev } from './utils/env.js';
+import env from './config/env.js';
 
 const logger = {
-  level: isDev ? 'debug' : 'info',
-  transport: isDev
+  level: env.isDev ? 'debug' : 'info',
+  transport: env.isDev
     ? {
         target: 'pino-pretty',
         options: {
@@ -27,7 +27,7 @@ const app = Fastify({
 app.register(server);
 
 app.listen(
-  { port: process.env.PORT || 7100, host: process.env.HOST || '0.0.0.0' },
+  { port: env.app.port, host: env.app.host },
   (err, address) => {
     if (err) {
       app.log.error(err);

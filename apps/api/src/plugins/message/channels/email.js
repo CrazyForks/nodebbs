@@ -9,7 +9,7 @@ import db from '../../../db/index.js';
 import { messageProviders } from '../schema.js';
 import { emailProviderSenders } from '../providers/email/index.js';
 import { getEmailTemplate } from '../templates/email/index.js';
-import { isDev } from '../../../utils/env.js';
+import { isDev } from '../../../config/env.js';
 
 export class EmailChannel extends BaseChannel {
   constructor(fastify) {

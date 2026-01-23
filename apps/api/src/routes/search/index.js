@@ -1,7 +1,7 @@
 import db from '../../db/index.js';
 import { topics, posts, users, categories, blockedUsers } from '../../db/schema.js';
 import { eq, sql, desc, and, or, like, ilike, not, inArray, count } from 'drizzle-orm';
-import { isDev } from '../../utils/env.js';
+import { isDev } from '../../config/env.js';
 
 export default async function searchRoutes(fastify, options) {
   // Global search

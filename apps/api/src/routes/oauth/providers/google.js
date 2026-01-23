@@ -6,7 +6,7 @@ import {
   generateRandomState, 
   handleOAuthLogin 
 } from '../../../services/oauthService.js';
-import { isProd } from '../../../utils/env.js';
+import { isProd } from '../../../config/env.js';
 import jwt from 'jsonwebtoken';
 
 /**

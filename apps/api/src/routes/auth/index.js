@@ -22,7 +22,7 @@ import {
 import { normalizeEmail, normalizeIdentifier, normalizeUsername } from '../../utils/normalization.js';
 import { checkSpammer, formatSpamCheckMessage } from '../../services/spamService.js';
 import qrLoginRoutes from './qr-login.js';
-import { isDev } from '../../utils/env.js';
+import { isDev } from '../../config/env.js';
 import { DEFAULT_CURRENCY_CODE } from '../../extensions/ledger/constants.js';
 
 export default async function authRoutes(fastify, options) {

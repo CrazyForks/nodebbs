@@ -1,9 +1,10 @@
 import fp from 'fastify-plugin'
 import fastifyRedis from '@fastify/redis'
+import env from '../config/env.js'
 
 export const redisPlugin = async (fastify) => {
   fastify.register(fastifyRedis, {
-    url: process.env.REDIS_URL,
+    url: env.redis.url,
     // 可选：配置 ioredis 原生选项
     connectTimeout: 5000,
     maxRetriesPerRequest: 3,

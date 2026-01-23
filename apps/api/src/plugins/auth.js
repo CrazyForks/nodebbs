@@ -5,19 +5,19 @@ import db from '../db/index.js';
 import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import ms from 'ms';
-import { isProd } from '../utils/env.js';
+import env from '../config/env.js';
 import { ROLE_ADMIN, ROLE_MODERATOR } from '../constants/roles.js';
 
 async function authPlugin(fastify) {
   // 注册 Cookie 插件
   await fastify.register(import('@fastify/cookie'), {
-    secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'cookie-secret-change-this',
+    secret: env.security.cookieSecret,
     parseOptions: {} 
   });
 
   // 设置 Auth Cookie 的辅助函数
   fastify.decorateReply('setAuthCookie', function(token) {
-    const expiresIn = process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '7d';
+    const expiresIn = env.security.jwtExpiresIn;
     
     this.setCookie('auth_token', token, {
       path: '/',
@@ -25,11 +25,11 @@ async function authPlugin(fastify) {
       // 开发环境：
       // - Secure: 自动检测 (HTTPS时为true，HTTP时为false)
       // - SameSite: Lax (localhost 不同端口视为同站，允许发送)
-      secure: process.env.COOKIE_SECURE !== undefined 
-        ? process.env.COOKIE_SECURE === 'true' 
+      secure: env.security.cookieSecure !== undefined 
+        ? env.security.cookieSecure
         : this.request.protocol === 'https',
-      sameSite: process.env.COOKIE_SAMESITE || 'lax',
-      domain: process.env.COOKIE_DOMAIN || undefined, // 生产环境如果是子域名部署，需要设置主域名 (如 .example.com)
+      sameSite: env.security.cookieSameSite,
+      domain: env.security.cookieDomain, // 生产环境如果是子域名部署，需要设置主域名 (如 .example.com)
       maxAge: ms(expiresIn) / 1000,
     });
   });
@@ -43,18 +43,18 @@ async function authPlugin(fastify) {
 
   // 注册 JWT 插件
   await fastify.register(jwt, {
-    secret: process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
+    secret: env.security.jwtSecret,
     cookie: {
       cookieName: 'auth_token',
       signed: false,
     },
     sign: {
-      expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '7d'
+      expiresIn: env.security.jwtExpiresIn
     }
   });
 
   // 用户信息缓存 TTL（秒）- 默认 2 分钟
-  const USER_CACHE_TTL = parseInt(process.env.USER_CACHE_TTL || '120', 10);
+  const USER_CACHE_TTL = env.cache.userTtl;
   
   // 增强用户对象，添加权限辅助属性
   function enhanceUser(user) {
