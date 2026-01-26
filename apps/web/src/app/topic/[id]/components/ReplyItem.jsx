@@ -465,8 +465,9 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
-                          onClick={() =>
+                          onClick={(e) =>
                             handleDeletePost(
+                              e,
                               localReply.id,
                               localReply.postNumber
                             )

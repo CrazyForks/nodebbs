@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { postApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { confirm } from '@/components/common/ConfirmPopover';
 
 /**
  * 单条回复项逻辑 Hook (useReplyItem)
@@ -126,7 +127,7 @@ export function useReplyItem({
    * @param {number} postId - 帖子ID
    * @param {number} postNumber - 楼层号 (1楼不可删除)
    */
-  const handleDeletePost = async (postId, postNumber) => {
+  const handleDeletePost = async (e, postId, postNumber) => {
     if (!isAuthenticated) {
       openLoginDialog();
       return;
@@ -137,7 +138,14 @@ export function useReplyItem({
       return;
     }
 
-    if (!confirm('确定要删除这条回复吗？此操作不可恢复。')) {
+    const confirmed = await confirm(e, {
+      title: '确认删除',
+      description: '确定要删除这条回复吗？此操作不可恢复。',
+      confirmText: '确认删除',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) {
       return;
     }
 
