@@ -19,6 +19,7 @@ export default function TopicForm({
   isSubmitting = false,
   submitButtonText = '发布话题',
   isEditMode = false,
+  stickyTop = 'lg:top-20',
 }) {
   // 使用 Hook 管理表单逻辑
   const {
@@ -91,7 +92,7 @@ export default function TopicForm({
 
         {/* 右侧边栏 */}
         <div className='w-full lg:w-80 shrink-0'>
-          <aside className='lg:sticky lg:top-[157px] space-y-4'>
+          <aside className={`lg:sticky ${stickyTop} space-y-4`}>
             {/* 分类选择 */}
             <div className='border border-border rounded-lg bg-card'>
               <div className='px-3 py-2 border-b border-border'>

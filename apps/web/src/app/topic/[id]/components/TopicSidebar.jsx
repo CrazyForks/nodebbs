@@ -256,6 +256,7 @@ export default function TopicSidebar() {
             isSubmitting={editLoading}
             submitButtonText='保存修改'
             isEditMode={true}
+            stickyTop='lg:top-4'
           />
       </FormDialog>
 
