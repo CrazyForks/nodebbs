@@ -280,7 +280,9 @@ export const SYSTEM_PERMISSIONS = [
 
 /**
  * 系统角色定义
- * 继承关系: admin > moderator > vip > user
+ * - admin: 管理员，拥有所有权限
+ * - user: 普通用户，注册用户默认角色
+ * - guest: 访客，未登录用户
  */
 export const SYSTEM_ROLES = [
   {
@@ -293,42 +295,30 @@ export const SYSTEM_ROLES = [
     isDefault: false,
     isDisplayed: true,
     priority: 100,
-    parentSlug: 'moderator',
-  },
-  {
-    slug: 'moderator',
-    name: '版主',
-    description: '版主，可以管理内容和用户',
-    color: '#3498db',
-    icon: 'UserCheck',
-    isSystem: true,
-    isDefault: false,
-    isDisplayed: true,
-    priority: 80,
-    parentSlug: 'vip',
-  },
-  {
-    slug: 'vip',
-    name: 'VIP会员',
-    description: 'VIP会员，拥有额外特权',
-    color: '#f39c12',
-    icon: 'Crown',
-    isSystem: true,
-    isDefault: false,
-    isDisplayed: true,
-    priority: 50,
-    parentSlug: 'user',
+    parentSlug: null,
   },
   {
     slug: 'user',
     name: '普通用户',
     description: '普通注册用户',
-    color: '#95a5a6',
+    color: '#3498db',
     icon: 'User',
     isSystem: true,
-    isDefault: true,
+    isDefault: true, // 注册用户默认角色
     isDisplayed: false,
     priority: 10,
+    parentSlug: null,
+  },
+  {
+    slug: 'guest',
+    name: '访客',
+    description: '未登录用户',
+    color: '#95a5a6',
+    icon: 'UserX',
+    isSystem: true,
+    isDefault: false,
+    isDisplayed: false,
+    priority: 0,
     parentSlug: null,
   },
 ];
@@ -341,35 +331,31 @@ export const SYSTEM_ROLES = [
  * 特殊标记: ['*'] 表示拥有所有权限（用于 admin）
  */
 export const ROLE_PERMISSION_MAP = {
-  admin: ['*'], // 管理员拥有所有权限
-  moderator: [
-    // 版主权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete', 'topic.manage',
-    'topic.pin', 'topic.close', 'topic.approve', 'topic.move',
-    'post.create', 'post.read', 'post.update', 'post.delete', 'post.manage', 'post.approve',
-    'user.read', 'user.ban',
-    'category.read',
-    'upload.create', 'upload.image', 'upload.file',
-    'invitation.create', 'invitation.read',
-    'moderation.reports', 'moderation.content', 'moderation.approve',
-  ],
-  vip: [
-    // VIP用户权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete',
-    'post.create', 'post.read', 'post.update', 'post.delete',
-    'user.read',
-    'category.read',
-    'upload.create', 'upload.image', 'upload.file',
-    'invitation.create', 'invitation.read',
-  ],
+  // 管理员：拥有所有权限
+  admin: ['*'],
+
+  // 普通用户：基本的内容创建和查看权限
   user: [
-    // 普通用户权限
+    // 话题：创建、查看、编辑/删除自己的
     'topic.create', 'topic.read', 'topic.update', 'topic.delete',
+    // 回复：创建、查看、编辑/删除自己的
     'post.create', 'post.read', 'post.update', 'post.delete',
+    // 用户：查看、编辑自己的资料
+    'user.read', 'user.update',
+    // 分类：查看
+    'category.read',
+    // 上传：图片
+    'upload.create', 'upload.image',
+    // 邀请：查看自己的
+    'invitation.read',
+  ],
+
+  // 访客：只有查看权限
+  guest: [
+    'topic.read',
+    'post.read',
     'user.read',
     'category.read',
-    'upload.create', 'upload.image',
-    'invitation.read',
   ],
 };
 
@@ -379,18 +365,12 @@ export const ROLE_PERMISSION_MAP = {
  */
 export const ROLE_PERMISSION_CONDITIONS = {
   user: {
-    'topic.update': { own: true },
-    'topic.delete': { own: true },
-    'post.update': { own: true },
-    'post.delete': { own: true },
-    'invitation.read': { own: true },
-  },
-  vip: {
-    'topic.update': { own: true },
-    'topic.delete': { own: true },
-    'post.update': { own: true },
-    'post.delete': { own: true },
-    'invitation.read': { own: true },
+    'topic.update': { own: true },  // 只能编辑自己的话题
+    'topic.delete': { own: true },  // 只能删除自己的话题
+    'post.update': { own: true },   // 只能编辑自己的回复
+    'post.delete': { own: true },   // 只能删除自己的回复
+    'user.update': { own: true },   // 只能编辑自己的资料
+    'invitation.read': { own: true }, // 只能查看自己的邀请码
   },
 };
 
@@ -483,6 +463,20 @@ export function validateRbacConfig() {
   for (const role of SYSTEM_ROLES) {
     if (role.parentSlug && !roleSlugs.has(role.parentSlug)) {
       errors.push(`SYSTEM_ROLES 中 "${role.slug}" 的 parentSlug "${role.parentSlug}" 未找到`);
+    }
+  }
+
+  // 6. 检查 ROLE_PERMISSION_MAP 中的角色是否都在 SYSTEM_ROLES 中定义
+  for (const roleSlug of Object.keys(ROLE_PERMISSION_MAP)) {
+    if (!roleSlugs.has(roleSlug)) {
+      errors.push(`ROLE_PERMISSION_MAP 中定义了角色 "${roleSlug}"，但 SYSTEM_ROLES 中未找到`);
+    }
+  }
+
+  // 7. 检查 ROLE_PERMISSION_CONDITIONS 中的角色是否都在 SYSTEM_ROLES 中定义
+  for (const roleSlug of Object.keys(ROLE_PERMISSION_CONDITIONS)) {
+    if (!roleSlugs.has(roleSlug)) {
+      errors.push(`ROLE_PERMISSION_CONDITIONS 中定义了角色 "${roleSlug}"，但 SYSTEM_ROLES 中未找到`);
     }
   }
 
