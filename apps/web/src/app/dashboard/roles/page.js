@@ -80,9 +80,10 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
 
   // 渲染条件输入控件
   const renderConditionInput = (conditionType) => {
-    const { key, label, type, description } = conditionType;
+    const { key, label, type, component, description } = conditionType;
 
-    if (type === 'boolean') {
+    // switch - 开关
+    if (component === 'switch') {
       return (
         <div key={key} className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -97,7 +98,8 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    if (type === 'number') {
+    // number - 数字输入
+    if (component === 'number') {
       return (
         <div key={key} className="space-y-1.5">
           <Label className="text-sm">{label}</Label>
@@ -114,7 +116,8 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    if (type === 'array') {
+    // tags - 标签数组输入
+    if (component === 'tags') {
       return (
         <div key={key} className="space-y-1.5">
           <Label className="text-sm">{label}</Label>
@@ -145,8 +148,8 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    // 频率限制类型
-    if (type === 'rateLimit') {
+    // rate - 频率限制
+    if (component === 'rate') {
       const rateLimit = localConditions[key] || { count: '', period: 'hour' };
       return (
         <div key={key} className="space-y-1.5">
@@ -182,8 +185,8 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    // 时间段类型
-    if (type === 'timeRange') {
+    // time - 时间段
+    if (component === 'time') {
       const timeRange = localConditions[key] || { start: '', end: '' };
       return (
         <div key={key} className="space-y-1.5">
@@ -208,8 +211,8 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    // 字段过滤类型
-    if (type === 'fieldFilter') {
+    // fields - 字段列表
+    if (component === 'fields') {
       return (
         <div key={key} className="space-y-1.5">
           <Label className="text-sm">{label}</Label>

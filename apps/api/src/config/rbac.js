@@ -63,88 +63,118 @@ export const MODULE_SPECIAL_ACTIONS = {
 
 // ============ 条件类型定义 ============
 
-// 所有可用的条件类型
+/**
+ * 条件类型元数据定义
+ * - key: 条件标识
+ * - label: 显示名称
+ * - type: 数据类型 (boolean | number | string | array | object)
+ * - component: 前端渲染组件 (switch | number | tags | rate | time | fields)
+ * - description: 描述说明
+ * - schema: 复合类型的字段定义（可选）
+ *
+ * 注意：哪个权限能用哪些条件，由 SYSTEM_PERMISSIONS.conditions 决定
+ */
 export const CONDITION_TYPES = {
-  // 资源归属
+  // ===== 通用条件 =====
   own: {
     key: 'own',
     label: '仅限自己的资源',
     type: 'boolean',
+    component: 'switch',
     description: '只能操作自己创建的内容',
   },
-  // 分类限制
+  fieldFilter: {
+    key: 'fieldFilter',
+    label: '字段过滤',
+    type: 'array',
+    component: 'fields',
+    description: '控制返回字段，* 表示全部，!field 表示排除',
+  },
+
+  // ===== 范围限制 =====
   categories: {
     key: 'categories',
     label: '限定分类',
     type: 'array',
+    component: 'tags',
     description: '只在指定分类ID内有效（逗号分隔）',
   },
-  // 用户门槛
+  timeRange: {
+    key: 'timeRange',
+    label: '生效时间段',
+    type: 'object',
+    component: 'time',
+    description: '权限生效的时间段',
+    schema: {
+      start: { type: 'string', label: '开始时间', format: 'HH:mm' },
+      end: { type: 'string', label: '结束时间', format: 'HH:mm' },
+    },
+  },
+
+  // ===== 用户门槛 =====
   level: {
     key: 'level',
     label: '最低等级要求',
     type: 'number',
+    component: 'number',
     description: '用户等级需达到指定值',
   },
   minCredits: {
     key: 'minCredits',
     label: '最低积分要求',
     type: 'number',
+    component: 'number',
     description: '用户积分需达到指定值',
   },
   minPosts: {
     key: 'minPosts',
     label: '最低发帖数',
     type: 'number',
+    component: 'number',
     description: '用户发帖数需达到指定值',
   },
   accountAge: {
     key: 'accountAge',
     label: '账号年龄(天)',
     type: 'number',
+    component: 'number',
     description: '账号注册天数需达到指定值',
   },
-  // 频率限制
+
+  // ===== 频率限制 =====
   rateLimit: {
     key: 'rateLimit',
     label: '频率限制',
-    type: 'rateLimit',
+    type: 'object',
+    component: 'rate',
     description: '限制操作频率（次数/时间段）',
-    schema: { count: 'number', period: 'string' }, // period: minute/hour/day
+    schema: {
+      count: { type: 'number', label: '次数', min: 1 },
+      period: { type: 'string', label: '周期', enum: ['minute', 'hour', 'day'] },
+    },
   },
-  // 上传限制
+
+  // ===== 上传限制 =====
   maxFileSize: {
     key: 'maxFileSize',
     label: '最大文件大小(KB)',
     type: 'number',
+    component: 'number',
     description: '单个文件最大大小，单位KB',
   },
   maxFilesPerDay: {
     key: 'maxFilesPerDay',
     label: '每日上传数量',
     type: 'number',
+    component: 'number',
     description: '每天最多上传文件数量',
   },
   allowedFileTypes: {
     key: 'allowedFileTypes',
     label: '允许的文件类型',
     type: 'array',
+    component: 'tags',
     description: '允许上传的文件扩展名（逗号分隔，如: jpg,png,gif）',
-  },
-  // 时间段限制
-  timeRange: {
-    key: 'timeRange',
-    label: '生效时间段',
-    type: 'timeRange',
-    description: '权限生效的时间段',
-    schema: { start: 'string', end: 'string' }, // HH:mm 格式
-  },
-  // 字段过滤
-  fieldFilter: {
-    key: 'fieldFilter',
-    label: '字段过滤',
-    type: 'fieldFilter',
-    description: '控制返回字段，* 表示全部，!field 表示排除',
   },
 };
 
