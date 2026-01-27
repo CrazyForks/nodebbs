@@ -205,6 +205,9 @@ export class RBACSeeder extends BaseSeeder {
     // 4. 迁移现有用户 (保证一致性)
     await this.migrateExistingUsers(db);
 
+    // 5. 兜底保护：确保至少有一个管理员角色（引导模式）
+    await this.bootstrapAdmin(db, roleIdMap['admin']);
+
     this.logger.summary({
       total: result.roles.total + result.permissions.total + result.rolePermissions.total,
       addedCount: result.roles.addedCount + result.permissions.addedCount + result.rolePermissions.addedCount,
@@ -304,11 +307,16 @@ export class RBACSeeder extends BaseSeeder {
         continue;
       }
 
-      // 检查是否已分配
+      // 检查是否已分配当前角色
       const [existing] = await db
         .select()
         .from(userRoles)
-        .where(eq(userRoles.userId, user.id))
+        .where(
+          and(
+            eq(userRoles.userId, user.id),
+            eq(userRoles.roleId, roleId)
+          )
+        )
         .limit(1);
 
       if (existing) {
@@ -324,7 +332,52 @@ export class RBACSeeder extends BaseSeeder {
       migratedCount++;
     }
 
-    this.logger.info(`用户迁移完成 (迁移: ${migratedCount}, 跳过: ${skippedCount})`);
+    this.logger.info(`用户角色同步完成 (新增关联: ${migratedCount}, 跳过: ${skippedCount})`);
     return { migratedCount, skippedCount };
+  }
+
+  /**
+   * 引导模式：确保系统至少有一个管理员
+   * 如果 user_roles 表中没有任何管理员，则将 ID 最小的用户（创始人）强制设为 admin
+   */
+  async bootstrapAdmin(db, adminRoleId) {
+    if (!adminRoleId) {
+      this.logger.warn('引导管理员失败: 未找到 admin 角色 ID');
+      return;
+    }
+
+    // 检查是否已有管理员关联
+    const [hasAdmin] = await db
+      .select()
+      .from(userRoles)
+      .where(eq(userRoles.roleId, adminRoleId))
+      .limit(1);
+
+    if (hasAdmin) {
+      return;
+    }
+
+    this.logger.item('检测到系统无管理员，启动引导模式...', '⚠️');
+
+    // 查找 ID 最小的用户（通常是创始人）
+    const [founder] = await db
+      .select({ id: users.id, username: users.username })
+      .from(users)
+      .orderBy(users.id)
+      .limit(1);
+
+    if (founder) {
+      await db.insert(userRoles).values({
+        userId: founder.id,
+        roleId: adminRoleId,
+      });
+      
+      // 同时更新 users 表的逻辑状态（双保障）
+      await db.update(users).set({ role: 'admin' }).where(eq(users.id, founder.id));
+      
+      this.logger.success(`引导模式已开启: 用户 ${founder.username} (ID: ${founder.id}) 已被设为初始管理员`);
+    } else {
+      this.logger.info('引导模式完成: 暂无注册用户');
+    }
   }
 }
