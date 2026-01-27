@@ -1,173 +1,24 @@
 /**
  * RBAC 初始化脚本
  * 用于初始化角色和权限数据
+ *
+ * 所有配置从 config/rbac.js 导入，确保单一数据源
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import {
   roles,
   permissions,
   rolePermissions,
   userRoles,
 } from '../../db/schema.js';
-
-// ============ 系统角色定义 ============
-// 继承关系: admin > moderator > vip > user
-const SYSTEM_ROLES = [
-  {
-    slug: 'admin',
-    name: '管理员',
-    description: '系统管理员，拥有所有权限',
-    color: '#e74c3c',
-    icon: 'Shield',
-    isSystem: true,
-    isDefault: false,
-    isDisplayed: true,
-    priority: 100,
-    parentSlug: 'moderator', // admin 继承 moderator
-  },
-  {
-    slug: 'moderator',
-    name: '版主',
-    description: '版主，可以管理内容和用户',
-    color: '#3498db',
-    icon: 'UserCheck',
-    isSystem: true,
-    isDefault: false,
-    isDisplayed: true,
-    priority: 80,
-    parentSlug: 'vip', // moderator 继承 vip
-  },
-  {
-    slug: 'vip',
-    name: 'VIP会员',
-    description: 'VIP会员，拥有额外特权',
-    color: '#f39c12',
-    icon: 'Crown',
-    isSystem: true,
-    isDefault: false,
-    isDisplayed: true,
-    priority: 50,
-    parentSlug: 'user', // vip 继承 user
-  },
-  {
-    slug: 'user',
-    name: '普通用户',
-    description: '普通注册用户',
-    color: '#95a5a6',
-    icon: 'User',
-    isSystem: true,
-    isDefault: true,
-    isDisplayed: false,
-    priority: 10,
-    parentSlug: null, // user 是基础角色，无父角色
-  },
-];
-
-// ============ 系统权限定义 ============
-const SYSTEM_PERMISSIONS = [
-  // 话题权限
-  { slug: 'topic.create', name: '创建话题', module: 'topic', action: 'create', isSystem: true },
-  { slug: 'topic.read', name: '查看话题', module: 'topic', action: 'read', isSystem: true },
-  { slug: 'topic.update', name: '编辑话题', module: 'topic', action: 'update', isSystem: true },
-  { slug: 'topic.delete', name: '删除话题', module: 'topic', action: 'delete', isSystem: true },
-  { slug: 'topic.pin', name: '置顶话题', module: 'topic', action: 'pin', isSystem: true },
-  { slug: 'topic.close', name: '关闭话题', module: 'topic', action: 'close', isSystem: true },
-  { slug: 'topic.approve', name: '审核话题', module: 'topic', action: 'approve', isSystem: true },
-  { slug: 'topic.move', name: '移动话题', module: 'topic', action: 'move', isSystem: true },
-
-  // 帖子/回复权限
-  { slug: 'post.create', name: '发表回复', module: 'post', action: 'create', isSystem: true },
-  { slug: 'post.read', name: '查看回复', module: 'post', action: 'read', isSystem: true },
-  { slug: 'post.update', name: '编辑回复', module: 'post', action: 'update', isSystem: true },
-  { slug: 'post.delete', name: '删除回复', module: 'post', action: 'delete', isSystem: true },
-  { slug: 'post.approve', name: '审核回复', module: 'post', action: 'approve', isSystem: true },
-
-  // 用户管理权限
-  { slug: 'user.read', name: '查看用户', module: 'user', action: 'read', isSystem: true },
-  { slug: 'user.update', name: '编辑用户', module: 'user', action: 'update', isSystem: true },
-  { slug: 'user.delete', name: '删除用户', module: 'user', action: 'delete', isSystem: true },
-  { slug: 'user.ban', name: '封禁用户', module: 'user', action: 'ban', isSystem: true },
-  { slug: 'user.role.assign', name: '分配角色', module: 'user', action: 'role.assign', isSystem: true },
-
-  // 分类管理权限
-  { slug: 'category.create', name: '创建分类', module: 'category', action: 'create', isSystem: true },
-  { slug: 'category.update', name: '编辑分类', module: 'category', action: 'update', isSystem: true },
-  { slug: 'category.delete', name: '删除分类', module: 'category', action: 'delete', isSystem: true },
-
-  // 系统管理权限
-  { slug: 'system.settings', name: '系统设置', module: 'system', action: 'settings', isSystem: true },
-  { slug: 'system.dashboard', name: '管理后台', module: 'system', action: 'dashboard', isSystem: true },
-  { slug: 'system.logs', name: '系统日志', module: 'system', action: 'logs', isSystem: true },
-
-  // 上传权限
-  { slug: 'upload.image', name: '上传图片', module: 'upload', action: 'image', isSystem: true },
-  { slug: 'upload.file', name: '上传文件', module: 'upload', action: 'file', isSystem: true },
-
-  // 邀请权限
-  { slug: 'invitation.create', name: '创建邀请码', module: 'invitation', action: 'create', isSystem: true },
-  { slug: 'invitation.manage', name: '管理邀请码', module: 'invitation', action: 'manage', isSystem: true },
-
-  // 审核权限
-  { slug: 'moderation.reports', name: '处理举报', module: 'moderation', action: 'reports', isSystem: true },
-  { slug: 'moderation.content', name: '审核内容', module: 'moderation', action: 'content', isSystem: true },
-];
-
-// ============ 角色权限映射 ============
-// 定义每个角色默认拥有的权限
-const ROLE_PERMISSION_MAP = {
-  admin: [
-    // 管理员拥有所有权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete', 'topic.pin', 'topic.close', 'topic.approve', 'topic.move',
-    'post.create', 'post.read', 'post.update', 'post.delete', 'post.approve',
-    'user.read', 'user.update', 'user.delete', 'user.ban', 'user.role.assign',
-    'category.create', 'category.update', 'category.delete',
-    'system.settings', 'system.dashboard', 'system.logs',
-    'upload.image', 'upload.file',
-    'invitation.create', 'invitation.manage',
-    'moderation.reports', 'moderation.content',
-  ],
-  moderator: [
-    // 版主权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete', 'topic.pin', 'topic.close', 'topic.approve', 'topic.move',
-    'post.create', 'post.read', 'post.update', 'post.delete', 'post.approve',
-    'user.read', 'user.ban',
-    'upload.image', 'upload.file',
-    'invitation.create',
-    'moderation.reports', 'moderation.content',
-  ],
-  vip: [
-    // VIP用户权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete',
-    'post.create', 'post.read', 'post.update', 'post.delete',
-    'user.read',
-    'upload.image', 'upload.file',
-    'invitation.create',
-  ],
-  user: [
-    // 普通用户权限
-    'topic.create', 'topic.read', 'topic.update', 'topic.delete',
-    'post.create', 'post.read', 'post.update', 'post.delete',
-    'user.read',
-    'upload.image',
-  ],
-};
-
-// 权限条件配置（如：普通用户只能操作自己的内容）
-const PERMISSION_CONDITIONS = {
-  user: {
-    'topic.update': { own: true },
-    'topic.delete': { own: true },
-    'post.update': { own: true },
-    'post.delete': { own: true },
-  },
-  vip: {
-    'topic.update': { own: true },
-    'topic.delete': { own: true },
-    'post.update': { own: true },
-    'post.delete': { own: true },
-  },
-};
+import {
+  SYSTEM_ROLES,
+  SYSTEM_PERMISSIONS,
+  ROLE_PERMISSION_MAP,
+  ROLE_PERMISSION_CONDITIONS,
+  validateRbacConfig,
+} from '../../config/rbac.js';
 
 /**
  * 列出 RBAC 配置
@@ -210,6 +61,14 @@ export function listRBACConfig() {
  * 初始化 RBAC 数据
  */
 export async function initRBAC(db, reset = false) {
+  // 先校验配置一致性
+  const validation = validateRbacConfig();
+  if (!validation.valid) {
+    console.error('\n❌ RBAC 配置校验失败:');
+    validation.errors.forEach(err => console.error(`  - ${err}`));
+    throw new Error('RBAC 配置不一致，请检查 config/rbac.js');
+  }
+
   const result = {
     roles: { addedCount: 0, updatedCount: 0, skippedCount: 0, total: SYSTEM_ROLES.length },
     permissions: { addedCount: 0, updatedCount: 0, skippedCount: 0, total: SYSTEM_PERMISSIONS.length },
@@ -316,9 +175,14 @@ export async function initRBAC(db, reset = false) {
       continue;
     }
 
-    const conditions = PERMISSION_CONDITIONS[roleSlug] || {};
+    const conditions = ROLE_PERMISSION_CONDITIONS[roleSlug] || {};
 
-    for (const permSlug of permSlugs) {
+    // 处理 ['*'] 特殊标记：展开为所有权限
+    const actualPermSlugs = (permSlugs.length === 1 && permSlugs[0] === '*')
+      ? SYSTEM_PERMISSIONS.map(p => p.slug)
+      : permSlugs;
+
+    for (const permSlug of actualPermSlugs) {
       const permissionId = permissionIdMap[permSlug];
       if (!permissionId) {
         console.log(`  ⚠ 跳过权限 ${permSlug}: 权限不存在`);
@@ -326,19 +190,6 @@ export async function initRBAC(db, reset = false) {
       }
 
       result.rolePermissions.total++;
-
-      const [existing] = await db
-        .select()
-        .from(rolePermissions)
-        .where(eq(rolePermissions.roleId, roleId))
-        .limit(1);
-
-      // 检查是否已存在该关联
-      const [existingAssoc] = await db
-        .select()
-        .from(rolePermissions)
-        .where(eq(rolePermissions.roleId, roleId))
-        .limit(1);
 
       // 使用 upsert 方式
       const conditionJson = conditions[permSlug] ? JSON.stringify(conditions[permSlug]) : null;
@@ -361,7 +212,12 @@ export async function initRBAC(db, reset = false) {
         const [existing] = await db
           .select()
           .from(rolePermissions)
-          .where(eq(rolePermissions.roleId, roleId))
+          .where(
+            and(
+              eq(rolePermissions.roleId, roleId),
+              eq(rolePermissions.permissionId, permissionId)
+            )
+          )
           .limit(1);
 
         if (!existing) {

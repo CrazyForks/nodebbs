@@ -3,7 +3,7 @@
  * RBAC 权限检查服务
  */
 
-import { eq, and, inArray, isNull, gt } from 'drizzle-orm';
+import { eq, and, inArray, isNull, gt, or } from 'drizzle-orm';
 import db from '../db/index.js';
 import {
   roles,
@@ -60,14 +60,15 @@ class PermissionService {
       .where(
         and(
           eq(userRoles.userId, userId),
-          // 排除已过期的角色
-          // expiresAt 为 null 表示永不过期，或者 expiresAt > now
-          // drizzle-orm 的 or 需要导入
+          // 排除已过期的角色：expiresAt 为 null 或 expiresAt > now
+          or(
+            isNull(userRoles.expiresAt),
+            gt(userRoles.expiresAt, now)
+          )
         )
       );
 
-    // 过滤掉已过期的角色
-    return results.filter(r => !r.expiresAt || new Date(r.expiresAt) > now);
+    return results;
   }
 
   /**
@@ -209,6 +210,12 @@ class PermissionService {
    * @returns {Promise<boolean>}
    */
   async hasPermission(userId, permissionSlug, context = {}) {
+    // 快捷路径：admin 角色拥有所有权限，无需检查条件
+    const isAdmin = await this.hasRole(userId, 'admin');
+    if (isAdmin) {
+      return true;
+    }
+
     const userPermissions = await this.getUserPermissions(userId);
     const permission = userPermissions.find(p => p.slug === permissionSlug);
 
@@ -238,6 +245,58 @@ class PermissionService {
           return false;
         }
       }
+
+      // minCredits: 100 表示需要达到指定积分
+      if (permission.conditions.minCredits !== undefined && context.userCredits !== undefined) {
+        if (context.userCredits < permission.conditions.minCredits) {
+          return false;
+        }
+      }
+
+      // minPosts: 10 表示需要达到指定发帖数
+      if (permission.conditions.minPosts !== undefined && context.userPostCount !== undefined) {
+        if (context.userPostCount < permission.conditions.minPosts) {
+          return false;
+        }
+      }
+
+      // accountAge: 30 表示账号注册天数需达到指定值
+      if (permission.conditions.accountAge !== undefined && context.userCreatedAt !== undefined) {
+        const accountAgeDays = Math.floor(
+          (Date.now() - new Date(context.userCreatedAt).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (accountAgeDays < permission.conditions.accountAge) {
+          return false;
+        }
+      }
+
+      // timeRange: { start: "09:00", end: "18:00" } 表示只在指定时间段内有效
+      if (permission.conditions.timeRange) {
+        const { start, end } = permission.conditions.timeRange;
+        if (start && end) {
+          const now = new Date();
+          const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          if (currentTime < start || currentTime > end) {
+            return false;
+          }
+        }
+      }
+
+      // maxFileSize: 1024 表示上传文件最大大小（KB）
+      if (permission.conditions.maxFileSize !== undefined && context.fileSize !== undefined) {
+        const fileSizeKB = context.fileSize / 1024;
+        if (fileSizeKB > permission.conditions.maxFileSize) {
+          return false;
+        }
+      }
+
+      // allowedFileTypes: ["jpg", "png", "gif"] 表示允许的文件类型
+      if (permission.conditions.allowedFileTypes && context.fileType !== undefined) {
+        const ext = context.fileType.toLowerCase().replace('.', '');
+        if (!permission.conditions.allowedFileTypes.includes(ext)) {
+          return false;
+        }
+      }
     }
 
     return true;
@@ -255,12 +314,108 @@ class PermissionService {
   }
 
   /**
+   * 检查频率限制
+   * @param {number} userId - 用户 ID
+   * @param {string} permissionSlug - 权限标识
+   * @param {string} actionKey - 操作标识（用于缓存 key）
+   * @returns {Promise<{allowed: boolean, remaining?: number, resetAt?: Date}>}
+   */
+  async checkRateLimit(userId, permissionSlug, actionKey) {
+    const userPermissions = await this.getUserPermissions(userId);
+    const permission = userPermissions.find(p => p.slug === permissionSlug);
+
+    if (!permission || !permission.conditions?.rateLimit) {
+      return { allowed: true };
+    }
+
+    const { count, period } = permission.conditions.rateLimit;
+    if (!count || !period) {
+      return { allowed: true };
+    }
+
+    // 计算时间窗口（秒）
+    const periodSeconds = {
+      minute: 60,
+      hour: 3600,
+      day: 86400,
+    }[period] || 3600;
+
+    const cacheKey = `ratelimit:${userId}:${actionKey}`;
+
+    // 如果有缓存，使用滑动窗口计数
+    if (this.fastify?.cache) {
+      const currentCount = await this.fastify.cache.get(cacheKey) || 0;
+
+      if (currentCount >= count) {
+        return {
+          allowed: false,
+          remaining: 0,
+          resetAt: new Date(Date.now() + periodSeconds * 1000),
+        };
+      }
+
+      // 增加计数（如果是第一次，设置过期时间）
+      await this.fastify.cache.set(cacheKey, currentCount + 1, periodSeconds);
+
+      return {
+        allowed: true,
+        remaining: count - currentCount - 1,
+      };
+    }
+
+    // 没有缓存时，默认允许（降级处理）
+    return { allowed: true };
+  }
+
+  /**
+   * 检查每日上传数量限制
+   * @param {number} userId - 用户 ID
+   * @param {string} permissionSlug - 权限标识
+   * @param {number} currentDayCount - 当天已上传数量
+   * @returns {Promise<{allowed: boolean, remaining?: number}>}
+   */
+  async checkDailyUploadLimit(userId, permissionSlug, currentDayCount) {
+    const userPermissions = await this.getUserPermissions(userId);
+    const permission = userPermissions.find(p => p.slug === permissionSlug);
+
+    if (!permission || !permission.conditions?.maxFilesPerDay) {
+      return { allowed: true };
+    }
+
+    const maxFiles = permission.conditions.maxFilesPerDay;
+    const remaining = maxFiles - currentDayCount;
+
+    return {
+      allowed: remaining > 0,
+      remaining: Math.max(0, remaining),
+    };
+  }
+
+  /**
+   * 获取权限的条件配置
+   * @param {number} userId - 用户 ID
+   * @param {string} permissionSlug - 权限标识
+   * @returns {Promise<Object|null>}
+   */
+  async getPermissionConditions(userId, permissionSlug) {
+    const userPermissions = await this.getUserPermissions(userId);
+    const permission = userPermissions.find(p => p.slug === permissionSlug);
+    return permission?.conditions || null;
+  }
+
+  /**
    * 检查用户是否有任一权限
    * @param {number} userId - 用户 ID
    * @param {Array<string>} permissionSlugs - 权限标识列表
    * @returns {Promise<boolean>}
    */
   async hasAnyPermission(userId, permissionSlugs) {
+    // 快捷路径：admin 角色拥有所有权限
+    const isAdmin = await this.hasRole(userId, 'admin');
+    if (isAdmin) {
+      return true;
+    }
+
     const userPermissions = await this.getUserPermissions(userId);
     const userPermSlugs = userPermissions.map(p => p.slug);
     return permissionSlugs.some(slug => userPermSlugs.includes(slug));
@@ -273,6 +428,12 @@ class PermissionService {
    * @returns {Promise<boolean>}
    */
   async hasAllPermissions(userId, permissionSlugs) {
+    // 快捷路径：admin 角色拥有所有权限
+    const isAdmin = await this.hasRole(userId, 'admin');
+    if (isAdmin) {
+      return true;
+    }
+
     const userPermissions = await this.getUserPermissions(userId);
     const userPermSlugs = userPermissions.map(p => p.slug);
     return permissionSlugs.every(slug => userPermSlugs.includes(slug));
@@ -286,6 +447,12 @@ class PermissionService {
    * @returns {Promise<Object>}
    */
   async getCategoryPermissions(userId, categoryId) {
+    // 快捷路径：admin 角色拥有所有权限
+    const isAdmin = await this.hasRole(userId, 'admin');
+    if (isAdmin) {
+      return { canView: true, canCreate: true, canReply: true, canModerate: true };
+    }
+
     // 获取用户的所有权限（含条件）
     const userPermissions = await this._fetchUserPermissions(userId);
 
