@@ -70,7 +70,36 @@ export default async function userRoute(fastify, options) {
                     }
                   }
                 }
-              }
+              },
+              // RBAC 权限数据
+              userRoles: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number' },
+                    slug: { type: 'string' },
+                    name: { type: 'string' },
+                    color: { type: 'string' },
+                    icon: { type: 'string' },
+                    priority: { type: 'number' },
+                    isDisplayed: { type: 'boolean' },
+                  },
+                },
+              },
+              permissions: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              displayRole: {
+                type: ['object', 'null'],
+                properties: {
+                  slug: { type: 'string' },
+                  name: { type: 'string' },
+                  color: { type: 'string' },
+                  icon: { type: 'string' },
+                },
+              },
             },
           },
         },
@@ -91,34 +120,39 @@ export default async function userRoute(fastify, options) {
           return reply.code(404).send({ error: '用户不存在' });
         }
 
+        // 并行获取用户丰富信息、OAuth 账号、密码状态和 RBAC 权限
+        const permissionService = getPermissionService();
+        const [userAccounts, pwdResult, userRoles, userPermissions] = await Promise.all([
+          db.select().from(accounts).where(eq(accounts.userId, user.id)),
+          db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId)).limit(1),
+          permissionService.getUserRoles(userId),
+          permissionService.getUserPermissions(userId),
+        ]);
+
         // 丰富用户信息（徽章、头像框等）
         await userEnricher.enrich(user);
 
-        // 获取关联的 OAuth 账号
-        const userAccounts = await db
-          .select()
-          .from(accounts)
-          .where(eq(accounts.userId, user.id));
-        
         const oauthProviders = userAccounts.map(acc => acc.provider);
+        const userHasPassword = !!(pwdResult[0]?.passwordHash);
 
-        // 检查用户是否设置了密码
-        // 注意：authenticate 中间件已经移除了 passwordHash，所以我们需要单独查询一次
-        let userHasPassword = false;
-        const [pwdResult] = await db
-            .select({ passwordHash: users.passwordHash })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1);
-            
-        if (pwdResult && pwdResult.passwordHash) {
-            userHasPassword = true;
-        }
-        
+        // 获取展示角色（最高优先级且允许展示的角色）
+        const displayRole = userRoles
+          .filter(r => r.isDisplayed)
+          .sort((a, b) => b.priority - a.priority)[0] || null;
+
         return {
           ...user,
           hasPassword: userHasPassword,
           oauthProviders,
+          // RBAC 权限数据
+          userRoles,
+          permissions: userPermissions.map(p => p.slug),
+          displayRole: displayRole ? {
+            slug: displayRole.slug,
+            name: displayRole.name,
+            color: displayRole.color,
+            icon: displayRole.icon,
+          } : null,
         };
       });
     }

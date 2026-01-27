@@ -61,8 +61,32 @@ export const request = async (endpoint, options = {}) => {
   }
 };
 
+// 增强用户对象，添加权限辅助属性（与 AuthContext 中的 enhanceUser 保持一致）
+function enhanceUser(user) {
+  if (!user) return null;
+
+  const ROLE_ADMIN = 'admin';
+  const ROLE_MODERATOR = 'moderator';
+
+  const enhanced = {
+    ...user,
+    // 向后兼容的属性
+    isAdmin: user.role === ROLE_ADMIN,
+    isModerator: [ROLE_ADMIN, ROLE_MODERATOR].includes(user.role),
+  };
+
+  // 如果有 RBAC 数据（现在 /auth/me 直接返回），使用它更新权限标志
+  if (user.userRoles?.length > 0) {
+    enhanced.isAdmin = user.userRoles.some(r => r.slug === 'admin');
+    enhanced.isModerator = user.userRoles.some(r => ['admin', 'moderator'].includes(r.slug));
+  }
+
+  return enhanced;
+}
+
 // 获取当前登录用户 (SSR专用)
 // 优化：只有在存在 auth_token cookie 时才发请求
+// /auth/me 接口已包含 RBAC 权限数据 (userRoles, permissions, displayRole)
 export const getCurrentUser = async () => {
   const cookieStore = await cookies();
   const hasToken = cookieStore.has('auth_token');
@@ -71,5 +95,6 @@ export const getCurrentUser = async () => {
     return null;
   }
 
-  return request('/auth/me');
+  const user = await request('/auth/me');
+  return enhanceUser(user);
 };
