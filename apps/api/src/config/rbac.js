@@ -21,8 +21,8 @@ export const MODULE_OPTIONS = [
 
 // 通用操作 - 适用于大多数模块
 export const COMMON_ACTIONS = [
-  { value: 'create', label: '创建' },
   { value: 'read', label: '查看' },
+  { value: 'create', label: '创建' },
   { value: 'update', label: '编辑' },
   { value: 'delete', label: '删除' },
   { value: 'manage', label: '管理' },

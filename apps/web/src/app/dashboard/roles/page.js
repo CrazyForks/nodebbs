@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
@@ -260,7 +260,27 @@ export default function RolesManagement() {
   const [conditionTypes, setConditionTypes] = useState({});
   const [permissionConditions, setPermissionConditions] = useState({});
   const [moduleOptions, setModuleOptions] = useState([]);
+  const [commonActions, setCommonActions] = useState([]);
+  const [moduleSpecialActions, setModuleSpecialActions] = useState({});
+ 
+  const actionWeightMap = useMemo(() => {
+    const commonWeights = {};
+    commonActions.forEach((action, index) => {
+      commonWeights[action.value] = index + 1;
+    });
 
+    const moduleWeights = {};
+    const offset = commonActions.length + 1;
+    Object.entries(moduleSpecialActions).forEach(([module, actions]) => {
+      moduleWeights[module] = {};
+      actions.forEach((action, index) => {
+        moduleWeights[module][action.value] = offset + index;
+      });
+    });
+
+    return { common: commonWeights, modules: moduleWeights };
+  }, [commonActions, moduleSpecialActions]);
+ 
   const [roleForm, setRoleForm] = useState({
     slug: '',
     name: '',
@@ -292,6 +312,8 @@ export default function RolesManagement() {
       setConditionTypes(configData.conditionTypes || {});
       setPermissionConditions(configData.permissionConditions || {});
       setModuleOptions(configData.modules || []);
+      setCommonActions(configData.commonActions || []);
+      setModuleSpecialActions(configData.moduleSpecialActions || {});
     } catch (err) {
       console.error('获取数据失败:', err);
       toast.error('获取数据失败');
@@ -497,6 +519,24 @@ export default function RolesManagement() {
   const getModuleLabel = (moduleValue) => {
     const mod = moduleOptions.find(m => m.value === moduleValue);
     return mod ? mod.label : moduleValue;
+  };
+
+  /**
+   * 排序权限列表：按照配置返回的 commonActions 和 moduleSpecialActions 顺序
+   */
+  const sortPermissions = (perms, module) => {
+    if (!perms) return [];
+
+    return [...perms].sort((a, b) => {
+      const weightA = actionWeightMap.common[a.action] || actionWeightMap.modules[module]?.[a.action] || 999;
+      const weightB = actionWeightMap.common[b.action] || actionWeightMap.modules[module]?.[b.action] || 999;
+      
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+      
+      return a.slug.localeCompare(b.slug);
+    });
   };
 
   return (
@@ -748,14 +788,18 @@ export default function RolesManagement() {
         maxWidth="sm:max-w-[750px]"
       >
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-          {Object.entries(groupedPermissions).map(([module, perms]) => (
-            <div key={module} className="space-y-2">
-              <div className="flex items-center gap-2 sticky top-0 bg-background py-1 border-b">
-                <span className="font-medium text-sm">{getModuleLabel(module)}</span>
-                <Badge variant="secondary" className="text-xs">{perms.length}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                {perms.map((perm) => {
+          {moduleOptions.map(({ value: moduleKey, label: moduleLabel }) => {
+            const perms = sortPermissions(groupedPermissions[moduleKey], moduleKey);
+            if (!perms || perms.length === 0) return null;
+
+            return (
+              <div key={moduleKey} className="space-y-2">
+                <div className="flex items-center gap-2 sticky top-0 bg-background py-1 border-b z-10">
+                  <span className="font-medium text-sm">{moduleLabel}</span>
+                  <Badge variant="secondary" className="text-xs">{perms.length}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                  {perms.map((perm) => {
                   const selected = isPermissionSelected(perm.id);
                   const conditions = getPermissionConditions(perm.id);
                   const hasConfig = hasConditions(perm.id);
@@ -805,7 +849,8 @@ export default function RolesManagement() {
                 })}
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       </FormDialog>
     </div>
