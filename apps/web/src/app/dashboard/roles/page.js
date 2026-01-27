@@ -116,32 +116,6 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    if (component === 'tags') {
-      return (
-        <div key={key} className="space-y-1.5 py-2">
-          <Label className="text-sm">{label}</Label>
-          <Input
-            placeholder="如: 1,2,3"
-            value={localConditions[key]?.join(',') || ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) {
-                updateCondition(key, undefined);
-              } else {
-                const items = val.split(',').map(s => s.trim()).filter(Boolean);
-                const parsed = items.map(s => {
-                  const num = parseInt(s);
-                  return isNaN(num) ? s : num;
-                });
-                updateCondition(key, parsed.length > 0 ? parsed : undefined);
-              }
-            }}
-          />
-          <p className="text-xs text-muted-foreground">{description || '多个值用逗号分隔'}</p>
-        </div>
-      );
-    }
-
     if (component === 'rate') {
       const rateLimit = localConditions[key] || { count: '', period: 'hour' };
       return (
@@ -201,25 +175,34 @@ function ConditionEditor({ conditions, permission, onChange, disabled, hasConfig
       );
     }
 
-    if (component === 'fields') {
+    if (component === 'tags' || component === 'fields') {
+      const isTags = component === 'tags';
       return (
         <div key={key} className="space-y-1.5 py-2">
           <Label className="text-sm">{label}</Label>
           <Input
-            placeholder="如: *, !passwordHash, !email"
-            value={localConditions[key]?.join(', ') || ''}
-            onChange={(e) => {
+            placeholder={isTags ? "如: 1,2,3" : "如: *, !passwordHash, !email"}
+            defaultValue={localConditions[key]?.join(isTags ? ',' : ', ') || ''}
+            onBlur={(e) => {
               const val = e.target.value;
               if (!val) {
                 updateCondition(key, undefined);
               } else {
                 const items = val.split(',').map(s => s.trim()).filter(Boolean);
-                updateCondition(key, items.length > 0 ? items : undefined);
+                if (isTags) {
+                  const parsed = items.map(s => {
+                    const num = parseInt(s);
+                    return isNaN(num) ? s : num;
+                  });
+                  updateCondition(key, parsed.length > 0 ? parsed : undefined);
+                } else {
+                  updateCondition(key, items.length > 0 ? items : undefined);
+                }
               }
             }}
-            className="font-mono text-xs"
+            className={isTags ? "" : "font-mono text-xs"}
           />
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground">{description || (isTags ? '多个值用逗号分隔' : '')}</p>
         </div>
       );
     }
