@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/DataTable';
 import { ActionMenu } from '@/components/common/ActionMenu';
-import { PageHeader } from '@/components/common/PageHeader';
 import { FormDialog } from '@/components/common/FormDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,9 +23,8 @@ import { Key, Pencil, Trash2, Plus } from 'lucide-react';
 import { rbacApi } from '@/lib/api';
 import { toast } from 'sonner';
 
-export default function PermissionsManagement() {
+export function PermissionsTab() {
   const [permissions, setPermissions] = useState([]);
-  const [groupedPermissions, setGroupedPermissions] = useState({});
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState('create');
@@ -81,7 +79,6 @@ export default function PermissionsManagement() {
       const data = await rbacApi.admin.getPermissions();
       const perms = data.permissions || [];
       setPermissions(perms);
-      setGroupedPermissions(data.grouped || {});
     } catch (err) {
       console.error('获取权限列表失败:', err);
       toast.error('获取权限列表失败');
@@ -213,17 +210,13 @@ export default function PermissionsManagement() {
   const currentSpecialActions = rbacConfig.moduleSpecialActions[form.module] || [];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="权限管理"
-        description="管理系统权限定义"
-        actions={
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            创建权限
-          </Button>
-        }
-      />
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={openCreateDialog}>
+          <Plus className="h-4 w-4" />
+          创建权限
+        </Button>
+      </div>
 
       <DataTable
         columns={[
