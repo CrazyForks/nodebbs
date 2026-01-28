@@ -46,13 +46,20 @@ export const MODULE_SPECIAL_ACTIONS = {
 // ============ 条件类型定义 ============
 
 /**
- * 条件类型元数据定义
- * - key: 条件标识
- * - label: 显示名称
- * - type: 数据类型 (boolean | number | string | array | object)
- * - component: 前端渲染组件 (switch | number | tags | rate | time)
- * - description: 描述说明
- * - schema: 复合类型的字段定义（可选）
+ * 组件类型说明:
+ * - switch: 布尔开关
+ * - number: 数字输入框
+ * - select: 单选下拉框 (需要 options 或 dataSource)
+ * - multiSelect: 多选下拉框/Combobox (需要 options 或 dataSource)
+ * - timeRange: 时间范围选择器 (start + end)
+ * - rateLimit: 频率限制选择器 (count + period)
+ * - textList: 文本列表输入 (逗号分隔)
+ *
+ * 数据来源说明:
+ * - options: 静态选项数组，直接在配置中定义
+ * - dataSource: 动态数据源标识，前端根据标识获取数据
+ *   支持的 dataSource 值:
+ *   - 'categories': 分类列表，前端从 /api/categories 获取
  *
  * 注意：哪个权限能用哪些条件，由 SYSTEM_PERMISSIONS.conditions 决定
  */
@@ -71,14 +78,15 @@ export const CONDITION_TYPES = {
     key: 'categories',
     label: '限定分类',
     type: 'array',
-    component: 'tags',
-    description: '只在指定分类ID内有效',
+    component: 'multiSelect',
+    dataSource: 'categories', // 前端从分类 API 动态获取
+    description: '只在指定分类内有效',
   },
   timeRange: {
     key: 'timeRange',
     label: '生效时间段',
     type: 'object',
-    component: 'time',
+    component: 'timeRange',
     description: '权限生效的时间段',
     schema: {
       start: { type: 'string', label: '开始时间', format: 'HH:mm' },
@@ -93,6 +101,8 @@ export const CONDITION_TYPES = {
     type: 'number',
     component: 'number',
     description: '用户发帖数需达到指定值',
+    placeholder: '不限制',
+    min: 0,
   },
   accountAge: {
     key: 'accountAge',
@@ -100,6 +110,8 @@ export const CONDITION_TYPES = {
     type: 'number',
     component: 'number',
     description: '账号注册天数需达到指定值',
+    placeholder: '不限制',
+    min: 0,
   },
 
   // ===== 频率限制 =====
@@ -107,11 +119,19 @@ export const CONDITION_TYPES = {
     key: 'rateLimit',
     label: '频率限制',
     type: 'object',
-    component: 'rate',
+    component: 'rateLimit',
     description: '限制操作频率（次数/时间段）',
     schema: {
       count: { type: 'number', label: '次数', min: 1 },
-      period: { type: 'string', label: '周期', enum: ['minute', 'hour', 'day'] },
+      period: {
+        type: 'string',
+        label: '周期',
+        options: [
+          { value: 'minute', label: '每分钟' },
+          { value: 'hour', label: '每小时' },
+          { value: 'day', label: '每天' },
+        ],
+      },
     },
   },
 
@@ -122,6 +142,8 @@ export const CONDITION_TYPES = {
     type: 'number',
     component: 'number',
     description: '单个文件最大大小，单位KB',
+    placeholder: '不限制',
+    min: 0,
   },
   maxFilesPerDay: {
     key: 'maxFilesPerDay',
@@ -129,20 +151,32 @@ export const CONDITION_TYPES = {
     type: 'number',
     component: 'number',
     description: '每天最多上传文件数量',
+    placeholder: '不限制',
+    min: 0,
   },
   allowedFileTypes: {
     key: 'allowedFileTypes',
     label: '允许的文件类型',
     type: 'array',
-    component: 'tags',
-    description: '允许上传的文件扩展名（如: jpg,png,gif）',
+    component: 'textList',
+    description: '允许上传的文件扩展名',
+    placeholder: '如: jpg, png, gif',
   },
   uploadTypes: {
     key: 'uploadTypes',
     label: '允许的上传类型',
     type: 'array',
-    component: 'tags',
-    description: '允许的上传目录类型（如: avatar,topic,badge,common,item,frame,site）',
+    component: 'multiSelect',
+    description: '允许的上传目录类型',
+    options: [
+      { value: 'avatar', label: '头像' },
+      { value: 'topic', label: '话题图片' },
+      { value: 'badge', label: '徽章' },
+      { value: 'item', label: '道具' },
+      { value: 'frame', label: '头像框' },
+      { value: 'site', label: '站点资源' },
+      { value: 'common', label: '通用' },
+    ],
   },
 };
 
