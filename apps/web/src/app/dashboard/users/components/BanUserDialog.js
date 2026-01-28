@@ -15,13 +15,9 @@ import { moderationApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 export function BanUserDialog({ open, onOpenChange, user, onBanned }) {
+  // 组件挂载时直接初始化（因为使用条件渲染，每次打开都是新实例）
   const [form, setForm] = useState({ duration: 0, reason: '' });
   const [submitting, setSubmitting] = useState(false);
-
-  const handleOpenChange = (v) => {
-    if (v) setForm({ duration: 0, reason: '' });
-    onOpenChange(v);
-  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -45,7 +41,7 @@ export function BanUserDialog({ open, onOpenChange, user, onBanned }) {
   return (
     <FormDialog
       open={open}
-      onOpenChange={handleOpenChange}
+      onOpenChange={onOpenChange}
       title="封禁用户"
       description={
         <>

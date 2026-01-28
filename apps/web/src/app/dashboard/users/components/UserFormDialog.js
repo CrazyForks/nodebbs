@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FormDialog } from '@/components/common/FormDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,26 +40,20 @@ export function UserFormDialog({
   onUpdated,
 }) {
   const isCreate = mode === 'create';
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [submitting, setSubmitting] = useState(false);
-
-  // 当弹窗打开时根据 mode 和 user 重置表单
-  useEffect(() => {
-    if (open) {
-      if (isCreate) {
-        setForm(INITIAL_FORM);
-      } else if (user) {
-        setForm({
-          username: user.username,
-          email: user.email,
+  // 组件挂载时直接初始化表单（因为使用条件渲染，每次打开都是新实例）
+  const [form, setForm] = useState(() =>
+    isCreate
+      ? INITIAL_FORM
+      : {
+          username: user?.username || '',
+          email: user?.email || '',
           password: '',
-          name: user.name || '',
-          roleIds: user.userRoles?.map(r => r.id) || [],
-          isEmailVerified: user.isEmailVerified || false,
-        });
-      }
-    }
-  }, [open, isCreate, user]);
+          name: user?.name || '',
+          roleIds: user?.userRoles?.map(r => r.id) || [],
+          isEmailVerified: user?.isEmailVerified || false,
+        }
+  );
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!form.username || !form.email) {

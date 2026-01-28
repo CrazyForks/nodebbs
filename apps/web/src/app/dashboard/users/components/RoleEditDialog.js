@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FormDialog } from '@/components/common/FormDialog';
 import { Label } from '@/components/ui/label';
 import { MultiRoleSelect } from './MultiRoleSelect';
@@ -26,15 +26,11 @@ export function RoleEditDialog({
   availableRoles = [],
   onUpdated,
 }) {
-  const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+  // 组件挂载时直接初始化（因为使用条件渲染，每次打开都是新实例）
+  const [selectedRoleIds, setSelectedRoleIds] = useState(
+    () => user?.userRoles?.map(r => r.id) || []
+  );
   const [submitting, setSubmitting] = useState(false);
-
-  // 当弹窗打开时回填用户已有角色
-  useEffect(() => {
-    if (open && user) {
-      setSelectedRoleIds(user.userRoles?.map(r => r.id) || []);
-    }
-  }, [open, user]);
 
   const handleSubmit = async () => {
     setSubmitting(true);

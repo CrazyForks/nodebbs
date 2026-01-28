@@ -349,32 +349,38 @@ export default function UsersManagement() {
       />
 
       {/* 创建/编辑用户 */}
-      <UserFormDialog
-        open={showUserDialog}
-        onOpenChange={setShowUserDialog}
-        mode={dialogMode}
-        user={selectedUser}
-        availableRoles={availableRoles}
-        onCreated={handleUserCreated}
-        onUpdated={handleUserUpdated}
-      />
+      {showUserDialog && (
+        <UserFormDialog
+          open={showUserDialog}
+          onOpenChange={setShowUserDialog}
+          mode={dialogMode}
+          user={selectedUser}
+          availableRoles={availableRoles}
+          onCreated={handleUserCreated}
+          onUpdated={handleUserUpdated}
+        />
+      )}
 
       {/* 修改角色 */}
-      <RoleEditDialog
-        open={showRoleDialog}
-        onOpenChange={setShowRoleDialog}
-        user={selectedUser}
-        availableRoles={availableRoles}
-        onUpdated={handleRolesUpdated}
-      />
+      {showRoleDialog && selectedUser && (
+        <RoleEditDialog
+          open={showRoleDialog}
+          onOpenChange={setShowRoleDialog}
+          user={selectedUser}
+          availableRoles={availableRoles}
+          onUpdated={handleRolesUpdated}
+        />
+      )}
 
       {/* 封禁用户 */}
-      <BanUserDialog
-        open={showBanDialog}
-        onOpenChange={setShowBanDialog}
-        user={selectedUser}
-        onBanned={handleBanned}
-      />
+      {showBanDialog && selectedUser && (
+        <BanUserDialog
+          open={showBanDialog}
+          onOpenChange={setShowBanDialog}
+          user={selectedUser}
+          onBanned={handleBanned}
+        />
+      )}
     </div>
   );
 }
