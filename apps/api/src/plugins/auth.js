@@ -289,62 +289,6 @@ async function authPlugin(fastify) {
     };
   });
 
-  /**
-   * 检查用户在指定分类的权限
-   * @param {string} action - 操作类型: 'view', 'create', 'reply', 'moderate'
-   */
-  fastify.decorate('requireCategoryPermission', function(action) {
-    return async function(request, reply) {
-      try {
-        await request.jwtVerify();
-
-        const user = await getUserInfo(request.user.id);
-
-        if (!user) {
-          return reply.code(401).send({ error: '未授权', message: '用户不存在' });
-        }
-
-        if (user.isDeleted) {
-          return reply.code(403).send({ error: '访问被拒绝', message: '该账号已被删除' });
-        }
-
-        // 检查封禁状态（支持临时封禁）
-        const banStatus = await checkUserBanStatus(user);
-        if (banStatus.isBanned) {
-          return reply.code(403).send({ error: '访问被拒绝', message: getBanMessage(banStatus) });
-        }
-
-        // 从请求中获取分类 ID
-        const categoryId = request.params.categoryId || request.body?.categoryId;
-        if (!categoryId) {
-          return reply.code(400).send({ error: '参数错误', message: '未指定分类' });
-        }
-
-        // 检查分类权限
-        const catPerms = await permissionService.getCategoryPermissions(user.id, categoryId);
-        const actionMap = {
-          view: 'canView',
-          create: 'canCreate',
-          reply: 'canReply',
-          moderate: 'canModerate',
-        };
-
-        const permKey = actionMap[action];
-        if (!permKey || !catPerms[permKey]) {
-          return reply.code(403).send({
-            error: '禁止访问',
-            message: `没有该分类的${action}权限`
-          });
-        }
-
-        request.user = enhanceUser(user);
-        request.categoryPermissions = catPerms;
-      } catch (err) {
-        reply.code(401).send({ error: '未授权', message: '令牌无效或已过期' });
-      }
-    };
-  });
-
   // Optional authentication (doesn't fail if no token)
   fastify.decorate('optionalAuth', async function(request) {
     try {

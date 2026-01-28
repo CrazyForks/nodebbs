@@ -440,54 +440,6 @@ class PermissionService {
   }
 
   /**
-   * 获取用户在某个分类的权限
-   * 基于统一的 role_permissions.conditions.categories 配置
-   * @param {number} userId - 用户 ID
-   * @param {number} categoryId - 分类 ID
-   * @returns {Promise<Object>}
-   */
-  async getCategoryPermissions(userId, categoryId) {
-    // 快捷路径：admin 角色拥有所有权限
-    const isAdmin = await this.hasRole(userId, 'admin');
-    if (isAdmin) {
-      return { canView: true, canCreate: true, canReply: true, canModerate: true };
-    }
-
-    // 获取用户的所有权限（含条件）
-    const userPermissions = await this._fetchUserPermissions(userId);
-
-    if (!userPermissions.length) {
-      return { canView: false, canCreate: false, canReply: false, canModerate: false };
-    }
-
-    // 检查权限是否在指定分类内生效
-    const checkCategoryPermission = (permissionSlug) => {
-      const perm = userPermissions.find(p => p.slug === permissionSlug);
-      if (!perm) return false;
-
-      // 解析条件
-      const conditions = typeof perm.conditions === 'string'
-        ? JSON.parse(perm.conditions || '{}')
-        : (perm.conditions || {});
-
-      // 如果没有 categories 条件，则不限制分类（全部分类有效）
-      if (!conditions.categories || conditions.categories.length === 0) {
-        return true;
-      }
-
-      // 检查 categoryId 是否在允许的分类列表中
-      return conditions.categories.includes(categoryId);
-    };
-
-    return {
-      canView: checkCategoryPermission('topic.read') || checkCategoryPermission('category.read'),
-      canCreate: checkCategoryPermission('topic.create'),
-      canReply: checkCategoryPermission('post.create'),
-      canModerate: checkCategoryPermission('topic.manage') || checkCategoryPermission('post.manage'),
-    };
-  }
-
-  /**
    * 清除用户权限缓存
    * @param {number} userId - 用户 ID
    */
