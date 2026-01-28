@@ -735,6 +735,32 @@ class PermissionService {
         }))
       );
     }
+
+    // 清除所有拥有该角色的用户的权限缓存
+    await this.clearRoleUsersPermissionCache(roleId);
+  }
+
+  /**
+   * 清除拥有指定角色的所有用户的权限缓存
+   * @param {number} roleId - 角色 ID
+   */
+  async clearRoleUsersPermissionCache(roleId) {
+    if (!this.fastify?.cache) return;
+
+    // 查询所有拥有该角色的用户
+    const usersWithRole = await db
+      .select({ userId: userRoles.userId })
+      .from(userRoles)
+      .where(eq(userRoles.roleId, roleId));
+
+    // 清除每个用户的权限缓存
+    for (const { userId } of usersWithRole) {
+      await this.clearUserPermissionCache(userId);
+    }
+
+    if (usersWithRole.length > 0 && this.fastify?.log) {
+      this.fastify.log.info(`[RBAC] 已清除 ${usersWithRole.length} 个用户的权限缓存（角色ID: ${roleId}）`);
+    }
   }
 
   /**

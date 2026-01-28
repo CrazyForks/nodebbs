@@ -275,6 +275,11 @@ export default async function rolesRoutes(fastify, options) {
         .where(eq(roles.id, id))
         .returning();
 
+      // 如果修改了继承关系（parentId），需要清除拥有该角色的用户的权限缓存
+      if ('parentId' in updateData) {
+        await permissionService.clearRoleUsersPermissionCache(id);
+      }
+
       return updated;
     }
   );
@@ -306,6 +311,9 @@ export default async function rolesRoutes(fastify, options) {
       if (role.isSystem) {
         return reply.code(400).send({ error: '系统角色不能删除' });
       }
+
+      // 删除前先清除拥有该角色的用户的权限缓存
+      await permissionService.clearRoleUsersPermissionCache(id);
 
       await db.delete(roles).where(eq(roles.id, id));
 
