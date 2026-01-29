@@ -2,9 +2,9 @@ import { userEnricher } from '../../services/userEnricher.js';
 import db from '../../db/index.js';
 import { users, accounts } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { getPermissionService } from '../../services/permissionService.js';
 
 export default async function userRoute(fastify, options) {
+  const { permissionService } = fastify;
   // 获取当前登录用户
   fastify.get(
     '/me',
@@ -121,7 +121,6 @@ export default async function userRoute(fastify, options) {
         }
 
         // 并行获取用户丰富信息、OAuth 账号、密码状态和 RBAC 权限
-        const permissionService = getPermissionService();
         const [userAccounts, pwdResult, userRoles, userPermissions] = await Promise.all([
           db.select().from(accounts).where(eq(accounts.userId, user.id)),
           db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId)).limit(1),
@@ -206,7 +205,6 @@ export default async function userRoute(fastify, options) {
     },
     async (request, reply) => {
       const userId = request.user.id;
-      const permissionService = getPermissionService();
 
       const [userRoles, userPermissions] = await Promise.all([
         permissionService.getUserRoles(userId),

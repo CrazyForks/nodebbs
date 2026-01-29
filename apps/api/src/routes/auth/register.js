@@ -7,7 +7,6 @@ import { validateUsername } from '../../utils/validateUsername.js';
 import { normalizeEmail, normalizeUsername } from '../../utils/normalization.js';
 import { checkSpammer, formatSpamCheckMessage } from '../../services/spamService.js';
 import { DEFAULT_CURRENCY_CODE } from '../../extensions/ledger/constants.js';
-import { getPermissionService } from '../../services/permissionService.js';
 
 export default async function registerRoute(fastify, options) {
   fastify.post(
@@ -211,8 +210,7 @@ export default async function registerRoute(fastify, options) {
         .returning();
 
       // 分配默认角色（用户-角色关联）
-      const permissionService = getPermissionService();
-      await permissionService.assignDefaultRoleToUser(newUser.id);
+      await fastify.permissionService.assignDefaultRoleToUser(newUser.id);
 
       // 注册成功后，不再发送邮件
       fastify.log.info(`[注册] 用户 ${email} 注册成功，等待邮箱验证`);

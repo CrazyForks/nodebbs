@@ -2,13 +2,12 @@ import db from '../../db/index.js';
 import { categories, topics } from '../../db/schema.js';
 import { eq, sql, desc, isNull, like, and, or, count, inArray } from 'drizzle-orm';
 import slugify from 'slug';
-import { getPermissionService } from '../../services/permissionService.js';
 
 export default async function categoryRoutes(fastify, options) {
   // 批量更新分类排序（仅管理员）
   // 注意：此路由需要放在 GET '/' 之前，避免被通配符路由覆盖
   fastify.patch('/batch-reorder', {
-    preHandler: [fastify.requirePermission('category.update')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['categories', 'admin'],
       description: '批量更新分类排序（仅管理员）',
@@ -140,9 +139,7 @@ export default async function categoryRoutes(fastify, options) {
     }
 
     // 获取用户允许访问的分类（基于 RBAC 权限）
-    const permissionService = getPermissionService();
-    const currentUserId = user?.id ?? null;
-    const allowedCategoryIds = await permissionService.getAllowedCategoryIds(currentUserId, 'topic.read');
+    const allowedCategoryIds = await fastify.getAllowedCategoryIds(request);
 
     // 如果有分类限制，过滤分类列表
     if (allowedCategoryIds !== null) {
@@ -259,15 +256,7 @@ export default async function categoryRoutes(fastify, options) {
     }
 
     // 检查用户是否有权限查看该分类（基于 RBAC）
-    const permissionService = getPermissionService();
-    const currentUserId = user?.id ?? null;
-    const readPermission = await permissionService.checkPermissionWithReason(
-      currentUserId,
-      'topic.read',
-      { categoryId: category.id }
-    );
-
-    if (!readPermission.granted) {
+    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: category.id })) {
       return reply.code(404).send({ error: '分类不存在' });
     }
 
@@ -297,7 +286,7 @@ export default async function categoryRoutes(fastify, options) {
 
   // Create category (admin only)
   fastify.post('/', {
-    preHandler: [fastify.requirePermission('category.create')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['categories', 'admin'],
       description: '创建新分类（仅管理员）',
@@ -358,7 +347,7 @@ export default async function categoryRoutes(fastify, options) {
 
   // Update category (admin only)
   fastify.patch('/:id', {
-    preHandler: [fastify.requirePermission('category.update')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['categories', 'admin'],
       description: '更新分类（仅管理员）',
@@ -411,7 +400,7 @@ export default async function categoryRoutes(fastify, options) {
 
   // Delete category (admin only)
   fastify.delete('/:id', {
-    preHandler: [fastify.requirePermission('category.delete')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['categories', 'admin'],
       description: '删除分类（仅管理员）',

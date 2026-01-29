@@ -6,7 +6,6 @@ import { sysCurrencies, sysAccounts } from '../../extensions/ledger/schema.js';
 import { DEFAULT_CURRENCY_CODE } from '../../extensions/ledger/constants.js';
 import { getPassiveEffects } from '../../extensions/badges/services/badgeService.js';
 import { applyUserInfoVisibility, shouldHideUserInfo } from '../../utils/visibility.js';
-import { getPermissionService } from '../../services/permissionService.js';
 
 // 辅助函数：检查两个用户之间是否存在拉黑关系（双向检查）
 async function isBlocked(userId1, userId2) {
@@ -95,15 +94,7 @@ export default async function postRoutes(fastify, options) {
       }
 
       // 检查用户是否有权限查看该话题的分类（基于 RBAC topic.read）
-      const permissionService = getPermissionService();
-      const currentUserId = request.user?.id ?? null;
-      const readPermission = await permissionService.checkPermissionWithReason(
-        currentUserId,
-        'topic.read',
-        { categoryId: topic.categoryId }
-      );
-
-      if (!readPermission.granted) {
+      if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic.categoryId })) {
         return reply.code(404).send({ error: '话题不存在' });
       }
     }
@@ -231,9 +222,7 @@ export default async function postRoutes(fastify, options) {
       // 如果没有指定 topicId，需要基于 topic.read 权限过滤分类
       // （指定 topicId 时已在上面单独检查过）
       if (!topicId) {
-        const permissionService = getPermissionService();
-        const currentUserId = request.user?.id ?? null;
-        const allowedCategoryIds = await permissionService.getAllowedCategoryIds(currentUserId, 'topic.read');
+        const allowedCategoryIds = await fastify.getAllowedCategoryIds(request);
 
         if (allowedCategoryIds !== null) {
           if (allowedCategoryIds.length === 0) {
@@ -585,15 +574,7 @@ export default async function postRoutes(fastify, options) {
     }
 
     // 检查用户是否有权限查看该话题的分类（基于 RBAC topic.read）
-    const permissionService = getPermissionService();
-    const currentUserId = request.user?.id ?? null;
-    const readPermission = await permissionService.checkPermissionWithReason(
-      currentUserId,
-      'topic.read',
-      { categoryId: post.categoryId }
-    );
-
-    if (!readPermission.granted) {
+    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: post.categoryId })) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
@@ -652,14 +633,7 @@ export default async function postRoutes(fastify, options) {
     }
 
     // 检查用户是否有权限访问该话题的分类
-    const permissionService = getPermissionService();
-    const readPermission = await permissionService.checkPermissionWithReason(
-      request.user.id,
-      'topic.read',
-      { categoryId: topic.categoryId }
-    );
-
-    if (!readPermission.granted) {
+    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic.categoryId })) {
       return reply.code(404).send({ error: '话题不存在' });
     }
 
@@ -912,14 +886,7 @@ export default async function postRoutes(fastify, options) {
       .from(topics).where(eq(topics.id, post.topicId)).limit(1);
 
     // 检查用户是否有权限访问该话题的分类
-    const permissionService = getPermissionService();
-    const readPermission = await permissionService.checkPermissionWithReason(
-      request.user.id,
-      'topic.read',
-      { categoryId: topic?.categoryId }
-    );
-
-    if (!readPermission.granted) {
+    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic?.categoryId })) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 
@@ -1040,14 +1007,7 @@ export default async function postRoutes(fastify, options) {
       .from(topics).where(eq(topics.id, post.topicId)).limit(1);
 
     // 检查用户是否有权限访问该话题的分类
-    const permissionService = getPermissionService();
-    const readPermission = await permissionService.checkPermissionWithReason(
-      request.user.id,
-      'topic.read',
-      { categoryId: topic?.categoryId }
-    );
-
-    if (!readPermission.granted) {
+    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic?.categoryId })) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
 

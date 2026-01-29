@@ -19,16 +19,16 @@ import { eq, sql, desc, and, or, like, inArray, not, count } from 'drizzle-orm';
 import slugify from 'slug';
 import { userEnricher } from '../../services/userEnricher.js';
 import { shouldHideUserInfo } from '../../utils/visibility.js';
-import { getPermissionService } from '../../services/permissionService.js';
 
 /**
  * 计算用户对话题的操作权限
  * @param {Object} params - 参数
+ * @param {Object} params.permissionService - 权限服务实例
  * @param {Object} params.user - 当前用户
  * @param {Object} params.topic - 话题对象（需包含 userId, categoryId）
  * @returns {Promise<Object>} 权限对象
  */
-async function getTopicPermissions({ user, topic }) {
+async function getTopicPermissions({ permissionService, user, topic }) {
   // 未登录用户无任何操作权限
   if (!user) {
     return {
@@ -40,7 +40,6 @@ async function getTopicPermissions({ user, topic }) {
     };
   }
 
-  const permissionService = getPermissionService();
   const context = {
     ownerId: topic.userId,
     categoryId: topic.categoryId,
@@ -250,9 +249,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 获取用户允许访问的分类（基于 RBAC 权限）
-      const permissionService = getPermissionService();
-      const currentUserId = request.user?.id ?? null;
-      const allowedCategoryIds = await permissionService.getAllowedCategoryIds(currentUserId, 'topic.read');
+      const allowedCategoryIds = await fastify.getAllowedCategoryIds(request);
 
       // 如果有分类限制
       if (allowedCategoryIds !== null) {
@@ -498,15 +495,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 检查用户是否有权限查看该分类的话题（基于 RBAC）
-      const permissionService = getPermissionService();
-      const userId = request.user?.id ?? null;
-      const readPermission = await permissionService.checkPermissionWithReason(
-        userId,
-        'topic.read',
-        { categoryId: topic.categoryId }
-      );
-
-      if (!readPermission.granted) {
+      if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic.categoryId })) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
@@ -625,6 +614,7 @@ export default async function topicRoutes(fastify, options) {
 
       // 计算用户对该话题的操作权限
       const topicPermissions = await getTopicPermissions({
+        permissionService: fastify.permissionService,
         user: request.user,
         topic,
       });

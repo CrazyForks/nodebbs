@@ -12,12 +12,12 @@ import { normalizeEmail, normalizeUsername } from '../../utils/normalization.js'
 import { VerificationCodeType } from '../../plugins/message/config/verificationCode.js';
 import { verifyCode, deleteVerificationCode } from '../../plugins/message/utils/verificationCode.js';
 import { moderationLogs } from '../../db/schema.js';
-import { getPermissionService } from '../../services/permissionService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default async function userRoutes(fastify, options) {
+  const { permissionService } = fastify;
   // Create user (admin only)
   fastify.post('/', {
     preHandler: [fastify.requireAdmin],
@@ -95,7 +95,6 @@ export default async function userRoutes(fastify, options) {
     }).returning();
 
     // 分配默认角色（用户-角色关联）
-    const permissionService = getPermissionService();
     await permissionService.assignDefaultRoleToUser(newUser.id, { assignedBy: request.user.id });
 
     // Remove sensitive data
@@ -106,7 +105,7 @@ export default async function userRoutes(fastify, options) {
 
   // Get users list (admin only)
   fastify.get('/', {
-    preHandler: [fastify.requirePermission('user.read')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['users'],
       description: '获取用户列表（仅管理员）',
@@ -1233,7 +1232,7 @@ export default async function userRoutes(fastify, options) {
 
   // Update user by admin
   fastify.patch('/:userId', {
-    preHandler: [fastify.requirePermission('user.update')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['users'],
       description: '更新用户信息（仅管理员）',
@@ -1341,7 +1340,7 @@ export default async function userRoutes(fastify, options) {
 
   // Delete user (admin only)
   fastify.delete('/:userId', {
-    preHandler: [fastify.requirePermission('user.delete')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['users'],
       description: '删除用户（仅管理员）',
@@ -1404,7 +1403,7 @@ export default async function userRoutes(fastify, options) {
 
   // Update user roles (admin only)
   fastify.put('/:userId/roles', {
-    preHandler: [fastify.requirePermission('user.update')],
+    preHandler: [fastify.requireAdmin],
     schema: {
       tags: ['users'],
       description: '更新用户角色（仅管理员）',
@@ -1507,7 +1506,6 @@ export default async function userRoutes(fastify, options) {
     await fastify.clearUserCache(userId);
 
     // Also clear permission cache
-    const permissionService = getPermissionService();
     await permissionService.clearUserPermissionCache(userId);
 
     return {

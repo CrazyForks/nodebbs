@@ -6,11 +6,10 @@
 import { eq } from 'drizzle-orm';
 import db from '../../db/index.js';
 import { roles, permissions, rolePermissions, userRoles, users } from '../../db/schema.js';
-import { getPermissionService } from '../../services/permissionService.js';
 import { getRbacConfig } from '../../config/rbac.js';
 
 export default async function rolesRoutes(fastify, options) {
-  const permissionService = getPermissionService();
+  const { permissionService } = fastify;
 
   // ============ RBAC 配置 API ============
 

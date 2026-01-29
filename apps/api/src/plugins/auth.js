@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import ms from 'ms';
 import env from '../config/env.js';
 import { ROLE_ADMIN } from '../constants/roles.js';
-import { createPermissionService, getPermissionService } from '../services/permissionService.js';
+import { createPermissionService } from '../services/permissionService.js';
 
 async function authPlugin(fastify) {
   // 注册 Cookie 插件
@@ -158,28 +158,51 @@ async function authPlugin(fastify) {
     fastify.log.info(`已清除用户 ${userId} 的缓存`);
   });
 
-  // Decorate fastify with auth utilities
-  fastify.decorate('authenticate', async function(request, reply) {
+  /**
+   * 公共用户解析：JWT 验证 → 获取用户 → 删除/封禁检查 → enhanceUser
+   * 所有需要认证的 preHandler 共用此逻辑
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {Object} reply - Fastify reply 对象
+   * @param {Object} options - 配置选项
+   * @param {boolean} options.checkBan - 是否检查封禁状态，默认 false
+   * @returns {Promise<Object|null>} 用户对象，验证失败时返回 null（已发送错误响应）
+   */
+  async function resolveUser(request, reply, { checkBan = false } = {}) {
     try {
       await request.jwtVerify();
-      
-      // 从缓存或数据库获取最新的用户信息
-      const user = await getUserInfo(request.user.id);
-      
-      if (!user) {
-        return reply.code(401).send({ error: '未授权', message: '用户不存在' });
-      }
-      
-      // 检查用户是否已被删除
-      if (user.isDeleted) {
-        return reply.code(403).send({ error: '访问被拒绝', message: '该账号已被删除' });
-      }
-      
-      // 更新 request.user 为最新的用户信息
-      request.user = enhanceUser(user);
     } catch (err) {
       reply.code(401).send({ error: '未授权', message: '令牌无效或已过期' });
+      return null;
     }
+
+    const user = await getUserInfo(request.user.id);
+
+    if (!user) {
+      reply.code(401).send({ error: '未授权', message: '用户不存在' });
+      return null;
+    }
+
+    if (user.isDeleted) {
+      reply.code(403).send({ error: '访问被拒绝', message: '该账号已被删除' });
+      return null;
+    }
+
+    if (checkBan) {
+      const banStatus = await checkUserBanStatus(user);
+      if (banStatus.isBanned) {
+        reply.code(403).send({ error: '访问被拒绝', message: getBanMessage(banStatus) });
+        return null;
+      }
+    }
+
+    request.user = enhanceUser(user);
+    return user;
+  }
+
+  // Decorate fastify with auth utilities
+  fastify.decorate('authenticate', async function(request, reply) {
+    await resolveUser(request, reply);
   });
 
   // Check if user is banned (use after authenticate)
@@ -201,120 +224,80 @@ async function authPlugin(fastify) {
 
   // Check if user is admin
   fastify.decorate('requireAdmin', async function(request, reply) {
-    try {
-      await request.jwtVerify();
+    const user = await resolveUser(request, reply, { checkBan: true });
+    if (!user) return;
 
-      // 从缓存或数据库获取最新的用户信息
-      const user = await getUserInfo(request.user.id);
-
-      if (!user) {
-        return reply.code(401).send({ error: '未授权', message: '用户不存在' });
-      }
-
-      if (user.isDeleted) {
-        return reply.code(403).send({ error: '访问被拒绝', message: '该账号已被删除' });
-      }
-
-      // 检查封禁状态（支持临时封禁）
-      const banStatus = await checkUserBanStatus(user);
-      if (banStatus.isBanned) {
-        return reply.code(403).send({ error: '访问被拒绝', message: getBanMessage(banStatus) });
-      }
-
-      if (user.role !== ROLE_ADMIN) {
-        return reply.code(403).send({ error: '禁止访问', message: '需要管理员权限' });
-      }
-
-      // 更新 request.user 为最新的用户信息
-      request.user = enhanceUser(user);
-    } catch (err) {
-      reply.code(401).send({ error: '未授权', message: '令牌无效或已过期' });
+    if (user.role !== ROLE_ADMIN) {
+      return reply.code(403).send({ error: '禁止访问', message: '需要管理员权限' });
     }
   });
 
   // ============ RBAC 权限检查装饰器 ============
 
   /**
-   * 前置权限检查（用于 preHandler）
-   * 适用于不需要资源上下文的简单权限检查
+   * 权限检查核心逻辑（内部函数）
+   * 检查用户是否具有指定权限，返回检查结果
    *
+   * @param {number|null} userId - 用户ID，null 表示 guest
    * @param {string|string[]} permissionSlug - 权限标识或权限标识数组
-   * @param {Object} options - 配置选项
-   * @param {boolean} options.any - 满足任一权限即可（用于权限数组）
-   *
-   * @example
-   * // 基础权限检查
-   * preHandler: [fastify.requirePermission('topic.create')]
-   *
-   * @example
-   * // 多权限检查（满足任一）
-   * preHandler: [fastify.requirePermission(['topic.update', 'topic.delete'], { any: true })]
+   * @param {Object} context - 权限检查上下文
+   * @param {boolean} any - 满足任一权限即可
+   * @returns {Promise<{granted: boolean, reason?: string, code?: string}>} 检查结果
    */
-  fastify.decorate('requirePermission', function(permissionSlug, options = {}) {
-    return async function(request, reply) {
-      try {
-        await request.jwtVerify();
+  async function checkPermissionCore(userId, permissionSlug, context = {}, any = false) {
+    const slugs = Array.isArray(permissionSlug) ? permissionSlug : [permissionSlug];
+    let lastDenyResult = null;
 
-        const user = await getUserInfo(request.user.id);
-
-        if (!user) {
-          return reply.code(401).send({ error: '未授权', message: '用户不存在' });
+    if (any) {
+      for (const slug of slugs) {
+        const result = await permissionService.checkPermissionWithReason(userId, slug, context);
+        if (result.granted) {
+          return result;
         }
-
-        if (user.isDeleted) {
-          return reply.code(403).send({ error: '访问被拒绝', message: '该账号已被删除' });
-        }
-
-        // 检查封禁状态
-        const banStatus = await checkUserBanStatus(user);
-        if (banStatus.isBanned) {
-          return reply.code(403).send({ error: '访问被拒绝', message: getBanMessage(banStatus) });
-        }
-
-        // 检查权限（无资源上下文）
-        const slugs = Array.isArray(permissionSlug) ? permissionSlug : [permissionSlug];
-        let lastDenyResult = null;
-
-        if (options.any) {
-          // 任一权限满足即可
-          for (const slug of slugs) {
-            const result = await permissionService.checkPermissionWithReason(user.id, slug);
-            if (result.granted) {
-              lastDenyResult = null;
-              break;
-            }
-            lastDenyResult = result;
-          }
-        } else {
-          // 所有权限都需满足
-          for (const slug of slugs) {
-            const result = await permissionService.checkPermissionWithReason(user.id, slug);
-            if (!result.granted) {
-              lastDenyResult = result;
-              break;
-            }
-          }
-        }
-
-        if (lastDenyResult) {
-          return reply.code(403).send({
-            error: '禁止访问',
-            message: lastDenyResult.reason,
-            code: lastDenyResult.code,
-          });
-        }
-
-        request.user = enhanceUser(user);
-      } catch (err) {
-        fastify.log.error('权限检查错误:', err);
-        reply.code(401).send({ error: '未授权', message: '令牌无效或已过期' });
+        lastDenyResult = result;
       }
-    };
-  });
+    } else {
+      for (const slug of slugs) {
+        const result = await permissionService.checkPermissionWithReason(userId, slug, context);
+        if (!result.granted) {
+          lastDenyResult = result;
+          break;
+        }
+      }
+      if (!lastDenyResult) {
+        return { granted: true };
+      }
+    }
+
+    return lastDenyResult;
+  }
 
   /**
-   * 后置权限检查（用于 handler 内部，在获取资源后调用）
-   * 适用于需要资源上下文的条件权限检查，避免重复查询
+   * 准备权限检查上下文（内部函数）
+   * 提取 userId 并自动注入 userCreatedAt
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {Object} context - 原始上下文
+   * @returns {{ userId: number|null, context: Object }}
+   */
+  function preparePermissionCheck(request, context) {
+    const userId = request.user?.id ?? null;
+
+    if (request.user && context.userCreatedAt === undefined) {
+      context.userCreatedAt = request.user.createdAt;
+    }
+
+    return { userId, context };
+  }
+
+  /**
+   * 权限检查（用于 handler 内部，在获取资源后调用）
+   * 适用于需要资源上下文的条件权限检查
+   *
+   * 设计原则：
+   * - 认证(Authentication)由 preHandler 处理：authenticate / optionalAuth
+   * - 授权(Authorization)由本方法处理：检查用户角色是否有权限
+   * - 未登录用户自动使用 guest 角色（userId = null）
    *
    * @param {Object} request - Fastify request 对象
    * @param {string|string[]} permissionSlug - 权限标识或权限标识数组
@@ -326,8 +309,8 @@ async function authPlugin(fastify) {
    * @param {string} [context.fileType] - 文件类型/扩展名，用于 `allowedFileTypes: ["jpg","png"]` 条件
    * @param {string} [context.uploadType] - 上传目录类型，用于 `uploadTypes: ["avatar","topic"]` 条件
    * @param {Object} options - 配置选项
-   * @param {boolean} options.any - 满足任一权限即可
-   * @returns {Promise<boolean>} 是否有权限
+   * @param {boolean} options.any - 满足任一权限即可（用于权限数组）
+   * @returns {Promise<void>}
    * @throws {Error} 无权限时抛出 403 错误
    *
    * @note 不需要 context 的条件：
@@ -335,70 +318,90 @@ async function authPlugin(fastify) {
    *   - `rateLimit: { count, period }` - 使用内部缓存计数器
    *
    * @example
-   * // 检查编辑帖子权限（需要是自己的帖子且在指定分类）
-   * async (request, reply) => {
-   *   const topic = await db.select()...;
-   *   if (!topic) return reply.code(404).send({ error: '话题不存在' });
+   * // 基本用法 - 无权限时抛 403
+   * await fastify.checkPermission(request, 'topic.create');
    *
-   *   await fastify.checkPermission(request, 'topic.update', {
-   *     ownerId: topic.userId,
-   *     categoryId: topic.categoryId
-   *   });
-   *   // 继续处理...
-   * }
+   * @example
+   * // 带上下文的权限检查（检查是否是自己的资源）
+   * await fastify.checkPermission(request, 'topic.update', {
+   *   ownerId: topic.userId,
+   *   categoryId: topic.categoryId
+   * });
    *
    * @example
    * // 检查上传权限
-   * await fastify.checkPermission(request, 'attachment.upload', {
+   * await fastify.checkPermission(request, 'upload.create', {
    *   fileSize: file.size,
    *   fileType: file.mimetype,
    *   uploadType: 'topic'
    * });
+   *
+   * @example
+   * // 多权限检查（满足任一）
+   * await fastify.checkPermission(request, ['topic.update', 'topic.delete'], {}, { any: true });
    */
   fastify.decorate('checkPermission', async function(request, permissionSlug, context = {}, options = {}) {
-    const user = request.user;
+    const prepared = preparePermissionCheck(request, context);
+    const result = await checkPermissionCore(prepared.userId, permissionSlug, prepared.context, options.any);
 
-    if (!user) {
-      const error = new Error('未授权');
-      error.statusCode = 401;
+    if (!result.granted) {
+      const error = new Error(result.reason || '没有执行此操作的权限');
+      error.statusCode = 403;
+      error.code = result.code;
       throw error;
     }
+  });
 
-    // 自动注入用户相关 context
-    if (context.userCreatedAt === undefined) {
-      context.userCreatedAt = user.createdAt;
-    }
+  /**
+   * 权限检查（不抛异常版本）
+   * 返回布尔值，由调用方决定如何处理
+   *
+   * 使用场景：
+   * - 需要返回 404 而非 403（隐藏资源存在性）
+   * - 需要根据权限结果做条件判断而非中断流程
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {string} permissionSlug - 权限标识
+   * @param {Object} context - 权限检查上下文（同 checkPermission）
+   * @returns {Promise<boolean>} 是否有权限
+   *
+   * @example
+   * // 读操作返回 404（隐藏资源存在性）
+   * if (!await fastify.hasPermission(request, 'topic.read', { categoryId })) {
+   *   return reply.code(404).send({ error: '话题不存在' });
+   * }
+   *
+   * @example
+   * // 条件判断
+   * const canEdit = await fastify.hasPermission(request, 'topic.update', { ownerId: topic.userId });
+   * if (canEdit) {
+   *   // 显示编辑按钮
+   * }
+   */
+  fastify.decorate('hasPermission', async function(request, permissionSlug, context = {}) {
+    const prepared = preparePermissionCheck(request, context);
+    const result = await permissionService.checkPermissionWithReason(prepared.userId, permissionSlug, prepared.context);
+    return result.granted;
+  });
 
-    const slugs = Array.isArray(permissionSlug) ? permissionSlug : [permissionSlug];
-    let lastDenyResult = null;
-
-    if (options.any) {
-      // 任一权限满足即可
-      for (const slug of slugs) {
-        const result = await permissionService.checkPermissionWithReason(user.id, slug, context);
-        if (result.granted) {
-          return true;
-        }
-        lastDenyResult = result;
-      }
-    } else {
-      // 所有权限都需满足
-      for (const slug of slugs) {
-        const result = await permissionService.checkPermissionWithReason(user.id, slug, context);
-        if (!result.granted) {
-          lastDenyResult = result;
-          break;
-        }
-      }
-      if (!lastDenyResult) {
-        return true;
-      }
-    }
-
-    const error = new Error(lastDenyResult.reason || '没有执行此操作的权限');
-    error.statusCode = 403;
-    error.code = lastDenyResult.code;
-    throw error;
+  /**
+   * 获取用户允许访问的分类 ID 列表
+   * 用于列表过滤场景
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {string} permissionSlug - 权限标识，默认 'topic.read'
+   * @returns {Promise<number[]|null>} 分类 ID 数组，null 表示无限制
+   *
+   * @example
+   * const allowedIds = await fastify.getAllowedCategoryIds(request);
+   * if (allowedIds !== null) {
+   *   if (allowedIds.length === 0) return { items: [] };
+   *   conditions.push(inArray(topics.categoryId, allowedIds));
+   * }
+   */
+  fastify.decorate('getAllowedCategoryIds', async function(request, permissionSlug = 'topic.read') {
+    const userId = request.user?.id ?? null;
+    return permissionService.getAllowedCategoryIds(userId, permissionSlug);
   });
 
   // Optional authentication (doesn't fail if no token)
