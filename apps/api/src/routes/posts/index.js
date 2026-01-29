@@ -976,7 +976,7 @@ export default async function postRoutes(fastify, options) {
     preHandler: [fastify.authenticate],
     schema: {
       tags: ['posts'],
-      description: '删除帖子（软删除或彻底删除）',
+      description: '删除帖子（逻辑删除或彻底删除）',
       security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
@@ -1027,7 +1027,7 @@ export default async function postRoutes(fastify, options) {
     }
 
     if (permanent) {
-      // 硬删除 - 从数据库中永久移除
+      // 彻底删除 - 从数据库中永久移除
       // 首先删除相关数据
       await db.delete(likes).where(eq(likes.postId, id));
 
@@ -1040,8 +1040,8 @@ export default async function postRoutes(fastify, options) {
       // 然后删除帖子
       await db.delete(posts).where(eq(posts.id, id));
 
-      // 更新话题帖子计数（仅当尚未软删除时）
-      // 如果帖子已经软删除，则 postCount 已经减少过
+      // 更新话题帖子计数（仅当尚未逻辑删除时）
+      // 如果帖子已经逻辑删除，则 postCount 已经减少过
       if (!post.isDeleted) {
         await db.update(topics).set({
           postCount: sql`${topics.postCount} - 1`,
@@ -1051,7 +1051,7 @@ export default async function postRoutes(fastify, options) {
 
       return { message: '回复已永久删除' };
     } else {
-      // 软删除
+      // 逻辑删除
       await db.update(posts).set({
         isDeleted: true,
         deletedAt: new Date(),

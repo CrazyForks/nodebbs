@@ -20,8 +20,10 @@ import {
 } from 'lucide-react';
 import Link from '@/components/common/Link';
 import Time from '@/components/common/Time';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function AdminPostsPage() {
+  const { hasPermission, isAdmin } = usePermission();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,7 +88,7 @@ export default function AdminPostsPage() {
       title: isHard ? '确认彻底删除？' : '确认删除？',
       description: isHard
         ? '此操作将彻底删除该回复，包括所有点赞和相关数据。此操作不可恢复！'
-        : '此操作将软删除该回复。软删除后回复将不再显示，但数据仍保留在数据库中。',
+        : '此操作将逻辑删除该回复。删除后回复将不再显示，但数据仍保留在数据库中。',
       confirmText: '确认删除',
       variant: isHard ? 'destructive' : 'default',
     });
@@ -99,13 +101,13 @@ export default function AdminPostsPage() {
 
       // 局部更新
       setPosts((prevPosts) => {
-        // 硬删除：直接从列表中移除
+        // 彻底删除：直接从列表中移除
         if (isHard) {
           setTotal((prev) => Math.max(0, prev - 1));
           return prevPosts.filter((p) => p.id !== post.id);
         }
 
-        // 软删除：更新状态
+        // 逻辑删除：更新状态
         const updatedPosts = prevPosts.map((p) =>
           p.id === post.id ? { ...p, isDeleted: true } : p
         );
@@ -240,19 +242,20 @@ export default function AdminPostsPage() {
               href: `/topic/${row.topicId}#post-${row.id}`,
               target: '_blank',
             },
-            { separator: true },
+            { separator: true, hidden: !hasPermission('post.delete') },
             {
-              label: '软删除',
+              label: '删除',
               icon: Trash2,
               variant: 'warning',
               onClick: (e) => handleDeleteClick(e, row, 'soft'),
-              hidden: row.isDeleted,
+              hidden: row.isDeleted || !hasPermission('post.delete'),
             },
             {
               label: '彻底删除',
               icon: Trash2,
               variant: 'destructive',
               onClick: (e) => handleDeleteClick(e, row, 'hard'),
+              hidden: !isAdmin,
             },
           ]}
         />

@@ -1024,7 +1024,7 @@ export default async function topicRoutes(fastify, options) {
       schema: {
         tags: ['topics'],
         description:
-          '删除话题（默认软删除，permanent=true 为硬删除）',
+          '删除话题（默认逻辑删除，permanent=true 为彻底删除）',
         security: [{ bearerAuth: [] }],
         params: {
           type: 'object',
@@ -1071,7 +1071,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       if (permanent) {
-        // 硬删除 - 从数据库中永久删除
+        // 彻底删除 - 从数据库中永久删除
         
         // 1. 获取关联的标签并减少话题计数
         const currentTags = await db
@@ -1099,7 +1099,7 @@ export default async function topicRoutes(fastify, options) {
 
         return { message: '话题已永久删除' };
       } else {
-        // 软删除
+        // 逻辑删除
         await db
           .update(topics)
           .set({ isDeleted: true, updatedAt: new Date() })

@@ -23,8 +23,10 @@ import {
 } from 'lucide-react';
 import Link from '@/components/common/Link';
 import Time from '@/components/common/Time';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function AdminTopicsPage() {
+  const { hasPermission, isAdmin } = usePermission();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -144,7 +146,7 @@ export default function AdminTopicsPage() {
       title: isHard ? '确认彻底删除？' : '确认删除？',
       description: isHard
         ? `此操作将彻底删除话题 "${topic.title}"，包括所有回复和相关数据。此操作不可恢复！`
-        : `此操作将软删除话题 "${topic.title}"。软删除后话题将不再显示，但数据仍保留在数据库中。`,
+        : `此操作将逻辑删除话题 "${topic.title}"。删除后话题将不再显示，但数据仍保留在数据库中。`,
       confirmText: '确认删除',
       variant: isHard ? 'destructive' : 'default',
     });
@@ -157,13 +159,13 @@ export default function AdminTopicsPage() {
 
       // 局部更新：直接修改本地状态
       setTopics((prevTopics) => {
-        // 硬删除：直接从列表中移除
+        // 彻底删除：直接从列表中移除
         if (isHard) {
           setTotal((prev) => Math.max(0, prev - 1));
           return prevTopics.filter((t) => t.id !== topic.id);
         }
 
-        // 软删除：根据筛选条件决定是更新还是移除
+        // 逻辑删除：根据筛选条件决定是更新还是移除
         const updatedTopics = prevTopics.map((t) =>
           t.id === topic.id ? { ...t, isDeleted: true } : t
         );
@@ -317,25 +319,28 @@ export default function AdminTopicsPage() {
               label: row.isPinned ? '取消置顶' : '置顶话题',
               icon: row.isPinned ? PinOff : Pin,
               onClick: () => handleTogglePin(row.id, row.isPinned),
+              hidden: !hasPermission('topic.pin'),
             },
             {
               label: row.isClosed ? '重新开启' : '关闭话题',
               icon: row.isClosed ? Unlock : Lock,
               onClick: () => handleToggleClosed(row.id, row.isClosed),
+              hidden: !hasPermission('topic.close'),
             },
-            { separator: true },
+            { separator: true, hidden: !hasPermission('topic.delete') },
             {
-              label: '软删除',
+              label: '删除',
               icon: Trash2,
               variant: 'warning',
               onClick: (e) => handleDeleteClick(e, row, 'soft'),
-              hidden: row.isDeleted,
+              hidden: row.isDeleted || !hasPermission('topic.delete'),
             },
             {
               label: '彻底删除',
               icon: Trash2,
               variant: 'destructive',
               onClick: (e) => handleDeleteClick(e, row, 'hard'),
+              hidden: !isAdmin,
             },
           ]}
         />

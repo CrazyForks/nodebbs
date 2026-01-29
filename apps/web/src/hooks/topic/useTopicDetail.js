@@ -182,7 +182,7 @@ export function useTopicDetail({
   };
 
   /**
-   * 删除话题（软删除）
+   * 删除话题（逻辑删除）
    */
   const deleteTopic = async () => {
     if (!isAuthenticated) return openLoginDialog();

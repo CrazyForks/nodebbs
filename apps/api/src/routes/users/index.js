@@ -1397,7 +1397,7 @@ export default async function userRoutes(fastify, options) {
         deletedAt: new Date(),
         updatedAt: new Date()
       }).where(eq(users.id, userId));
-      return { message: '用户已软删除' };
+      return { message: '用户已删除' };
     }
   });
 

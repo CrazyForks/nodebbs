@@ -17,8 +17,10 @@ import { UserRoleBadges } from './components/UserRoleBadges';
 import { UserFormDialog } from './components/UserFormDialog';
 import { RoleEditDialog } from './components/RoleEditDialog';
 import { BanUserDialog } from './components/BanUserDialog';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function UsersManagement() {
+  const { hasPermission, isAdmin } = usePermission();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -145,7 +147,7 @@ export default function UsersManagement() {
   const handleDeleteClick = async (e, user, type) => {
     const isHard = type === 'hard';
     const confirmed = await confirm(e, {
-      title: isHard ? '确认彻底删除用户？' : '确认软删除用户？',
+      title: isHard ? '确认彻底删除用户？' : '确认删除用户？',
       description: isHard ? (
         <>
           此操作将
@@ -156,9 +158,9 @@ export default function UsersManagement() {
         </>
       ) : (
         <>
-          此操作将软删除用户 &quot;{user.username}&quot;。
+          此操作将逻辑删除用户 &quot;{user.username}&quot;。
           <br />
-          软删除后用户将无法登录，但数据仍保留在数据库中。
+          删除后用户将无法登录，但数据仍保留在数据库中。
         </>
       ),
       confirmText: '确认删除',
@@ -169,7 +171,7 @@ export default function UsersManagement() {
     setSubmitting(true);
     try {
       await userApi.deleteUser(user.id, isHard);
-      toast.success(isHard ? `已彻底删除用户 ${user.username}` : `已软删除用户 ${user.username}`);
+      toast.success(isHard ? `已彻底删除用户 ${user.username}` : `已逻辑删除用户 ${user.username}`);
       if (isHard) {
         setUsers(prev => prev.filter(u => u.id !== user.id));
         setTotal(prev => prev - 1);
@@ -292,14 +294,14 @@ export default function UsersManagement() {
       render: (_, user) => (
         <ActionMenu
           items={[
-            { label: '编辑用户', icon: Pencil, onClick: () => openEditDialog(user), disabled: !canModifyUser(user) },
-            { label: '修改角色', icon: UserCog, onClick: () => openRoleDialog(user), disabled: !canModifyUser(user) },
+            { label: '编辑用户', icon: Pencil, onClick: () => openEditDialog(user), disabled: !canModifyUser(user), hidden: !hasPermission('user.update') },
+            { label: '修改角色', icon: UserCog, onClick: () => openRoleDialog(user), disabled: !canModifyUser(user), hidden: !hasPermission('user.update') },
             { separator: true },
-            { label: '解封用户', icon: ShieldCheck, onClick: (e) => handleUnbanClick(e, user), hidden: !user.isBanned },
-            { label: '封禁用户', icon: Ban, variant: 'warning', onClick: () => openBanDialog(user), disabled: !canModifyUser(user), hidden: user.isBanned },
-            { separator: true },
-            { label: '软删除', icon: Trash2, variant: 'warning', onClick: (e) => handleDeleteClick(e, user, 'soft'), disabled: !canModifyUser(user) },
-            { label: '彻底删除', icon: Trash2, variant: 'destructive', onClick: (e) => handleDeleteClick(e, user, 'hard'), disabled: !canModifyUser(user) },
+            { label: '解封用户', icon: ShieldCheck, onClick: (e) => handleUnbanClick(e, user), hidden: !user.isBanned || !hasPermission('user.ban') },
+            { label: '封禁用户', icon: Ban, variant: 'warning', onClick: () => openBanDialog(user), disabled: !canModifyUser(user), hidden: user.isBanned || !hasPermission('user.ban') },
+            { separator: true, hidden: !hasPermission('user.delete') },
+            { label: '删除', icon: Trash2, variant: 'warning', onClick: (e) => handleDeleteClick(e, user, 'soft'), disabled: !canModifyUser(user), hidden: !hasPermission('user.delete') },
+            { label: '彻底删除', icon: Trash2, variant: 'destructive', onClick: (e) => handleDeleteClick(e, user, 'hard'), disabled: !canModifyUser(user), hidden: !isAdmin },
           ]}
         />
       ),
