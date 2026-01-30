@@ -1,26 +1,27 @@
-import React, { useState, useRef } from 'react';
-import { Loader2, Upload as UploadIcon } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Upload as UploadIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // 上传按钮组件
 export const UploadButton = ({ onUpload, onClosePopover }) => {
   const fileInputRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     if (onUpload) {
       try {
-        setIsUploading(true);
         // 关闭 Popover
         if (onClosePopover) onClosePopover();
-        await onUpload(file);
+        
+        // 直接传递 FileList 或数组给 onUpload，由其内部统一处理批量逻辑
+        // 注意：onUpload 是异步的，但我们不需要在这里等待其完成，
+        // 因为 UI 反馈是通过编辑器内的占位符来展示的
+        onUpload(files);
       } catch (error) {
         console.error('Upload error in toolbar:', error);
       } finally {
-        setIsUploading(false);
         // 重置 input
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -42,6 +43,7 @@ export const UploadButton = ({ onUpload, onClosePopover }) => {
         ref={fileInputRef}
         className="hidden"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
       />
       <Button 
@@ -49,15 +51,10 @@ export const UploadButton = ({ onUpload, onClosePopover }) => {
         variant="outline" 
         size="sm" 
         className="w-full h-8 text-xs gap-1"
-        disabled={isUploading}
         onClick={() => fileInputRef.current?.click()}
       >
-        {isUploading ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <UploadIcon className="h-3 w-3" />
-        )}
-        {isUploading ? '上传中...' : '上传本地图片'}
+        <UploadIcon className="h-3 w-3" />
+        上传本地图片
       </Button>
     </>
   );
