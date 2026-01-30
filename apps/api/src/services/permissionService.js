@@ -662,38 +662,7 @@ class PermissionService {
       return { allowed: true };
     }
 
-    // 计算时间窗口（秒）
-    const periodSeconds = {
-      minute: 60,
-      hour: 3600,
-      day: 86400,
-    }[period] || 3600;
-
-    const cacheKey = `rbac:ratelimit:${userId}:${actionKey}`;
-
-    // 如果有缓存，使用滑动窗口计数
-    if (this.fastify?.cache) {
-      const currentCount = await this.fastify.cache.get(cacheKey) || 0;
-
-      if (currentCount >= count) {
-        return {
-          allowed: false,
-          remaining: 0,
-          resetAt: new Date(Date.now() + periodSeconds * 1000),
-        };
-      }
-
-      // 增加计数（如果是第一次，设置过期时间）
-      await this.fastify.cache.set(cacheKey, currentCount + 1, periodSeconds);
-
-      return {
-        allowed: true,
-        remaining: count - currentCount - 1,
-      };
-    }
-
-    // 没有缓存时，默认允许（降级处理）
-    return { allowed: true };
+    return this._checkAndIncrementRateLimit(userId, actionKey, count, period);
   }
 
 

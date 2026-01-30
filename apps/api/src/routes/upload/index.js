@@ -40,16 +40,16 @@ export default async function uploadRoutes(fastify) {
     const uploadType = request.query.type || 'assets';
     const userId = request.user.id;
 
-    // 1. 获取动态权限条件（此时已绕过基础权限检查的 hasPermission，需手动获取条件）
-    const conditions = await fastify.permissionService.getPermissionConditions(userId, 'upload.create');
-    if (conditions === null) {
-      return reply.code(403).send({ error: '你没有上传文件的权限' });
+    // 1. 验证权限（包含频率限制、账号时长、上传目录类型等检查）
+    // 注意：此调用会触发 Rate Limit 计数增加
+    try {
+      await fastify.checkPermission(request, 'upload.create', { uploadType });
+    } catch (err) {
+      return reply.code(403).send({ error: err.message });
     }
 
-    // 2. 检查上传类型权限
-    if (conditions.uploadTypes && !conditions.uploadTypes.includes(uploadType)) {
-      return reply.code(403).send({ error: `你没有上传 "${uploadType}" 类型文件的权限` });
-    }
+    // 2. 获取具体限制数值
+    const conditions = await fastify.permissionService.getPermissionConditions(userId, 'upload.create') || {};
 
     // 获取具体限制数值（从 RBAC 条件中读取或使用合理的后备默认值）
     const maxFileSizeKB = conditions.maxFileSize || MAX_UPLOAD_SIZE_DEFAULT_KB; 
