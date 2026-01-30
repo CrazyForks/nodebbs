@@ -601,6 +601,24 @@ export const ROLE_PERMISSION_CONDITIONS = {
   },
 };
 
+/**
+ * 角色允许配置的权限白名单
+ * 如果未定义，默认允许配置所有非系统权限
+ * 用于前端界面限制某些角色只能配置特定权限
+ */
+export const ALLOWED_ROLES_PERMISSIONS = {
+  guest: [
+    'topic.read',
+    'post.read',
+    'user.read',
+    'category.read',
+  ],
+  user: SYSTEM_PERMISSIONS
+    .filter(p => !p.slug.startsWith('dashboard.') && // 排除所有后台权限
+                 !['topic.pin', 'topic.close', 'user.ban', 'category.create', 'category.update', 'category.delete'].includes(p.slug))
+    .map(p => p.slug),
+};
+
 // ============ 辅助函数 ============
 
 /**
@@ -634,6 +652,7 @@ export function getRbacConfig() {
     moduleSpecialActions: MODULE_SPECIAL_ACTIONS,
     conditionTypes: CONDITION_TYPES,
     permissionConditions: PERMISSION_CONDITIONS,
+    allowedRolePermissions: ALLOWED_ROLES_PERMISSIONS,
   };
 }
 

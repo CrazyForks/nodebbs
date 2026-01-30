@@ -29,6 +29,7 @@ export default async function rolesRoutes(fastify, options) {
               moduleSpecialActions: { type: 'object', additionalProperties: { type: 'array', items: { type: 'object', additionalProperties: true } } },
               conditionTypes: { type: 'object', additionalProperties: { type: 'object', additionalProperties: true } },
               permissionConditions: { type: 'object', additionalProperties: { type: 'array', items: { type: 'string' } } },
+              allowedRolePermissions: { type: 'object', additionalProperties: { type: 'array', items: { type: 'string' } } },
             },
           },
         },

@@ -40,6 +40,7 @@ export function RolesTab() {
   const [moduleOptions, setModuleOptions] = useState([]);
   const [commonActions, setCommonActions] = useState([]);
   const [moduleSpecialActions, setModuleSpecialActions] = useState({});
+  const [allowedRolePermissions, setAllowedRolePermissions] = useState({});
 
   // 动态数据源（用于条件编辑器）
   const [dynamicDataSources, setDynamicDataSources] = useState({
@@ -99,6 +100,7 @@ export function RolesTab() {
       setModuleOptions(configData.modules || []);
       setCommonActions(configData.commonActions || []);
       setModuleSpecialActions(configData.moduleSpecialActions || {});
+      setAllowedRolePermissions(configData.allowedRolePermissions || {});
 
       // 设置动态数据源
       setDynamicDataSources({
@@ -588,7 +590,14 @@ export function RolesTab() {
       >
         <div className="space-y-4 py-4">
           {moduleOptions.map(({ value: moduleKey, label: moduleLabel }) => {
-            const perms = sortPermissions(groupedPermissions[moduleKey], moduleKey);
+            let perms = sortPermissions(groupedPermissions[moduleKey], moduleKey);
+
+            // 根据后端配置过滤允许显示的权限
+            if (selectedRole?.slug && allowedRolePermissions[selectedRole.slug]) {
+              const allowed = allowedRolePermissions[selectedRole.slug];
+              perms = perms.filter(p => allowed.includes(p.slug));
+            }
+
             if (!perms || perms.length === 0) return null;
 
             return (
