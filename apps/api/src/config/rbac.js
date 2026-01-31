@@ -87,7 +87,7 @@ export const CONDITION_TYPES = {
     label: '操作范围',
     type: 'array',
     component: 'multiSelect',
-    description: '限制操作的查询/访问范围',
+    description: '控制能操作哪些数据（仅自己/全部），不设置则不限制',
     excludeRoles: ['guest'],  // 完全排除的角色
     excludeRolePermissions: {  // 特定角色的特定权限排除（支持通配符 *）
       user: ['*.read'],  // user 角色的所有读权限不显示 scope
@@ -105,14 +105,14 @@ export const CONDITION_TYPES = {
     type: 'array',
     component: 'multiSelect',
     dataSource: 'categories', // 前端从分类 API 动态获取
-    description: '只在指定分类内有效',
+    description: '只在指定分类内有效，不设置则不限制',
   },
   timeRange: {
     key: 'timeRange',
     label: '生效时间段',
     type: 'object',
     component: 'timeRange',
-    description: '权限生效的时间段',
+    description: '权限生效的时间段，不设置则全天有效',
     schema: {
       start: { type: 'string', label: '开始时间', format: 'HH:mm' },
       end: { type: 'string', label: '结束时间', format: 'HH:mm' },
@@ -125,7 +125,7 @@ export const CONDITION_TYPES = {
     label: '账号注册天数',
     type: 'number',
     component: 'number',
-    description: '账号注册天数需达到指定值',
+    description: '账号注册天数需达到指定值，不设置则不限制',
     placeholder: '不限制',
     min: 0,
   },
@@ -136,7 +136,7 @@ export const CONDITION_TYPES = {
     label: '频率限制',
     type: 'object',
     component: 'rateLimit',
-    description: '限制操作频率（次数/时间段）',
+    description: '限制操作频率（次数/时间段），不设置则不限制',
     schema: {
       count: { type: 'number', label: '次数', min: 1 },
       period: {
@@ -157,8 +157,8 @@ export const CONDITION_TYPES = {
     label: '最大文件大小(KB)',
     type: 'number',
     component: 'number',
-    description: '单个文件最大大小，单位KB',
-    placeholder: '不限制',
+    description: '单个文件最大大小(KB)，不设置则使用系统默认限制',
+    placeholder: '使用系统默认',
     min: 0,
   },
   allowedFileTypes: {
@@ -166,7 +166,7 @@ export const CONDITION_TYPES = {
     label: '允许的文件类型',
     type: 'array',
     component: 'multiSelect',
-    description: '允许上传的文件扩展名',
+    description: '允许上传的文件扩展名，不设置则使用系统默认类型',
     options: Object.keys(EXT_MIME_MAP).map(ext => ({
       value: ext,
       label: ext.toUpperCase(),
@@ -174,10 +174,10 @@ export const CONDITION_TYPES = {
   },
   uploadTypes: {
     key: 'uploadTypes',
-    label: '允许的上传类型',
+    label: '允许的上传场景',
     type: 'array',
     component: 'multiSelect',
-    description: '允许的上传目录类型',
+    description: '允许上传到哪些场景（头像、话题等），不设置则无上传权限（管理员除外）',
     options: [
       { value: 'avatars', label: '头像' },
       { value: 'topics', label: '话题' },

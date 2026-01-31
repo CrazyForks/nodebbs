@@ -50,22 +50,31 @@ export function IconUpload({
 
 
   // 计算允许的文件扩展名
+  // ['*'] 表示无限制（管理员），使用所有已知扩展名
   const allowedExts = useMemo(() => {
-    return uploadConditions?.allowedFileTypes || DEFAULT_ALLOWED_EXTENSIONS;
+    const types = uploadConditions?.allowedFileTypes;
+    if (types?.includes('*')) {
+      return Object.keys(EXT_MIME_MAP);
+    }
+    return types || DEFAULT_ALLOWED_EXTENSIONS;
   }, [uploadConditions]);
 
   // 动态生成 accept 属性 (UX 优化：让文件选择框默认只显示允许的类型)
   // 同时包含后缀和对应的 MIME 类型，提升各平台浏览器识别率
   const acceptAttribute = useMemo(() => {
-    if (uploadConditions?.allowedFileTypes?.length > 0) {
-      const exts = uploadConditions.allowedFileTypes;
+    const types = uploadConditions?.allowedFileTypes;
+    // ['*'] 表示无限制，使用通用图片类型
+    if (types?.includes('*')) {
+      return "image/*";
+    }
+    if (types?.length > 0) {
       const combined = [
-        ...exts.map(ext => `.${ext}`),
-        ...exts.map(ext => EXT_MIME_MAP[ext] || []).flat()
+        ...types.map(ext => `.${ext}`),
+        ...types.map(ext => EXT_MIME_MAP[ext] || []).flat()
       ];
       return [...new Set(combined)].join(',');
     }
-    return accept;
+    return accept; // Use prop fallback
   }, [uploadConditions, accept]);
 
   // 显示的图片：优先使用 value，为空时使用 placeholder 兜底

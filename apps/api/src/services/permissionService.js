@@ -12,7 +12,7 @@ import {
   userRoles,
   users,
 } from '../db/schema.js';
-import { MAX_UPLOAD_SIZE_ADMIN_KB } from '../constants/upload.js';
+import { MAX_UPLOAD_SIZE_ADMIN_KB, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/upload.js';
 
 // 权限缓存 TTL（秒）
 const PERMISSION_CACHE_TTL = 300; // 5 分钟
@@ -297,8 +297,8 @@ class PermissionService {
         // 管理员返回极大的限制，避免调用方因空值回退到默认限制
         return {
           maxFileSize: MAX_UPLOAD_SIZE_ADMIN_KB, // 即使是 Admin 也给一个上限作为保险
-          allowedFileTypes: null, // 明确返回 null 表示无文件类型限制
-          // 不设置 uploadTypes 表示无目录限制
+          allowedFileTypes: ['*'], // 使用 ['*'] 表示无文件类型限制
+          uploadTypes: ['*'], // 使用 ['*'] 表示无目录类型限制
         };
       }
     }
@@ -437,21 +437,31 @@ class PermissionService {
       }
 
       // allowedFileTypes: ["jpg", "png", "gif"] 表示允许的文件类型
-      if (conditions.allowedFileTypes && context.fileType !== undefined) {
-        const ext = context.fileType.toLowerCase().replace('.', '');
-        if (!conditions.allowedFileTypes.includes(ext)) {
-          return {
-            granted: false,
-            code: 'FILE_TYPE_NOT_ALLOWED',
-            reason: `不支持的文件类型，允许：${conditions.allowedFileTypes.join(', ')}`,
-          };
+      // ['*'] 表示无限制（管理员），未设置则使用系统默认扩展名白名单
+      if (context.fileType !== undefined) {
+        // ['*'] 表示无限制，跳过检查
+        if (conditions.allowedFileTypes?.includes('*')) {
+          // 管理员无限制，不做检查
+        } else {
+          const allowedTypes = conditions.allowedFileTypes || DEFAULT_ALLOWED_EXTENSIONS;
+          const ext = context.fileType.toLowerCase().replace('.', '');
+          if (!allowedTypes.includes(ext)) {
+            return {
+              granted: false,
+              code: 'FILE_TYPE_NOT_ALLOWED',
+              reason: `不支持的文件类型，允许：${allowedTypes.join(', ')}`,
+            };
+          }
         }
       }
 
-      // uploadTypes: ["avatar", "topic"] 表示允许的上传目录类型
-      // 安全策略：如果提供了 context.uploadType，必须显式在 uploadTypes 白名单中才允许
+      // uploadTypes: ["avatars", "topics"] 表示允许的上传目录类型
+      // ['*'] 表示无限制（管理员），未设置则无任何上传权限
       if (context.uploadType !== undefined) {
-        if (!conditions.uploadTypes || !conditions.uploadTypes.includes(context.uploadType)) {
+        // ['*'] 表示无限制，跳过检查
+        if (conditions.uploadTypes?.includes('*')) {
+          // 管理员无限制，不做检查
+        } else if (!conditions.uploadTypes || !conditions.uploadTypes.includes(context.uploadType)) {
           return {
             granted: false,
             code: 'UPLOAD_TYPE_NOT_ALLOWED',
