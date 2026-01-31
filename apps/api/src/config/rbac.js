@@ -5,6 +5,8 @@
  * 这是 RBAC 系统的唯一数据源（Single Source of Truth）
  */
 
+import { EXT_MIME_MAP } from '../constants/upload.js';
+
 // ============ 权限模块定义 ============
 
 // 权限模块选项
@@ -161,9 +163,12 @@ export const CONDITION_TYPES = {
     key: 'allowedFileTypes',
     label: '允许的文件类型',
     type: 'array',
-    component: 'textList',
+    component: 'multiSelect',
     description: '允许上传的文件扩展名',
-    placeholder: '如: jpg, png, gif',
+    options: Object.keys(EXT_MIME_MAP).map(ext => ({
+      value: ext,
+      label: ext.toUpperCase(),
+    })),
   },
   uploadTypes: {
     key: 'uploadTypes',
