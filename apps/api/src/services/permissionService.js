@@ -11,6 +11,7 @@ import {
   rolePermissions,
   userRoles,
   users,
+  categories,
 } from '../db/schema.js';
 import { MAX_UPLOAD_SIZE_ADMIN_KB, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/upload.js';
 
@@ -131,6 +132,32 @@ function mergePermissionConditions(cond1, cond2) {
 class PermissionService {
   constructor(fastify) {
     this.fastify = fastify;
+  }
+
+  /**
+   * 展开父分类 ID 到所有子分类 ID（向下继承）
+   * @param {Array<number>} parentIds - 父分类 ID 列表
+   * @returns {Promise<Set<number>>} 展开后的分类 ID 集合
+   */
+  async _expandCategoryIds(parentIds) {
+    if (!parentIds || parentIds.length === 0) return new Set();
+
+    const allCats = await db.select({ id: categories.id, parentId: categories.parentId }).from(categories);
+    const expandedIds = new Set(parentIds);
+
+    const addChildren = (parentId) => {
+      for (const cat of allCats) {
+        if (cat.parentId === parentId && !expandedIds.has(cat.id)) {
+          expandedIds.add(cat.id);
+          addChildren(cat.id);
+        }
+      }
+    };
+    for (const id of parentIds) {
+      addChildren(id);
+    }
+
+    return expandedIds;
   }
 
   /**
@@ -364,9 +391,10 @@ class PermissionService {
         }
       }
 
-      // categories: [1, 2, 3] 表示只能在指定分类操作
+      // categories: [1, 2, 3] 表示只能在指定父分类（及其子分类）操作
       if (conditions.categories && context.categoryId !== undefined) {
-        if (!conditions.categories.includes(context.categoryId)) {
+        const allowedIds = await this._expandCategoryIds(conditions.categories);
+        if (!allowedIds.has(context.categoryId)) {
           return {
             granted: false,
             code: 'CATEGORY_NOT_ALLOWED',
@@ -622,8 +650,12 @@ class PermissionService {
       return [];
     }
 
-    // 返回分类限制，null 表示无限制
-    return permission.conditions?.categories || null;
+    const parentIds = permission.conditions?.categories;
+    if (!parentIds) return null; // 无限制
+
+    // 向下继承：展开父分类到所有子分类
+    const expandedIds = await this._expandCategoryIds(parentIds);
+    return [...expandedIds];
   }
 
   /**

@@ -104,8 +104,8 @@ export const CONDITION_TYPES = {
     label: '限定分类',
     type: 'array',
     component: 'multiSelect',
-    dataSource: 'categories', // 前端从分类 API 动态获取
-    description: '只在指定分类内有效，不设置则不限制',
+    dataSource: 'categories', // 前端从分类 API 动态获取（仅父分类）
+    description: '只允许选择父分类，子分类自动继承权限；不设置则不限制',
   },
   timeRange: {
     key: 'timeRange',

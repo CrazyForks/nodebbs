@@ -94,12 +94,14 @@ export function RolesTab() {
       setModuleSpecialActions(configData.moduleSpecialActions || {});
       setAllowedRolePermissions(configData.allowedRolePermissions || {});
 
-      // 设置动态数据源
+      // 设置动态数据源（只显示父分类，子分类自动继承权限）
       setDynamicDataSources({
-        categories: categoriesData.map(cat => ({
-          value: cat.id,
-          label: cat.name,
-        })),
+        categories: categoriesData
+          .filter(cat => !cat.parentId)
+          .map(cat => ({
+            value: cat.id,
+            label: cat.name,
+          })),
       });
     } catch (err) {
       console.error('获取数据失败:', err);
