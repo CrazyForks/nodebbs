@@ -66,6 +66,7 @@ export default function TopicSidebar() {
     username: topic.username,
     name: topic.userName,
     avatarFrame: topic.userAvatarFrame,
+    displayRole: topic.userDisplayRole,
   };
   
   const category = {

@@ -3,11 +3,12 @@ import Link from '@/components/common/Link';
 import UserAvatar from '@/components/user/UserAvatar';
 import UserBadge from '@/extensions/badges/components/Badge';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * 通用用户卡片组件
  * @param {Object} props
- * @param {Object} props.user - 用户信息对象 (name, username, avatar, avatarFrame)
+ * @param {Object} props.user - 用户信息对象 (name, username, avatar, avatarFrame, displayRole)
  * @param {Array} props.badges - 勋章列表
  * @param {string} props.variant - 样式变体: 'default' (简洁/透明), 'banner' (带背景条的卡片)
  * @param {string} props.avatarSize - 头像尺寸 (UserAvatar size prop: 'md', 'lg', 'xl')
@@ -73,7 +74,7 @@ export default function UserCard({
             {isBanner ? (
               <Link
                 href={`/users/${user.username}`}
-               
+
                 className='font-bold hover:text-primary hover:underline block truncate'
               >
                 {user.name || user.username}
@@ -82,10 +83,18 @@ export default function UserCard({
               user.name || user.username
             )}
           </h4>
-          {isBanner && (
-            <p className={cn('text-muted-foreground truncate text-xs')}>
-              @{user.username}
-            </p>
+          {user.displayRole && (
+            <Badge
+              variant="outline"
+              className='mt-1 text-xs font-normal'
+              style={{
+                backgroundColor: user.displayRole.color + '15',
+                borderColor: user.displayRole.color + '40',
+                color: user.displayRole.color,
+              }}
+            >
+              {user.displayRole.name}
+            </Badge>
           )}
         </div>
 

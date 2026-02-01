@@ -7,8 +7,12 @@ import { eq } from 'drizzle-orm';
 import ms from 'ms';
 import env from '../config/env.js';
 import { createPermissionService } from '../services/permissionService.js';
+import registerRbacEnricher from '../services/rbacEnricher.js';
 
 async function authPlugin(fastify) {
+  // 注册 RBAC 用户增强器（为用户添加 displayRole）
+  registerRbacEnricher(fastify);
+
   // 注册 Cookie 插件
   await fastify.register(import('@fastify/cookie'), {
     secret: env.security.cookieSecret,

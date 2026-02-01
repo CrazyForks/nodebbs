@@ -634,6 +634,7 @@ export default async function topicRoutes(fastify, options) {
         viewCount: topic.viewCount + 1, // Return incremented count
         userAvatarFrame: authorInfo.avatarFrame || null,
         userBadges: authorInfo.badges || [],
+        userDisplayRole: authorInfo.displayRole || null,
         isBlockedUser,
         // 操作权限
         ...topicPermissions,

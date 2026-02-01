@@ -318,6 +318,15 @@ export default async function userRoutes(fastify, options) {
                 imageUrl: { type: ['string', 'null'] }
               }
             },
+            displayRole: {
+              type: ['object', 'null'],
+              properties: {
+                slug: { type: 'string' },
+                name: { type: 'string' },
+                color: { type: ['string', 'null'] },
+                icon: { type: ['string', 'null'] }
+              }
+            },
             badges: {
               type: 'array',
               // items: {
