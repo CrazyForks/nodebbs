@@ -65,15 +65,10 @@ export default async function postRoutes(fastify, options) {
     const offset = (page - 1) * limit;
 
     // 检查查看权限 (post.read)
-    const { granted: canRead, reason: denyReason } = await fastify.permissionService.checkPermissionWithReason(request.user?.id, 'post.read');
+    const canRead = await fastify.permissionService.hasPermission(request.user?.id, 'post.read');
     if (!canRead) {
-      // 无权限时静默返回空列表
       return { items: [], page, limit, total: 0 };
     }
-
-    // 获取权限条件（如 scope）
-    const permissions = await fastify.permissionService.getPermissionConditions(request.user?.id, 'post.read');
-    const scope = permissions?.scope || [];
 
     // 检查是否为管理员
     const isAdmin = request.user?.isAdmin;
@@ -112,19 +107,6 @@ export default async function postRoutes(fastify, options) {
 
     // 构建查询条件
     let whereConditions = [];
-
-    // 权限范围检查：
-    // 1. scope 包含 'own' 且不含 'list' -> 只能看自己的回复
-    // 2. scope 存在但不含 'own' 或 'list' -> 无权查看列表
-    if (!isAdmin && scope.includes('own') && !scope.includes('list')) {
-      if (!request.user) {
-        return { items: [], page, limit, total: 0 };
-      }
-      whereConditions.push(eq(posts.userId, request.user.id));
-    } else if (!isAdmin && scope.length > 0 && !scope.includes('list') && !scope.includes('own')) {
-      // 无相关 scope 时静默返回空列表
-      return { items: [], page, limit, total: 0 };
-    }
 
     // 提前声明 blockedUserIds，在后续处理拉黑标记时复用
     let blockedUserIds = new Set();
@@ -459,15 +441,11 @@ export default async function postRoutes(fastify, options) {
 
     const isAdmin = request.user?.isAdmin;
 
-    // 检查查看权限
+    // 检查查看权限 (post.read)
     const canRead = await fastify.permissionService.hasPermission(request.user?.id, 'post.read');
     if (!canRead) {
       return reply.code(404).send({ error: '回复不存在' });
     }
-
-    // 获取权限条件
-    const permissions = await fastify.permissionService.getPermissionConditions(request.user?.id, 'post.read');
-    const scope = permissions?.scope || [];
 
     // 1. 验证帖子存在
     const [post] = await db
@@ -490,16 +468,6 @@ export default async function postRoutes(fastify, options) {
       ne(posts.postNumber, 1), // 排除话题内容
       eq(posts.isDeleted, false)
     ];
-
-    // 权限范围检查：仅限于自己的内容
-    if (!isAdmin && scope.includes('own') && !scope.includes('list')) {
-      if (!request.user || post.userId !== request.user.id) {
-        return { postId: post.id, postNumber: post.postNumber, position: 0, page: 1, limit };
-      }
-      whereConditions.push(eq(posts.userId, request.user.id));
-    } else if (!isAdmin && scope.length > 0 && !scope.includes('list') && !scope.includes('own')) {
-      return { postId: post.id, postNumber: post.postNumber, position: 0, page: 1, limit };
-    }
 
     // 3. 应用审核状态过滤 (与列表逻辑一致)
     if (!isAdmin) {
@@ -589,16 +557,13 @@ export default async function postRoutes(fastify, options) {
   }, async (request, reply) => {
     const { id } = request.params;
 
-    // 检查查看权限
     const isAdmin = request.user?.isAdmin;
+
+    // 检查查看权限 (post.read)
     const canRead = await fastify.permissionService.hasPermission(request.user?.id, 'post.read');
     if (!canRead) {
       return reply.code(404).send({ error: '帖子不存在' });
     }
-
-    // 获取权限条件
-    const permissions = await fastify.permissionService.getPermissionConditions(request.user?.id, 'post.read');
-    const scope = permissions?.scope || [];
 
     const [post] = await db
       .select({
@@ -627,16 +592,6 @@ export default async function postRoutes(fastify, options) {
       .limit(1);
 
     if (!post) {
-      return reply.code(404).send({ error: '帖子不存在' });
-    }
-
-    // 权限范围检查：仅限于自己的内容
-    if (!isAdmin && scope.includes('own') && !scope.includes('list')) {
-      if (!request.user || post.userId !== request.user.id) {
-        return reply.code(404).send({ error: '帖子不存在' });
-      }
-    } else if (!isAdmin && scope.length > 0 && !scope.includes('list') && !scope.includes('own')) {
-      // 配置了 scope 但既无 list 也无 own -> 无权查看
       return reply.code(404).send({ error: '帖子不存在' });
     }
 

@@ -221,8 +221,8 @@ export const SYSTEM_PERMISSIONS = [
     module: 'topic',
     action: 'read',
     isSystem: true,
-    // 场景：限制查看特定分类的话题、支持查询范围控制
-    conditions: ['scope', 'categories'],
+    // 场景：限制查看特定分类的话题
+    conditions: ['categories'],
   },
   {
     slug: 'topic.update',
@@ -280,8 +280,8 @@ export const SYSTEM_PERMISSIONS = [
     module: 'post',
     action: 'read',
     isSystem: true,
-    // 场景：支持查询范围控制（管理员可无参数列表查询）
-    conditions: ['scope'],
+    // 回复可见性继承自话题的分类权限，无需额外条件
+    conditions: [],
   },
   {
     slug: 'post.update',
