@@ -396,6 +396,7 @@ export default async function postRoutes(fastify, options) {
       .select({ count: count() })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(topics, eq(posts.topicId, topics.id))
       .where(and(...whereConditions));
 
     return {

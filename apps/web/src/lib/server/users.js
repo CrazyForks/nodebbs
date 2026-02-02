@@ -31,7 +31,8 @@ export async function getUserTopics(userId, page = 1, limit = 20) {
       page: page.toString(),
       limit: limit.toString(),
     });
-    return await request(`/topics?${params}`);
+    const res = await request(`/topics?${params}`);
+    return res || { items: [], total: 0 };
   } catch (error) {
     console.error('获取用户话题失败:', error);
     return { items: [], total: 0 };
@@ -52,7 +53,8 @@ export async function getUserPosts(userId, page = 1, limit = 20) {
       page: page.toString(),
       limit: limit.toString(),
     });
-    return await request(`/posts?${params}`);
+    const res = await request(`/posts?${params}`);
+    return res || { items: [], total: 0 };
   } catch (error) {
     console.error('获取用户回复失败:', error);
     return { items: [], total: 0 };
