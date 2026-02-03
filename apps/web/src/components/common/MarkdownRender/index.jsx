@@ -12,6 +12,7 @@ import CodeBlock from './CodeBlock';
 import PollWidget from './components/PollWidget';
 import AudioPlayer from './components/AudioPlayer';
 import VideoPlayer from './components/VideoPlayer';
+import ContentImage from './components/ContentImage';
 
 import { cn } from '@/lib/utils';
 
@@ -38,21 +39,9 @@ function MarkdownRender({ content }) {
         a: ({ node, ...props }) => (
           <Link {...props} target='_blank' rel='noopener noreferrer' />
         ),
-        img: ({ node, src, alt, ...props }) => {
-          if (!src || src.trim() === '') {
-            return null;
-          }
-
-          return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img 
-              src={src} 
-              alt={alt || ''} 
-              loading="lazy"
-              {...props} 
-            />
-          );
-        },
+        img: ({ node, src, alt, ...props }) => (
+          <ContentImage src={src} alt={alt} {...props} />
+        ),
         audio: ({ node, src, ...props }) => (
           <AudioPlayer src={src} {...props} />
         ),
