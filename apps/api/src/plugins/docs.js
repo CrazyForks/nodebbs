@@ -47,6 +47,7 @@ async function docsPlugin(fastify, opts) {
         { name: 'ads', description: '广告管理' },
         { name: 'captcha', description: '验证码服务' },
         { name: 'dashboard', description: '管理仪表盘' },
+        { name: 'roles', description: 'RBAC 角色权限管理' },
         { name: 'message-providers', description: '消息服务提供商（邮件、短信）' },
         { name: 'upload', description: '文件上传' },
       ],
@@ -112,8 +113,12 @@ async function docsPlugin(fastify, opts) {
               },
               role: {
                 type: 'string',
-                enum: ['user', 'admin'],
-                description: '用户角色',
+                description: '主要角色标识（向后兼容）',
+              },
+              roles: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/RoleBase' },
+                description: '用户的所有角色',
               },
               isBanned: { type: 'boolean', description: '是否被封禁' },
               createdAt: {
@@ -135,8 +140,12 @@ async function docsPlugin(fastify, opts) {
               avatar: { type: 'string', nullable: true, description: '头像URL' },
               role: {
                 type: 'string',
-                enum: ['user', 'admin'],
-                description: '用户角色',
+                description: '主要角色标识（向后兼容）',
+              },
+              roles: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/RoleBase' },
+                description: '用户的所有角色',
               },
               isBanned: { type: 'boolean', description: '是否被封禁' },
               isEmailVerified: { type: 'boolean', description: '邮箱是否已验证' },
@@ -190,8 +199,12 @@ async function docsPlugin(fastify, opts) {
               avatar: { type: 'string', nullable: true, description: '头像URL' },
               role: {
                 type: 'string',
-                enum: ['user', 'admin'],
-                description: '用户角色',
+                description: '主要角色标识（向后兼容）',
+              },
+              roles: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/RoleBase' },
+                description: '用户的所有角色',
               },
               messagePermission: {
                 type: 'string',
@@ -338,8 +351,7 @@ async function docsPlugin(fastify, opts) {
               },
               userRole: {
                 type: 'string',
-                enum: ['user', 'admin'],
-                description: '作者角色',
+                description: '作者主要角色',
               },
               content: { type: 'string', description: '帖子内容' },
               postNumber: { type: 'number', description: '帖子序号（楼层）' },
@@ -385,8 +397,7 @@ async function docsPlugin(fastify, opts) {
               },
               userRole: {
                 type: 'string',
-                enum: ['user', 'admin'],
-                description: '作者角色',
+                description: '作者主要角色',
               },
               content: { type: 'string', description: '帖子内容' },
               rawContent: { type: 'string', description: '原始内容' },
@@ -1071,6 +1082,183 @@ async function docsPlugin(fastify, opts) {
                 type: 'string',
                 nullable: true,
                 description: '发件人名称',
+              },
+            },
+          },
+
+          // ============ RBAC 相关 ============
+          // 角色基础信息
+          RoleBase: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: '角色ID' },
+              slug: { type: 'string', description: '角色标识' },
+              name: { type: 'string', description: '角色名称' },
+              description: {
+                type: 'string',
+                nullable: true,
+                description: '角色描述',
+              },
+              color: {
+                type: 'string',
+                nullable: true,
+                description: '角色颜色',
+              },
+              icon: {
+                type: 'string',
+                nullable: true,
+                description: '角色图标',
+              },
+              isSystem: { type: 'boolean', description: '是否系统内置角色' },
+              isDefault: { type: 'boolean', description: '是否默认角色' },
+              isDisplayed: { type: 'boolean', description: '是否显示' },
+              priority: { type: 'number', description: '优先级' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
+              },
+            },
+          },
+          // 权限基础信息
+          PermissionBase: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: '权限ID' },
+              slug: { type: 'string', description: '权限标识' },
+              name: { type: 'string', description: '权限名称' },
+              description: {
+                type: 'string',
+                nullable: true,
+                description: '权限描述',
+              },
+              module: { type: 'string', description: '所属模块' },
+              action: { type: 'string', description: '操作类型' },
+              resourceType: {
+                type: 'string',
+                nullable: true,
+                description: '资源类型',
+              },
+              isSystem: { type: 'boolean', description: '是否系统权限' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
+              },
+            },
+          },
+          // 角色权限关联
+          RolePermission: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID' },
+              roleId: { type: 'number', description: '角色ID' },
+              permissionId: { type: 'number', description: '权限ID' },
+              conditions: {
+                type: 'string',
+                nullable: true,
+                description: '条件限制（JSON）',
+              },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
+              },
+            },
+          },
+          // 用户角色关联
+          UserRole: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID' },
+              userId: { type: 'number', description: '用户ID' },
+              roleId: { type: 'number', description: '角色ID' },
+              expiresAt: {
+                type: 'string',
+                format: 'date-time',
+                nullable: true,
+                description: '过期时间',
+              },
+              assignedBy: {
+                type: 'number',
+                nullable: true,
+                description: '分配者ID',
+              },
+              assignedAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '分配时间',
+              },
+            },
+          },
+
+          // ============ 扫码登录相关 ============
+          // 扫码登录请求
+          QRLoginRequest: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID' },
+              requestId: { type: 'string', description: '请求ID' },
+              status: {
+                type: 'string',
+                enum: ['pending', 'confirmed', 'expired', 'cancelled'],
+                description: '状态',
+              },
+              userId: {
+                type: 'number',
+                nullable: true,
+                description: '确认用户ID',
+              },
+              expiresAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '过期时间',
+              },
+              confirmedAt: {
+                type: 'string',
+                format: 'date-time',
+                nullable: true,
+                description: '确认时间',
+              },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
+              },
+            },
+          },
+
+          // ============ 话题订阅相关 ============
+          // 话题订阅
+          Subscription: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID' },
+              userId: { type: 'number', description: '用户ID' },
+              topicId: { type: 'number', description: '话题ID' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '订阅时间',
+              },
+            },
+          },
+
+          // ============ 邀请规则相关 ============
+          // 邀请规则
+          InvitationRule: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID' },
+              role: { type: 'string', description: '角色标识' },
+              dailyLimit: { type: 'number', description: '每日限额' },
+              maxUsesPerCode: { type: 'number', description: '每码最大使用次数' },
+              expireDays: { type: 'number', description: '过期天数' },
+              pointsCost: { type: 'number', description: '积分消耗' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
               },
             },
           },
