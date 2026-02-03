@@ -9,7 +9,7 @@ import { X, ZoomIn, ExternalLink } from 'lucide-react';
  * 内容图片组件 - 支持缩略图和点击放大
  * 用于 MarkdownRender 中的图片展示
  */
-const MIN_ZOOM_SIZE = 512;
+const MIN_ZOOM_SIZE = 1024;
 export function ContentImage({ src, alt, ...props }) {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -77,6 +77,10 @@ export function ContentImage({ src, alt, ...props }) {
           onLoad={handleImageLoad}
           onError={handleImageError}
           className="max-w-full h-auto rounded"
+          style={{
+            maxWidth: `${MIN_ZOOM_SIZE}px`,
+            maxHeight: `${MIN_ZOOM_SIZE}px`,
+          }}
           {...props}
         />
         {/* 放大图标提示 */}
