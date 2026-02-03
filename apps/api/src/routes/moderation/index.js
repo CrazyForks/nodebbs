@@ -330,7 +330,7 @@ export default async function moderationRoutes(fastify, options) {
     const { duration, reason } = request.body || {};
 
     // 检查 dashboard.users 权限
-    await fastify.checkPermission(request, 'dashboard.users');
+    await fastify.permission.check(request, 'dashboard.users');
 
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
@@ -419,7 +419,7 @@ export default async function moderationRoutes(fastify, options) {
     const { id } = request.params;
 
     // 检查 dashboard.users 权限
-    await fastify.checkPermission(request, 'dashboard.users');
+    await fastify.permission.check(request, 'dashboard.users');
 
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
 

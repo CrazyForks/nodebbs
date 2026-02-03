@@ -5,7 +5,6 @@ import { eq } from 'drizzle-orm';
 import env from '../../config/env.js';
 
 export default async function userRoute(fastify, options) {
-  const { permissionService } = fastify;
   // 获取当前登录用户
   fastify.get(
     '/me',
@@ -123,7 +122,7 @@ export default async function userRoute(fastify, options) {
       const USER_CACHE_TTL = env.cache.userTtl;
       return await fastify.cache.remember(cacheKey, USER_CACHE_TTL, async () => {
         // 直接利用 request.user (由 auth 插件中的 authenticate preHandler 提供)
-        // authenticate 已经通过 permissionService.enhanceUserWithPermissions 注入了完整的 RBAC 数据
+        // authenticate 已经通过 permission.enrichUser 注入了完整的 RBAC 数据
         const user = { ...request.user };
 
         // 并行获取 OAuth 账号和密码状态（这些不属于 RBAC 增强范畴，仅在此接口需要）

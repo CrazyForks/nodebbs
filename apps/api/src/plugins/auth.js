@@ -62,7 +62,7 @@ async function authPlugin(fastify) {
 
   // 初始化权限服务
   const permissionService = createPermissionService(fastify);
-  fastify.decorate('permissionService', permissionService);
+  fastify.decorate('permission', permissionService);
 
   // ============ 封禁状态检查 ============
 
@@ -194,7 +194,7 @@ async function authPlugin(fastify) {
       }
     }
 
-    request.user = await permissionService.enhanceUserWithPermissions(user);
+    request.user = await permissionService.enrichUser(user);
     return request.user;
   }
 
@@ -250,140 +250,13 @@ async function authPlugin(fastify) {
       const user = await getUserInfo(request.user.id);
 
       if (user) {
-        request.user = await permissionService.enhanceUserWithPermissions(user);
+        request.user = await permissionService.enrichUser(user);
       } else {
         request.user = null;
       }
     } catch (err) {
       request.user = null;
     }
-  });
-
-  // ============ RBAC 权限检查装饰器 ============
-
-  /**
-   * 权限检查核心逻辑（内部函数）
-   * 检查用户是否具有指定权限，返回检查结果
-   *
-   * @param {number|null} userId - 用户ID，null 表示 guest
-   * @param {string|string[]} permissionSlug - 权限标识或权限标识数组
-   * @param {Object} context - 权限检查上下文
-   * @param {boolean} any - 满足任一权限即可
-   * @returns {Promise<{granted: boolean, reason?: string, code?: string}>} 检查结果
-   */
-  async function checkPermissionCore(userId, permissionSlug, context = {}, any = false) {
-    const slugs = Array.isArray(permissionSlug) ? permissionSlug : [permissionSlug];
-    let lastDenyResult = null;
-
-    if (any) {
-      for (const slug of slugs) {
-        const result = await permissionService.checkPermissionWithReason(userId, slug, context);
-        if (result.granted) {
-          return result;
-        }
-        lastDenyResult = result;
-      }
-    } else {
-      for (const slug of slugs) {
-        const result = await permissionService.checkPermissionWithReason(userId, slug, context);
-        if (!result.granted) {
-          lastDenyResult = result;
-          break;
-        }
-      }
-      if (!lastDenyResult) {
-        return { granted: true };
-      }
-    }
-
-    return lastDenyResult;
-  }
-
-  /**
-   * 准备权限检查上下文（内部函数）
-   * 提取 userId 并自动注入 userCreatedAt
-   *
-   * @param {Object} request - Fastify request 对象
-   * @param {Object} context - 原始上下文
-   * @returns {{ userId: number|null, context: Object }}
-   */
-  function preparePermissionCheck(request, context) {
-    const userId = request.user?.id ?? null;
-
-    if (request.user && context.userCreatedAt === undefined) {
-      context.userCreatedAt = request.user.createdAt;
-    }
-
-    return { userId, context };
-  }
-
-  /**
-   * 权限检查（用于 handler 内部）
-   * 无权限时抛出 403 错误
-   *
-   * @param {Object} request - Fastify request 对象
-   * @param {string|string[]} permissionSlug - 权限标识或权限数组
-   * @param {Object} context - 权限检查上下文，根据权限条件传递对应字段
-   * @param {number} [context.ownerId] - 资源所有者ID，用于 `own: true` 条件
-   * @param {number} [context.categoryId] - 分类ID，用于 `categories: [1,2,3]` 条件
-   * @param {Date|string} [context.userCreatedAt] - 用户注册时间，用于 `accountAge` 条件（自动注入）
-   * @param {number} [context.fileSize] - 文件大小（字节），用于 `maxFileSize` 条件
-   * @param {string} [context.fileType] - 文件类型/扩展名，用于 `allowedFileTypes` 条件
-   * @param {string} [context.uploadType] - 上传目录类型，用于 `uploadTypes` 条件
-   * @param {Object} options - 配置选项
-   * @param {boolean} options.any - 满足任一权限即可
-   * @throws {Error} 无权限时抛出 403 错误
-   *
-   * @example
-   * await fastify.checkPermission(request, 'topic.update', { ownerId: topic.userId });
-   */
-  fastify.decorate('checkPermission', async function(request, permissionSlug, context = {}, options = {}) {
-    const prepared = preparePermissionCheck(request, context);
-    const result = await checkPermissionCore(prepared.userId, permissionSlug, prepared.context, options.any);
-
-    if (!result.granted) {
-      const error = new Error(result.reason || '没有执行此操作的权限');
-      error.statusCode = 403;
-      error.code = result.code;
-      throw error;
-    }
-  });
-
-  /**
-   * 权限检查（不抛异常版本）
-   * 返回布尔值，适用于需要返回 404 或条件判断的场景
-   *
-   * @param {Object} request - Fastify request 对象
-   * @param {string} permissionSlug - 权限标识
-   * @param {Object} context - 权限检查上下文
-   * @returns {Promise<boolean>} 是否有权限
-   *
-   * @example
-   * const canEdit = await fastify.hasPermission(request, 'topic.update', { ownerId: topic.userId });
-   */
-  fastify.decorate('hasPermission', async function(request, permissionSlug, context = {}) {
-    const prepared = preparePermissionCheck(request, context);
-    return permissionService.hasPermission(prepared.userId, permissionSlug, prepared.context);
-  });
-
-  /**
-   * 获取用户允许访问的分类 ID 列表
-   * 用于列表过滤场景
-   *
-   * @param {Object} request - Fastify request 对象
-   * @param {string} permissionSlug - 权限标识，默认 'topic.read'
-   * @returns {Promise<number[]|null>} 分类 ID 数组，null 表示无限制
-   *
-   * @example
-   * const allowedIds = await fastify.getAllowedCategoryIds(request);
-   * if (allowedIds !== null) {
-   *   if (allowedIds.length === 0) return { items: [] };
-   *   conditions.push(inArray(topics.categoryId, allowedIds));
-   * }
-   */
-  fastify.decorate('getAllowedCategoryIds', async function(request, permissionSlug = 'topic.read') {
-    const userId = request.user?.id ?? null;
-    return permissionService.getAllowedCategoryIds(userId, permissionSlug);
   });
 
   // ============ 密码工具 ============

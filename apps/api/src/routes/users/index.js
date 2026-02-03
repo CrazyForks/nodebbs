@@ -17,7 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default async function userRoutes(fastify, options) {
-  const { permissionService } = fastify;
+  const { permission } = fastify;
   // Create user (admin only)
   fastify.post('/', {
     preHandler: [fastify.requireAdmin],
@@ -95,7 +95,7 @@ export default async function userRoutes(fastify, options) {
     }).returning();
 
     // 分配默认角色（用户-角色关联）
-    await permissionService.assignDefaultRoleToUser(newUser.id, { assignedBy: request.user.id });
+    await permission.assignDefaultRoleToUser(newUser.id, { assignedBy: request.user.id });
 
     // Remove sensitive data
     delete newUser.passwordHash;
@@ -124,7 +124,7 @@ export default async function userRoutes(fastify, options) {
     }
   }, async (request, reply) => {
     // 检查用户管理权限
-    await fastify.checkPermission(request, 'dashboard.users');
+    await fastify.permission.check(request, 'dashboard.users');
 
     const { page = 1, limit = 20, search, role, isBanned, includeDeleted = true } = request.query;
     const offset = (page - 1) * limit;
@@ -1424,7 +1424,7 @@ export default async function userRoutes(fastify, options) {
     await fastify.clearUserCache(userId);
 
     // Also clear permission cache
-    await permissionService.clearUserPermissionCache(userId);
+    await permission.clearUserPermissionCache(userId);
 
     return {
       message: '用户角色已更新',

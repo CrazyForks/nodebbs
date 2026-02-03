@@ -59,7 +59,7 @@ export default async function invitationsRoutes(fastify) {
     async (request, reply) => {
       try {
         // 检查 RBAC 权限
-        await fastify.checkPermission(request, 'invitation.create');
+        await fastify.permission.check(request, 'invitation.create');
         const { note, maxUses, expireDays, count = 1 } = request.body;
         const userId = request.user.id;
 
@@ -322,7 +322,7 @@ export default async function invitationsRoutes(fastify) {
         const userId = request.user.id;
 
         // 检查 RBAC 权限
-        const hasPermission = await fastify.hasPermission(request, 'invitation.create');
+        const hasPermission = await fastify.permission.can(request, 'invitation.create');
         if (!hasPermission) {
           return {
             quota: null,

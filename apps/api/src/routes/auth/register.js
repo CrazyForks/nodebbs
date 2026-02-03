@@ -210,7 +210,7 @@ export default async function registerRoute(fastify, options) {
         .returning();
 
       // 分配默认角色（用户-角色关联）
-      await fastify.permissionService.assignDefaultRoleToUser(newUser.id);
+      await fastify.permission.assignDefaultRoleToUser(newUser.id);
 
       // 注册成功后，不再发送邮件
       fastify.log.info(`[注册] 用户 ${email} 注册成功，等待邮箱验证`);

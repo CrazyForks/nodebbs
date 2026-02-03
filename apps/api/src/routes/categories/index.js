@@ -139,7 +139,7 @@ export default async function categoryRoutes(fastify, options) {
     }
 
     // 获取用户允许访问的分类（基于 RBAC 权限）
-    const allowedCategoryIds = await fastify.getAllowedCategoryIds(request);
+    const allowedCategoryIds = await fastify.permission.getAllowedCategories(request);
 
     // 如果有分类限制，过滤分类列表
     if (allowedCategoryIds !== null) {
@@ -256,7 +256,7 @@ export default async function categoryRoutes(fastify, options) {
     }
 
     // 检查用户是否有权限查看该分类（基于 RBAC）
-    if (!await fastify.hasPermission(request, 'topic.read', { categoryId: category.id })) {
+    if (!await fastify.permission.can(request, 'topic.read', { categoryId: category.id })) {
       return reply.code(404).send({ error: '分类不存在' });
     }
 

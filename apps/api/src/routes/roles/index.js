@@ -9,7 +9,7 @@ import { roles, permissions, rolePermissions, userRoles, users, invitationRules 
 import { getRbacConfig } from '../../config/rbac.js';
 
 export default async function rolesRoutes(fastify, options) {
-  const { permissionService } = fastify;
+  const { permission } = fastify;
 
   // ============ RBAC 配置 API ============
 
@@ -73,7 +73,7 @@ export default async function rolesRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const allRoles = await permissionService.getAllRoles();
+      const allRoles = await permission.getAllRoles();
       return allRoles;
     }
   );
@@ -144,7 +144,7 @@ export default async function rolesRoutes(fastify, options) {
       const { slug, name, description, color, icon, isDefault, isDisplayed, priority } = request.body;
 
       // 检查 slug 是否已存在
-      const existing = await permissionService.getRoleBySlug(slug);
+      const existing = await permission.getRoleBySlug(slug);
       if (existing) {
         return reply.code(400).send({ error: '角色标识已存在' });
       }
@@ -193,7 +193,7 @@ export default async function rolesRoutes(fastify, options) {
       }
 
       // 获取角色的权限
-      const rolePerms = await permissionService.getRolePermissions(id);
+      const rolePerms = await permission.getRolePermissions(id);
 
       return { ...role, permissions: rolePerms };
     }
@@ -280,7 +280,7 @@ export default async function rolesRoutes(fastify, options) {
       }
 
       // 删除前先清除拥有该角色的用户的权限缓存
-      await permissionService.clearRoleUsersPermissionCache(id);
+      await permission.clearRoleUsersPermissionCache(id);
 
       // 删除关联的邀请规则
       await db.delete(invitationRules).where(eq(invitationRules.role, role.slug));
@@ -311,7 +311,7 @@ export default async function rolesRoutes(fastify, options) {
         return reply.code(404).send({ error: '角色不存在' });
       }
 
-      const perms = await permissionService.getRolePermissions(id);
+      const perms = await permission.getRolePermissions(id);
       return perms;
     }
   );
@@ -352,7 +352,7 @@ export default async function rolesRoutes(fastify, options) {
         return reply.code(404).send({ error: '角色不存在' });
       }
 
-      await permissionService.setRolePermissions(id, permissionConfigs);
+      await permission.setRolePermissions(id, permissionConfigs);
 
       return { success: true, message: '权限已更新' };
     }
@@ -378,7 +378,7 @@ export default async function rolesRoutes(fastify, options) {
     },
     async (request, reply) => {
       const { userId } = request.params;
-      const userRolesList = await permissionService.getUserRoles(userId);
+      const userRolesList = await permission.getUserRoles(userId);
       return userRolesList;
     }
   );
@@ -423,14 +423,14 @@ export default async function rolesRoutes(fastify, options) {
         return reply.code(404).send({ error: '角色不存在' });
       }
 
-      await permissionService.assignRoleToUser(userId, roleId, {
+      await permission.assignRoleToUser(userId, roleId, {
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         assignedBy: request.user.id,
       });
 
       // 同步更新 users.role 字段（向后兼容）
       // 使用最高优先级角色作为主角色
-      const userRolesList = await permissionService.getUserRoles(userId);
+      const userRolesList = await permission.getUserRoles(userId);
       const primaryRole = userRolesList.sort((a, b) => b.priority - a.priority)[0];
       if (primaryRole) {
         await db.update(users).set({ role: primaryRole.slug }).where(eq(users.id, userId));
@@ -463,10 +463,10 @@ export default async function rolesRoutes(fastify, options) {
     async (request, reply) => {
       const { userId, roleId } = request.params;
 
-      await permissionService.removeRoleFromUser(userId, roleId);
+      await permission.removeRoleFromUser(userId, roleId);
 
       // 同步更新 users.role 字段（向后兼容）
-      const userRolesList = await permissionService.getUserRoles(userId);
+      const userRolesList = await permission.getUserRoles(userId);
       const primaryRole = userRolesList.sort((a, b) => b.priority - a.priority)[0];
       await db
         .update(users)
@@ -493,7 +493,7 @@ export default async function rolesRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const allPermissions = await permissionService.getAllPermissions();
+      const allPermissions = await permission.getAllPermissions();
 
       // 按模块分组
       const grouped = {};

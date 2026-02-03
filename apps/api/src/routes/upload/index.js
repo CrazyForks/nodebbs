@@ -38,24 +38,22 @@ export default async function uploadRoutes(fastify) {
     }
   }, async (request, reply) => {
     const uploadType = request.query.type || 'assets';
-    const userId = request.user.id;
 
-    // 1. 验证权限（包含频率限制、账号时长、上传目录类型等检查）
+    // 1. 验证权限并获取条件限制（包含频率限制、账号时长、上传目录类型等检查）
     // 注意：此调用会触发 Rate Limit 计数增加
+    let conditions = {};
     try {
-      await fastify.checkPermission(request, 'upload.create', { uploadType });
+      const result = await fastify.permission.check(request, 'upload.create', { uploadType });
+      conditions = result.conditions || {};
     } catch (err) {
       return reply.code(403).send({ error: err.message });
     }
 
-    // 2. 获取具体限制数值
-    const conditions = await fastify.permissionService.getPermissionConditions(userId, 'upload.create') || {};
-
-    // 获取具体限制数值（从 RBAC 条件中读取或使用合理的后备默认值）
-    const maxFileSizeKB = conditions.maxFileSize || MAX_UPLOAD_SIZE_DEFAULT_KB; 
+    // 2. 获取具体限制数值（从 RBAC 条件中读取或使用合理的后备默认值）
+    const maxFileSizeKB = conditions.maxFileSize || MAX_UPLOAD_SIZE_DEFAULT_KB;
     // allowedFileTypes: ['*'] 表示无限制（如管理员），未设置则使用默认白名单
     const rawAllowedTypes = conditions.allowedFileTypes;
-    const allowedExts = rawAllowedTypes?.includes('*') 
+    const allowedExts = rawAllowedTypes?.includes('*')
       ? null  // ['*'] 表示无限制
       : (rawAllowedTypes || DEFAULT_ALLOWED_EXTENSIONS);
 

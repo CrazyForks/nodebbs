@@ -27,12 +27,12 @@ import { shouldHideUserInfo } from '../../utils/visibility.js';
  * 2. 作者本人 → 可编辑/删除/关闭自己的话题
  *
  * @param {Object} params - 参数
- * @param {Object} params.permissionService - 权限服务实例
+ * @param {Object} params.permission - 权限服务实例
  * @param {Object} params.user - 当前用户
  * @param {Object} params.topic - 话题对象（需包含 userId, categoryId）
  * @returns {Promise<Object>} 权限对象
  */
-async function getTopicPermissions({ permissionService, user, topic }) {
+async function getTopicPermissions({ permission, user, topic }) {
   // 未登录用户无任何操作权限
   if (!user) {
     return {
@@ -46,13 +46,13 @@ async function getTopicPermissions({ permissionService, user, topic }) {
   const categoryContext = { categoryId: topic.categoryId };
 
   // 检查 dashboard.topics 权限（版主/管理员）
-  const dashboardResult = await permissionService.checkPermissionWithReason(
+  const hasDashboard = await permission.hasPermission(
     user.id,
     'dashboard.topics',
     categoryContext
   );
 
-  if (dashboardResult.granted) {
+  if (hasDashboard) {
     // 有后台管理权限，可以执行所有操作
     return {
       canEdit: true,
@@ -76,17 +76,17 @@ async function getTopicPermissions({ permissionService, user, topic }) {
   }
 
   // 作者：检查各项权限（可能有 timeRange 等条件限制）
-  const [editResult, deleteResult, closeResult] = await Promise.all([
-    permissionService.checkPermissionWithReason(user.id, 'topic.update', categoryContext),
-    permissionService.checkPermissionWithReason(user.id, 'topic.delete', categoryContext),
-    permissionService.checkPermissionWithReason(user.id, 'topic.close', categoryContext),
+  const [canEdit, canDelete, canClose] = await Promise.all([
+    permission.hasPermission(user.id, 'topic.update', categoryContext),
+    permission.hasPermission(user.id, 'topic.delete', categoryContext),
+    permission.hasPermission(user.id, 'topic.close', categoryContext),
   ]);
 
   return {
-    canEdit: editResult.granted,
-    canDelete: deleteResult.granted,
+    canEdit,
+    canDelete,
     canPin: false,  // 作者不能置顶，需要 dashboard.topics 权限
-    canClose: closeResult.granted,
+    canClose,
   };
 }
 
@@ -276,7 +276,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 获取用户允许访问的分类（基于 RBAC 权限）
-      const allowedCategoryIds = await fastify.getAllowedCategoryIds(request);
+      const allowedCategoryIds = await fastify.permission.getAllowedCategories(request);
 
       // 如果有分类限制
       if (allowedCategoryIds !== null) {
@@ -522,7 +522,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 检查用户是否有权限查看该分类的话题（基于 RBAC）
-      if (!await fastify.hasPermission(request, 'topic.read', { categoryId: topic.categoryId })) {
+      if (!await fastify.permission.can(request, 'topic.read', { categoryId: topic.categoryId })) {
         return reply.code(404).send({ error: '话题不存在' });
       }
 
@@ -641,7 +641,7 @@ export default async function topicRoutes(fastify, options) {
 
       // 计算用户对该话题的操作权限
       const topicPermissions = await getTopicPermissions({
-        permissionService: fastify.permissionService,
+        permission: fastify.permission,
         user: request.user,
         topic,
       });
@@ -711,7 +711,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 检查创建话题权限（带分类上下文）
-      await fastify.checkPermission(request, 'topic.create', {
+      await fastify.permission.check(request, 'topic.create', {
         categoryId: category.id,
       });
 
@@ -857,7 +857,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 检查更新权限：版主/管理员 或 作者本人
-      const hasDashboardAccess = await fastify.hasPermission(request, 'dashboard.topics', {
+      const hasDashboardAccess = await fastify.permission.can(request, 'dashboard.topics', {
         categoryId: topic.categoryId,
       });
       const isOwner = request.user.id === topic.userId;
@@ -868,14 +868,14 @@ export default async function topicRoutes(fastify, options) {
 
       // 作者编辑自己的话题，需要检查 topic.update 权限（可能有 timeRange 等条件）
       if (!hasDashboardAccess && isOwner) {
-        await fastify.checkPermission(request, 'topic.update', {
+        await fastify.permission.check(request, 'topic.update', {
           categoryId: topic.categoryId,
         });
       }
 
       // 置顶话题需要 dashboard.topics 权限（版主/管理员）
       if (request.body.isPinned !== undefined) {
-        await fastify.checkPermission(request, 'dashboard.topics', {
+        await fastify.permission.check(request, 'dashboard.topics', {
           categoryId: topic.categoryId,
         });
       }
@@ -1096,7 +1096,7 @@ export default async function topicRoutes(fastify, options) {
       }
 
       // 检查删除权限：版主/管理员 或 作者本人
-      const hasDashboardAccess = await fastify.hasPermission(request, 'dashboard.topics', {
+      const hasDashboardAccess = await fastify.permission.can(request, 'dashboard.topics', {
         categoryId: topic.categoryId,
       });
       const isOwner = request.user.id === topic.userId;
@@ -1107,7 +1107,7 @@ export default async function topicRoutes(fastify, options) {
 
       // 作者删除自己的话题，需要检查 topic.delete 权限
       if (!hasDashboardAccess && isOwner) {
-        await fastify.checkPermission(request, 'topic.delete', {
+        await fastify.permission.check(request, 'topic.delete', {
           categoryId: topic.categoryId,
         });
       }

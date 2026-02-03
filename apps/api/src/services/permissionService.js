@@ -18,6 +18,13 @@ import { MAX_UPLOAD_SIZE_ADMIN_KB, DEFAULT_ALLOWED_EXTENSIONS } from '../constan
 // 权限缓存 TTL（秒）
 const PERMISSION_CACHE_TTL = 300; // 5 分钟
 
+// Admin 默认宽松条件（无限制）
+const ADMIN_DEFAULT_CONDITIONS = {
+  maxFileSize: MAX_UPLOAD_SIZE_ADMIN_KB,
+  allowedFileTypes: ['*'],
+  uploadTypes: ['*'],
+};
+
 /**
  * 智能合并两个权限条件
  * 原则：取更宽松的条件（并集）
@@ -298,34 +305,8 @@ class PermissionService {
    * @returns {Promise<boolean>}
    */
   async hasPermission(userId, permissionSlug, context = {}) {
-    const result = await this.checkPermissionWithReason(userId, permissionSlug, context);
+    const result = await this.inspect(userId, permissionSlug, context);
     return result.granted;
-  }
-
-  /**
-   * 获取用户某个权限的具体条件
-   * @param {number} userId - 用户 ID
-   * @param {string} permissionSlug - 权限标识
-   * @returns {Promise<Object|null>} 条件对象，无权限时返回 null
-   */
-  async getPermissionConditions(userId, permissionSlug) {
-    if (userId) {
-      const isAdmin = await this.hasRole(userId, 'admin');
-      if (isAdmin) {
-        // 管理员返回极大的限制，避免调用方因空值回退到默认限制
-        return {
-          maxFileSize: MAX_UPLOAD_SIZE_ADMIN_KB, // 即使是 Admin 也给一个上限作为保险
-          allowedFileTypes: ['*'], // 使用 ['*'] 表示无文件类型限制
-          uploadTypes: ['*'], // 使用 ['*'] 表示无目录类型限制
-        };
-      }
-    }
-
-    const userPermissions = await this.getUserPermissions(userId);
-    const permission = userPermissions.find(p => p.slug === permissionSlug);
-
-    if (!permission) return null;
-    return permission.conditions || {};
   }
 
   /**
@@ -333,14 +314,14 @@ class PermissionService {
    * @param {number} userId - 用户 ID
    * @param {string} permissionSlug - 权限标识
    * @param {Object} context - 上下文
-   * @returns {Promise<{granted: boolean, reason?: string, code?: string}>}
+   * @returns {Promise<{granted: boolean, conditions?: Object, reason?: string, code?: string}>}
    */
-  async checkPermissionWithReason(userId, permissionSlug, context = {}) {
-    // 快捷路径：admin 角色拥有所有权限，无需检查条件
+  async inspect(userId, permissionSlug, context = {}) {
+    // 快捷路径：admin 角色拥有所有权限，返回宽松条件
     if (userId) {
       const isAdmin = await this.hasRole(userId, 'admin');
       if (isAdmin) {
-        return { granted: true };
+        return { granted: true, conditions: ADMIN_DEFAULT_CONDITIONS };
       }
     }
 
@@ -371,124 +352,123 @@ class PermissionService {
     }
 
     // accountAge: 30 表示账号注册天数需达到指定值
-      if (conditions.accountAge !== undefined && context.userCreatedAt !== undefined) {
-        const accountAgeDays = Math.floor(
-          (Date.now() - new Date(context.userCreatedAt).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        if (accountAgeDays < conditions.accountAge) {
-          return {
-            granted: false,
-            code: 'ACCOUNT_TOO_NEW',
-            reason: `账号注册需满 ${conditions.accountAge} 天，当前 ${accountAgeDays} 天`,
-          };
-        }
+    if (conditions.accountAge !== undefined && context.userCreatedAt !== undefined) {
+      const accountAgeDays = Math.floor(
+        (Date.now() - new Date(context.userCreatedAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (accountAgeDays < conditions.accountAge) {
+        return {
+          granted: false,
+          code: 'ACCOUNT_TOO_NEW',
+          reason: `账号注册需满 ${conditions.accountAge} 天，当前 ${accountAgeDays} 天`,
+        };
       }
+    }
 
-      // timeRange: { start: "09:00", end: "18:00" } 表示只在指定时间段内有效
-      if (conditions.timeRange) {
-        const { start, end } = conditions.timeRange;
-        if (start && end) {
-          const now = new Date();
-          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // timeRange: { start: "09:00", end: "18:00" } 表示只在指定时间段内有效
+    if (conditions.timeRange) {
+      const { start, end } = conditions.timeRange;
+      if (start && end) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-          // 转换时间字符串为分钟数
-          const timeToMinutes = (timeStr) => {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
-          };
+        // 转换时间字符串为分钟数
+        const timeToMinutes = (timeStr) => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
 
-          const startMinutes = timeToMinutes(start);
-          const endMinutes = timeToMinutes(end);
+        const startMinutes = timeToMinutes(start);
+        const endMinutes = timeToMinutes(end);
 
-          let allowed;
-          if (startMinutes <= endMinutes) {
-            // 正常时间段：09:00 - 18:00
-            allowed = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-          } else {
-            // 跨午夜时间段：22:00 - 02:00
-            allowed = currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-          }
-
-          if (!allowed) {
-            return {
-              granted: false,
-              code: 'TIME_NOT_ALLOWED',
-              reason: `当前时间不允许操作，开放时间段：${start} - ${end}`,
-            };
-          }
-        }
-      }
-
-      // maxFileSize: 1024 表示上传文件最大大小（KB）
-      if (conditions.maxFileSize !== undefined && context.fileSize !== undefined) {
-        const fileSizeKB = context.fileSize / 1024;
-        if (fileSizeKB > conditions.maxFileSize) {
-          return {
-            granted: false,
-            code: 'FILE_TOO_LARGE',
-            reason: `文件大小超过限制，最大 ${conditions.maxFileSize} KB`,
-          };
-        }
-      }
-
-      // allowedFileTypes: ["jpg", "png", "gif"] 表示允许的文件类型
-      // ['*'] 表示无限制（管理员），未设置则使用系统默认扩展名白名单
-      if (context.fileType !== undefined) {
-        // ['*'] 表示无限制，跳过检查
-        if (conditions.allowedFileTypes?.includes('*')) {
-          // 管理员无限制，不做检查
+        let allowed;
+        if (startMinutes <= endMinutes) {
+          // 正常时间段：09:00 - 18:00
+          allowed = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
         } else {
-          const allowedTypes = conditions.allowedFileTypes || DEFAULT_ALLOWED_EXTENSIONS;
-          const ext = context.fileType.toLowerCase().replace('.', '');
-          if (!allowedTypes.includes(ext)) {
-            return {
-              granted: false,
-              code: 'FILE_TYPE_NOT_ALLOWED',
-              reason: `不支持的文件类型，允许：${allowedTypes.join(', ')}`,
-            };
-          }
+          // 跨午夜时间段：22:00 - 02:00
+          allowed = currentMinutes >= startMinutes || currentMinutes <= endMinutes;
         }
-      }
 
-      // uploadTypes: ["avatars", "topics"] 表示允许的上传目录类型
-      // ['*'] 表示无限制（管理员），未设置则无任何上传权限
-      if (context.uploadType !== undefined) {
-        // ['*'] 表示无限制，跳过检查
-        if (conditions.uploadTypes?.includes('*')) {
-          // 管理员无限制，不做检查
-        } else if (!conditions.uploadTypes || !conditions.uploadTypes.includes(context.uploadType)) {
+        if (!allowed) {
           return {
             granted: false,
-            code: 'UPLOAD_TYPE_NOT_ALLOWED',
-            reason: '你没有上传该类型文件的权限',
+            code: 'TIME_NOT_ALLOWED',
+            reason: `当前时间不允许操作，开放时间段：${start} - ${end}`,
           };
         }
       }
+    }
 
-      // rateLimit: { count: 10, period: "hour" } 表示限制操作频率
-      // 注意：rateLimit 放在最后检查，避免其他条件失败时也增加计数器
-      if (conditions.rateLimit) {
-        const { count, period } = conditions.rateLimit;
-        if (count && period) {
-          const rateLimitResult = await this._checkAndIncrementRateLimit(
-            userId,
-            permissionSlug,
-            count,
-            period
-          );
-          if (!rateLimitResult.allowed) {
-            const periodText = { minute: '分钟', hour: '小时', day: '天' }[period] || period;
-            return {
-              granted: false,
-              code: 'RATE_LIMITED',
-              reason: `操作过于频繁，每${periodText}最多 ${count} 次`,
-            };
-          }
+    // maxFileSize: 1024 表示上传文件最大大小（KB）
+    if (conditions.maxFileSize !== undefined && context.fileSize !== undefined) {
+      const fileSizeKB = context.fileSize / 1024;
+      if (fileSizeKB > conditions.maxFileSize) {
+        return {
+          granted: false,
+          code: 'FILE_TOO_LARGE',
+          reason: `文件大小超过限制，最大 ${conditions.maxFileSize} KB`,
+        };
+      }
+    }
+
+    // allowedFileTypes: ["jpg", "png", "gif"] 表示允许的文件类型
+    // ['*'] 表示无限制（管理员），未设置则使用系统默认扩展名白名单
+    if (context.fileType !== undefined) {
+      // ['*'] 表示无限制，跳过检查
+      if (conditions.allowedFileTypes?.includes('*')) {
+        // 管理员无限制，不做检查
+      } else {
+        const allowedTypes = conditions.allowedFileTypes || DEFAULT_ALLOWED_EXTENSIONS;
+        const ext = context.fileType.toLowerCase().replace('.', '');
+        if (!allowedTypes.includes(ext)) {
+          return {
+            granted: false,
+            code: 'FILE_TYPE_NOT_ALLOWED',
+            reason: `不支持的文件类型，允许：${allowedTypes.join(', ')}`,
+          };
         }
       }
+    }
 
+    // uploadTypes: ["avatars", "topics"] 表示允许的上传目录类型
+    // ['*'] 表示无限制（管理员），未设置则无任何上传权限
+    if (context.uploadType !== undefined) {
+      // ['*'] 表示无限制，跳过检查
+      if (conditions.uploadTypes?.includes('*')) {
+        // 管理员无限制，不做检查
+      } else if (!conditions.uploadTypes || !conditions.uploadTypes.includes(context.uploadType)) {
+        return {
+          granted: false,
+          code: 'UPLOAD_TYPE_NOT_ALLOWED',
+          reason: '你没有上传该类型文件的权限',
+        };
+      }
+    }
 
-    return { granted: true };
+    // rateLimit: { count: 10, period: "hour" } 表示限制操作频率
+    // 注意：rateLimit 放在最后检查，避免其他条件失败时也增加计数器
+    if (conditions.rateLimit) {
+      const { count, period } = conditions.rateLimit;
+      if (count && period) {
+        const rateLimitResult = await this._checkAndIncrementRateLimit(
+          userId,
+          permissionSlug,
+          count,
+          period
+        );
+        if (!rateLimitResult.allowed) {
+          const periodText = { minute: '分钟', hour: '小时', day: '天' }[period] || period;
+          return {
+            granted: false,
+            code: 'RATE_LIMITED',
+            reason: `操作过于频繁，每${periodText}最多 ${count} 次`,
+          };
+        }
+      }
+    }
+
+    return { granted: true, conditions };
   }
 
   /**
@@ -573,30 +553,6 @@ class PermissionService {
   }
 
   /**
-   * 检查频率限制
-   * @param {number} userId - 用户 ID
-   * @param {string} permissionSlug - 权限标识
-   * @param {string} actionKey - 操作标识（用于缓存 key）
-   * @returns {Promise<{allowed: boolean, remaining?: number, resetAt?: Date}>}
-   */
-  async checkRateLimit(userId, permissionSlug, actionKey) {
-    const userPermissions = await this.getUserPermissions(userId);
-    const permission = userPermissions.find(p => p.slug === permissionSlug);
-
-    if (!permission || !permission.conditions?.rateLimit) {
-      return { allowed: true };
-    }
-
-    const { count, period } = permission.conditions.rateLimit;
-    if (!count || !period) {
-      return { allowed: true };
-    }
-
-    return this._checkAndIncrementRateLimit(userId, actionKey, count, period);
-  }
-
-
-  /**
    * 获取用户允许访问的分类 ID 列表
    * @param {number|null} userId - 用户 ID，null/undefined 表示未登录用户
    * @param {string} permissionSlug - 权限标识，默认为 'topic.read'
@@ -626,7 +582,9 @@ class PermissionService {
   }
 
   /**
-   * 检查用户是否有任一权限
+   * 检查用户是否有任一权限（仅检查权限是否存在，不评估 conditions）
+   * 适用于 UI 可见性判断等无需严格条件校验的场景。
+   * 需要严格条件校验时请使用 check() 或 inspect()。
    * @param {number} userId - 用户 ID
    * @param {Array<string>} permissionSlugs - 权限标识列表
    * @returns {Promise<boolean>}
@@ -644,7 +602,9 @@ class PermissionService {
   }
 
   /**
-   * 检查用户是否有所有权限
+   * 检查用户是否有所有权限（仅检查权限是否存在，不评估 conditions）
+   * 适用于 UI 可见性判断等无需严格条件校验的场景。
+   * 需要严格条件校验时请使用 check() 或 inspect()。
    * @param {number} userId - 用户 ID
    * @param {Array<string>} permissionSlugs - 权限标识列表
    * @returns {Promise<boolean>}
@@ -682,7 +642,7 @@ class PermissionService {
    * @param {Object} user - 用户对象
    * @returns {Promise<Object>} 增强后的用户对象
    */
-  async enhanceUserWithPermissions(user) {
+  async enrichUser(user) {
     if (!user) return null;
 
     const [userRolesList, userPermissions] = await Promise.all([
@@ -913,16 +873,130 @@ class PermissionService {
     return role;
   }
 
+  // ============ Request 感知的便捷方法 ============
+
   /**
-   * 检查权限（便捷方法）
-   * @param {number} userId - 用户 ID
-   * @param {string} permissionSlug - 权限标识
-   * @param {Object} context - 上下文
-   * @returns {Promise<{granted: boolean}>}
+   * 从 request 中提取上下文
+   * @private
    */
-  async can(userId, permissionSlug, context = {}) {
-    const granted = await this.hasPermission(userId, permissionSlug, context);
-    return { granted };
+  _prepareFromRequest(request, context) {
+    const userId = request.user?.id ?? null;
+    const ctx = { ...context };
+
+    if (request.user && ctx.userCreatedAt === undefined) {
+      ctx.userCreatedAt = request.user.createdAt;
+    }
+
+    return { userId, ctx };
+  }
+
+  /**
+   * 权限检查核心逻辑（支持数组）
+   * @private
+   */
+  async _checkCore(userId, permissionSlug, context = {}, any = false) {
+    const slugs = Array.isArray(permissionSlug) ? permissionSlug : [permissionSlug];
+    let lastDenyResult = null;
+    let mergedConditions = {};
+
+    if (any) {
+      // any 模式：满足任一权限即可，返回第一个成功的结果
+      for (const slug of slugs) {
+        const result = await this.inspect(userId, slug, context);
+        if (result.granted) {
+          return result;
+        }
+        lastDenyResult = result;
+      }
+    } else {
+      // all 模式：需满足所有权限，合并所有 conditions
+      for (const slug of slugs) {
+        const result = await this.inspect(userId, slug, context);
+        if (!result.granted) {
+          lastDenyResult = result;
+          break;
+        }
+        // 合并 conditions
+        if (result.conditions) {
+          mergedConditions = { ...mergedConditions, ...result.conditions };
+        }
+      }
+      if (!lastDenyResult) {
+        return { granted: true, conditions: mergedConditions };
+      }
+    }
+
+    return lastDenyResult;
+  }
+
+  /**
+   * 权限检查（从 request 提取上下文，无权限时抛出 403 错误）
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {string|string[]} permissionSlug - 权限标识或权限数组
+   * @param {Object} context - 权限检查上下文
+   * @param {number} [context.ownerId] - 资源所有者ID，用于 `own: true` 条件
+   * @param {number} [context.categoryId] - 分类ID，用于 `categories: [1,2,3]` 条件
+   * @param {Date|string} [context.userCreatedAt] - 用户注册时间（自动注入）
+   * @param {number} [context.fileSize] - 文件大小（字节）
+   * @param {string} [context.fileType] - 文件类型/扩展名
+   * @param {string} [context.uploadType] - 上传目录类型
+   * @param {Object} options - 配置选项
+   * @param {boolean} options.any - 满足任一权限即可
+   * @returns {Promise<{granted: true, conditions?: Object}>} 成功时返回检查结果
+   * @throws {Error} 无权限时抛出 403 错误
+   *
+   * @example
+   * // 简单守卫（忽略返回值）
+   * await fastify.permission.check(request, 'topic.create');
+   *
+   * // 获取条件信息
+   * const { conditions } = await fastify.permission.check(request, 'upload.create');
+   * const maxSize = conditions?.maxFileSize;
+   */
+  async check(request, permissionSlug, context = {}, options = {}) {
+    const { userId, ctx } = this._prepareFromRequest(request, context);
+    const result = await this._checkCore(userId, permissionSlug, ctx, options.any);
+
+    if (!result.granted) {
+      const error = new Error(result.reason || '没有执行此操作的权限');
+      error.statusCode = 403;
+      error.code = result.code;
+      throw error;
+    }
+
+    return result;
+  }
+
+  /**
+   * 权限检查（从 request 提取上下文，返回布尔值）
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {string} permissionSlug - 权限标识
+   * @param {Object} context - 权限检查上下文
+   * @returns {Promise<boolean>} 是否有权限
+   *
+   * @example
+   * const canEdit = await fastify.permission.can(request, 'topic.update', { ownerId: topic.userId });
+   */
+  async can(request, permissionSlug, context = {}) {
+    const { userId, ctx } = this._prepareFromRequest(request, context);
+    return this.hasPermission(userId, permissionSlug, ctx);
+  }
+
+  /**
+   * 获取用户允许访问的分类 ID 列表（从 request 提取用户）
+   *
+   * @param {Object} request - Fastify request 对象
+   * @param {string} permissionSlug - 权限标识，默认 'topic.read'
+   * @returns {Promise<number[]|null>} 分类 ID 数组，null 表示无限制
+   *
+   * @example
+   * const allowedIds = await fastify.permission.getAllowedCategories(request);
+   */
+  async getAllowedCategories(request, permissionSlug = 'topic.read') {
+    const userId = request.user?.id ?? null;
+    return this.getAllowedCategoryIds(userId, permissionSlug);
   }
 }
 
