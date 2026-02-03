@@ -14,7 +14,6 @@ export const MODULE_OPTIONS = [
   { value: 'topic', label: '话题' },
   { value: 'post', label: '回复' },
   { value: 'user', label: '用户' },
-  // category 模块已移除，由 dashboard.categories 和 topic.read 控制
   { value: 'upload', label: '上传' },
   { value: 'invitation', label: '邀请' },
   { value: 'dashboard', label: '管理后台' },
@@ -28,19 +27,11 @@ export const COMMON_ACTIONS = [
   { value: 'delete', label: '删除' },
 ];
 
-// 模块特殊操作
+// 模块特殊操作（仅定义有特殊操作的模块）
 export const MODULE_SPECIAL_ACTIONS = {
   topic: [
-    // pin 已移除，置顶功能由 dashboard.topics 统一控制
     { value: 'close', label: '关闭' },
   ],
-  post: [],
-  user: [
-    // ban 已移除，封禁功能由 dashboard.users 统一控制
-  ],
-  // category 模块已移除
-  upload: [],
-  invitation: [],
   dashboard: [
     { value: 'access', label: '访问后台' },
     { value: 'topics', label: '话题管理' },
@@ -81,15 +72,13 @@ export const MODULE_SPECIAL_ACTIONS = {
 export const CONDITION_TYPES = {
   // ===== 范围限制 =====
   categories: {
-    key: 'categories',
     label: '限定分类',
     type: 'array',
     component: 'multiSelect',
-    dataSource: 'categories', // 前端从分类 API 动态获取（仅父分类）
+    dataSource: 'categories',
     description: '只允许选择父分类，子分类自动继承权限；不设置则不限制',
   },
   timeRange: {
-    key: 'timeRange',
     label: '生效时间段',
     type: 'object',
     component: 'timeRange',
@@ -102,7 +91,6 @@ export const CONDITION_TYPES = {
 
   // ===== 用户门槛 =====
   accountAge: {
-    key: 'accountAge',
     label: '账号注册天数',
     type: 'number',
     component: 'number',
@@ -113,7 +101,6 @@ export const CONDITION_TYPES = {
 
   // ===== 频率限制 =====
   rateLimit: {
-    key: 'rateLimit',
     label: '频率限制',
     type: 'object',
     component: 'rateLimit',
@@ -134,7 +121,6 @@ export const CONDITION_TYPES = {
 
   // ===== 上传限制 =====
   maxFileSize: {
-    key: 'maxFileSize',
     label: '最大文件大小(KB)',
     type: 'number',
     component: 'number',
@@ -143,7 +129,6 @@ export const CONDITION_TYPES = {
     min: 0,
   },
   allowedFileTypes: {
-    key: 'allowedFileTypes',
     label: '允许的文件类型',
     type: 'array',
     component: 'multiSelect',
@@ -154,7 +139,6 @@ export const CONDITION_TYPES = {
     })),
   },
   uploadTypes: {
-    key: 'uploadTypes',
     label: '允许的上传场景',
     type: 'array',
     component: 'multiSelect',
@@ -192,8 +176,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'topic',
     action: 'create',
     isSystem: true,
-    // 场景：限制新用户发帖、限制发帖频率、限制发帖时间段
-    // 分类限制继承自 topic.read
     conditions: ['rateLimit', 'accountAge', 'timeRange'],
   },
   {
@@ -202,7 +184,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'topic',
     action: 'read',
     isSystem: true,
-    // 场景：限制查看特定分类的话题
     conditions: ['categories'],
   },
   {
@@ -211,8 +192,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'topic',
     action: 'update',
     isSystem: true,
-    // 场景：普通用户只能编辑自己的话题、限制编辑时间段
-    // 分类限制继承自 topic.read
     conditions: ['timeRange'],
   },
   {
@@ -221,19 +200,14 @@ export const SYSTEM_PERMISSIONS = [
     module: 'topic',
     action: 'delete',
     isSystem: true,
-    // 场景：普通用户只能删除自己的话题
-    // 分类限制继承自 topic.read
     conditions: [],
   },
-  // topic.pin 已移除，置顶功能由 dashboard.topics 统一控制
   {
     slug: 'topic.close',
     name: '关闭话题',
     module: 'topic',
     action: 'close',
     isSystem: true,
-    // 场景：用户可关闭自己的话题（owner check 在路由层）
-    // 版主关闭话题由 dashboard.topics + categories 控制
     conditions: [],
   },
 
@@ -244,8 +218,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'post',
     action: 'create',
     isSystem: true,
-    // 回复依附于话题，分类限制由 topic.read 统一控制
-    // 场景：限制新用户回复、限制回复频率、限制回复时间段
     conditions: ['rateLimit', 'accountAge', 'timeRange'],
   },
   {
@@ -254,7 +226,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'post',
     action: 'read',
     isSystem: true,
-    // 回复可见性继承自话题的分类权限，无需额外条件
     conditions: [],
   },
   {
@@ -263,8 +234,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'post',
     action: 'update',
     isSystem: true,
-    // 回复依附于话题，分类限制由 topic.read 统一控制
-    // 场景：普通用户只能编辑自己的回复、限制编辑时间段
     conditions: ['timeRange'],
   },
   {
@@ -273,8 +242,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'post',
     action: 'delete',
     isSystem: true,
-    // 回复依附于话题，分类限制由 topic.read 统一控制
-    // 场景：普通用户只能删除自己的回复
     conditions: [],
   },
 
@@ -285,7 +252,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'user',
     action: 'read',
     isSystem: true,
-    // 用户可见性由用户自身的隐私设置控制，无需权限条件
     conditions: [],
   },
   {
@@ -294,7 +260,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'user',
     action: 'update',
     isSystem: true,
-    // 场景：普通用户只能编辑自己的资料
     conditions: [],
   },
   {
@@ -303,15 +268,8 @@ export const SYSTEM_PERMISSIONS = [
     module: 'user',
     action: 'delete',
     isSystem: true,
-    // 场景：用户可注销自己的账号（路由层检查owner）、管理员可删除任意用户
     conditions: [],
   },
-  // user.ban 已移除，封禁功能由 dashboard.users 统一控制
-
-  // ========== 分类权限 ==========
-  // category 模块权限已全部移除：
-  // - category.create/update/delete 由 dashboard.categories 统一控制
-  // - category.read 由 topic.read 的 categories 条件控制
 
   // ========== 上传权限 ==========
   {
@@ -320,7 +278,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'upload',
     action: 'create',
     isSystem: true,
-    // 场景：限制上传类型、文件大小、文件格式、上传频率（含每日限制）、账号门槛
     conditions: ['uploadTypes', 'maxFileSize', 'allowedFileTypes', 'rateLimit', 'accountAge'],
   },
 
@@ -331,7 +288,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'invitation',
     action: 'create',
     isSystem: true,
-    // 场景：限制邀请频率、账号门槛
     conditions: ['rateLimit', 'accountAge'],
   },
 
@@ -342,7 +298,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'access',
     isSystem: true,
-    description: '允许访问管理后台概览页',
     conditions: [],
   },
   {
@@ -351,8 +306,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'topics',
     isSystem: true,
-    description: '管理后台话题列表和操作',
-    // 场景：版主只能管理指定分类的话题
     conditions: ['categories'],
   },
   {
@@ -361,8 +314,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'posts',
     isSystem: true,
-    description: '管理后台回复列表和操作',
-    // 场景：版主只能管理指定分类的回复
     conditions: ['categories'],
   },
   {
@@ -371,7 +322,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'categories',
     isSystem: true,
-    description: '管理后台分类管理',
     conditions: [],
   },
   {
@@ -380,7 +330,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'tags',
     isSystem: true,
-    description: '管理后台标签管理',
     conditions: [],
   },
   {
@@ -389,7 +338,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'users',
     isSystem: true,
-    description: '管理后台用户列表和操作',
     conditions: [],
   },
   {
@@ -398,7 +346,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'roles',
     isSystem: true,
-    description: '管理后台角色和权限配置',
     conditions: [],
   },
   {
@@ -407,7 +354,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'invitations',
     isSystem: true,
-    description: '管理后台邀请码和规则管理',
     conditions: [],
   },
   {
@@ -416,7 +362,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'reports',
     isSystem: true,
-    description: '管理后台举报列表和处理',
     conditions: [],
   },
   {
@@ -425,7 +370,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'moderation',
     isSystem: true,
-    description: '管理后台内容审核队列',
     conditions: [],
   },
   {
@@ -434,7 +378,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'extensions',
     isSystem: true,
-    description: '管理后台扩展功能（货币、商城、勋章等）',
     conditions: [],
   },
   {
@@ -443,7 +386,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'ads',
     isSystem: true,
-    description: '管理后台广告位管理',
     conditions: [],
   },
   {
@@ -452,7 +394,6 @@ export const SYSTEM_PERMISSIONS = [
     module: 'dashboard',
     action: 'settings',
     isSystem: true,
-    description: '管理后台系统设置',
     conditions: [],
   },
 ];
@@ -547,11 +488,9 @@ export const ROLE_PERMISSION_MAP = {
 /**
  * 角色权限条件配置
  * 定义角色对某些权限的限制条件
- * 注：owner 检查已移至路由层，此处只需配置其他条件（如上传限制）
  */
 export const ROLE_PERMISSION_CONDITIONS = {
   user: {
-    // 上传权限
     'upload.create': {
       uploadTypes: ['avatars'],
       maxFileSize: 5120, // 5MB (单位：KB)
@@ -562,7 +501,6 @@ export const ROLE_PERMISSION_CONDITIONS = {
 
 /**
  * 角色允许配置的权限白名单
- * 如果未定义，默认允许配置所有非系统权限
  * 用于前端界面限制某些角色只能配置特定权限
  */
 export const ALLOWED_ROLES_PERMISSIONS = {
@@ -572,8 +510,7 @@ export const ALLOWED_ROLES_PERMISSIONS = {
     'user.read',
   ],
   user: SYSTEM_PERMISSIONS
-    .filter(p => !p.slug.startsWith('dashboard.') && // 排除所有后台权限
-                 !['topic.close'].includes(p.slug)) // topic.close 需要单独授权
+    .filter(p => !p.slug.startsWith('dashboard.') && !['topic.close'].includes(p.slug))
     .map(p => p.slug),
 };
 
@@ -678,6 +615,15 @@ export function validateRbacConfig() {
   for (const roleSlug of Object.keys(ROLE_PERMISSION_CONDITIONS)) {
     if (!roleSlugs.has(roleSlug)) {
       errors.push(`ROLE_PERMISSION_CONDITIONS 中定义了角色 "${roleSlug}"，但 SYSTEM_ROLES 中未找到`);
+    }
+  }
+
+  // 7. 检查 ALLOWED_ROLES_PERMISSIONS 中引用的权限是否都在 SYSTEM_PERMISSIONS 中
+  for (const [role, perms] of Object.entries(ALLOWED_ROLES_PERMISSIONS)) {
+    for (const perm of perms) {
+      if (!permissionSlugs.has(perm)) {
+        errors.push(`ALLOWED_ROLES_PERMISSIONS.${role} 引用了 "${perm}"，但 SYSTEM_PERMISSIONS 中未找到`);
+      }
     }
   }
 

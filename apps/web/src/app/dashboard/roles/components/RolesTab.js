@@ -279,16 +279,16 @@ export function RolesTab() {
     if (!conditionKeys || conditionKeys.length === 0) {
       return [];
     }
-    // 根据 key 列表获取完整的条件类型定义
+    // 根据 key 列表获取完整的条件类型定义，注入 key 属性
     const allTypes = conditionKeys
-      .map(key => conditionTypes[key])
+      .map(key => conditionTypes[key] ? { key, ...conditionTypes[key] } : null)
       .filter(Boolean);
-    
+
     // 如果没有选中角色，返回所有类型
     if (!selectedRole?.slug) {
       return allTypes;
     }
-    
+
     // 过滤条件类型
     return allTypes.filter(type => {
       // 检查 excludeRoles：完全排除某些角色
