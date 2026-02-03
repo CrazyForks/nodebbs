@@ -41,16 +41,34 @@ export const request = async (endpoint, options = {}) => {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // 404 静默返回 null（向后兼容）
       if (response.status === 404) {
         return null;
       }
-      throw new Error('Failed to fetch');
+
+      // 其他 HTTP 错误抛出带状态码的错误，以便调用者区分处理
+      let errorMessage = 'Failed to fetch';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        // 忽略解析错误
+      }
+
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
 
     return await response.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
+    // 如果是带状态码的错误（HTTP 错误响应），重新抛出以便调用者处理
+    if (error.status) {
+      throw error;
+    }
+
     // 区分超时错误和其他错误
     if (error.name === 'AbortError') {
       console.error(`[SSR] 请求超时 (${timeout}ms): ${url}`);

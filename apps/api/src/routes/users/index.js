@@ -353,21 +353,42 @@ export default async function userRoutes(fastify, options) {
   }, async (request, reply) => {
     const { username } = request.params;
 
+    // 检查 user.read 权限（guest 角色已被授予此权限，所以默认允许访问）
+    // 如果没有权限，静默返回 404（避免信息泄露）
+    const canRead = await permission.can(request, 'user.read');
+    if (!canRead) {
+      return reply.code(404).send({ error: '用户不存在' });
+    }
+
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
     if (!user) {
       return reply.code(404).send({ error: '用户不存在' });
     }
 
-    // 检查用户权限
+    // 检查访问者权限
     const isAdmin = request.user?.isAdmin;
-    
-    // 如果用户已被删除且访问者不是管理员/版主，返回 404
+    const isOwner = request.user?.id === user.id;
+
+    // 如果用户已被删除且访问者不是管理员，返回 404
     if (user.isDeleted && !isAdmin) {
       return reply.code(404).send({ error: '用户不存在' });
     }
-    
-    // 如果用户被封禁且访问者不是管理员/版主，隐藏头像
+
+    // 检查用户隐私设置 contentVisibility
+    // 统一返回 404 避免信息泄露（不区分"不公开"和"需要登录"）
+    // everyone: 所有人可见
+    // authenticated: 仅登录用户可见
+    // private: 仅自己和管理员可见
+    const visibility = user.contentVisibility || 'everyone';
+    if (visibility === 'private' && !isOwner && !isAdmin) {
+      return reply.code(404).send({ error: '用户不存在' });
+    }
+    if (visibility === 'authenticated' && !request.user && !isAdmin) {
+      return reply.code(404).send({ error: '用户不存在' });
+    }
+
+    // 如果用户被封禁且访问者不是管理员，隐藏头像
     if (user.isBanned && !isAdmin) {
       user.avatar = null;
     }
