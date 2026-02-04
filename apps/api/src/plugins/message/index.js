@@ -13,7 +13,6 @@ import { EmailChannel } from './channels/email.js';
 import { SmsChannel } from './channels/sms.js';
 import {
   VerificationChannel,
-  VerificationCodeConfig,
   getVerificationCodeConfig,
 } from './config/verificationCode.js';
 import { MessageError, MessageErrorCode } from './errors.js';
