@@ -10,6 +10,7 @@ import { messageProviders } from '../schema.js';
 import { smsProviderSenders } from '../providers/sms/index.js';
 import { getSmsTemplate } from '../templates/sms/index.js';
 import { isDev } from '../../../config/env.js';
+import { MessageError, MessageErrorCode } from '../errors.js';
 
 export class SmsChannel extends BaseChannel {
   constructor(fastify) {
@@ -64,10 +65,16 @@ export class SmsChannel extends BaseChannel {
 
     // ===== 验证必需参数 =====
     if (!to) {
-      throw new Error('收件人手机号 (to) 是必需的');
+      throw new MessageError(
+        MessageErrorCode.MISSING_RECIPIENT,
+        '收件人手机号 (to) 是必需的'
+      );
     }
     if (!template) {
-      throw new Error('短信模板 (template) 是必需的');
+      throw new MessageError(
+        MessageErrorCode.MISSING_TEMPLATE,
+        '短信模板 (template) 是必需的'
+      );
     }
 
     // ===== 获取提供商配置 =====
@@ -78,14 +85,28 @@ export class SmsChannel extends BaseChannel {
       provider = await this.getDefaultProvider();
     }
 
-    if (!provider || !provider.isEnabled) {
-      throw new Error('短信服务未配置或未启用');
+    if (!provider) {
+      throw new MessageError(
+        MessageErrorCode.PROVIDER_NOT_CONFIGURED,
+        '短信服务未配置'
+      );
+    }
+    if (!provider.isEnabled) {
+      throw new MessageError(
+        MessageErrorCode.PROVIDER_DISABLED,
+        '短信服务未启用',
+        { provider: provider.provider }
+      );
     }
 
     // ===== 获取模板配置 =====
     const templateConfig = getSmsTemplate(template, provider.provider);
     if (!templateConfig) {
-      throw new Error(`短信模板不存在: ${template}`);
+      throw new MessageError(
+        MessageErrorCode.TEMPLATE_NOT_FOUND,
+        `短信模板不存在: ${template}`,
+        { template }
+      );
     }
 
     // 从 provider 配置中获取真实的 templateCode/templateId
@@ -94,12 +115,16 @@ export class SmsChannel extends BaseChannel {
                           (provider.provider === 'tencent' ? templateConfig.templateId : templateConfig.templateCode);
 
     if (realTemplateId === template) {
-       this.fastify.log.warn(`[SMS] 模板 ${template} 未在提供商配置中映射真实 ID，尝试直接使用默认值`);
+       this.fastify.log.warn(`[短信] 模板 ${template} 未在提供商配置中映射真实 ID，尝试直接使用默认值`);
     }
 
     const missingParams = templateConfig.params.filter(param => data[param] === undefined || data[param] === null || data[param] === '');
     if (missingParams.length > 0) {
-      throw new Error(`短信模板 ${template} 缺少必要参数: ${missingParams.join(', ')}`);
+      throw new MessageError(
+        MessageErrorCode.MISSING_PARAMS,
+        `短信模板 ${template} 缺少必要参数: ${missingParams.join(', ')}`,
+        { template, missingParams }
+      );
     }
 
     if (isDev) {
@@ -108,7 +133,11 @@ export class SmsChannel extends BaseChannel {
 
     const senderFn = smsProviderSenders[provider.provider];
     if (!senderFn) {
-      throw new Error(`不支持的短信提供商: ${provider.provider}`);
+      throw new MessageError(
+        MessageErrorCode.UNSUPPORTED_PROVIDER,
+        `不支持的短信提供商: ${provider.provider}`,
+        { provider: provider.provider }
+      );
     }
 
     const sendOptions = {
@@ -157,3 +186,4 @@ export class SmsChannel extends BaseChannel {
     }
   }
 }
+

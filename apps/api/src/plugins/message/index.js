@@ -16,9 +16,10 @@ import {
   VerificationCodeConfig,
   getVerificationCodeConfig,
 } from './config/verificationCode.js';
+import { MessageError, MessageErrorCode } from './errors.js';
 
 async function messagePlugin(fastify, opts) {
-  fastify.log.info('Initializing Message plugin');
+  fastify.log.info('正在初始化消息服务插件');
 
   // 初始化渠道实例
   const emailChannel = new EmailChannel(fastify);
@@ -49,13 +50,21 @@ async function messagePlugin(fastify, opts) {
       // 获取验证码配置
       const config = getVerificationCodeConfig(type);
       if (!config) {
-        throw new Error(`无效的消息类型: ${type}`);
+        throw new MessageError(
+          MessageErrorCode.INVALID_TYPE,
+          `无效的消息类型: ${type}`,
+          { type }
+        );
       }
 
       // 获取对应渠道
       const channel = channels[config.channel];
       if (!channel) {
-        throw new Error(`不支持的消息渠道: ${config.channel}`);
+        throw new MessageError(
+          MessageErrorCode.UNSUPPORTED_CHANNEL,
+          `不支持的消息渠道: ${config.channel}`,
+          { channel: config.channel }
+        );
       }
 
       // 构建发送选项
@@ -94,7 +103,7 @@ async function messagePlugin(fastify, opts) {
   // 注册 fastify.message 装饰器
   fastify.decorate('message', messageService);
 
-  fastify.log.info('Message plugin initialized successfully');
+  fastify.log.info('消息服务插件初始化完成');
 }
 
 export default fp(messagePlugin, {
@@ -104,3 +113,4 @@ export default fp(messagePlugin, {
 // 导出配置和工具函数
 export * from './config/verificationCode.js';
 export { messageProviders } from './schema.js';
+export { MessageError, MessageErrorCode } from './errors.js';

@@ -2,6 +2,8 @@
  * Channel 基类
  * 定义消息发送渠道的统一接口
  */
+import { MessageError, MessageErrorCode } from '../errors.js';
+
 export class BaseChannel {
   constructor(fastify) {
     this.fastify = fastify;
@@ -17,7 +19,10 @@ export class BaseChannel {
    * @returns {Promise<{queued: boolean}>}
    */
   async send(options) {
-    throw new Error('send() 方法必须由子类实现');
+    throw new MessageError(
+      MessageErrorCode.UNSUPPORTED_CHANNEL,
+      'send() 方法必须由子类实现'
+    );
   }
 
   /**
@@ -25,7 +30,10 @@ export class BaseChannel {
    * @returns {Promise<object|null>}
    */
   async getDefaultProvider() {
-    throw new Error('getDefaultProvider() 方法必须由子类实现');
+    throw new MessageError(
+      MessageErrorCode.UNSUPPORTED_CHANNEL,
+      'getDefaultProvider() 方法必须由子类实现'
+    );
   }
 
   /**
@@ -34,7 +42,10 @@ export class BaseChannel {
    * @returns {Promise<object|null>}
    */
   async getProvider(name) {
-    throw new Error('getProvider() 方法必须由子类实现');
+    throw new MessageError(
+      MessageErrorCode.UNSUPPORTED_CHANNEL,
+      'getProvider() 方法必须由子类实现'
+    );
   }
 
   /**
@@ -55,3 +66,4 @@ export class BaseChannel {
     }
   }
 }
+

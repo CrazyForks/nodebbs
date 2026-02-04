@@ -10,6 +10,7 @@ import { messageProviders } from '../schema.js';
 import { emailProviderSenders } from '../providers/email/index.js';
 import { getEmailTemplate } from '../templates/email/index.js';
 import { isDev } from '../../../config/env.js';
+import { MessageError, MessageErrorCode } from '../errors.js';
 
 export class EmailChannel extends BaseChannel {
   constructor(fastify) {
@@ -54,34 +55,47 @@ export class EmailChannel extends BaseChannel {
    * 验证提供商配置
    * @param {string} providerName - 提供商名称 (smtp, sendgrid, etc.)
    * @param {object} config - 配置对象
-   * @returns {void} 如果验证失败抛出错误
+   * @throws {MessageError} 如果验证失败抛出错误
    */
   validateConfig(providerName, config) {
     if (!config) {
-      throw new Error('配置不能为空');
+      throw new MessageError(
+        MessageErrorCode.INVALID_CONFIG,
+        '配置不能为空',
+        { provider: providerName }
+      );
     }
+
+    const missingFields = [];
 
     switch (providerName) {
       case 'smtp':
       case 'aliyun': // 阿里云邮件推送通常使用 SMTP
-        if (!config.smtpHost) throw new Error('缺少 SMTP 主机地址 (smtpHost)');
-        if (!config.smtpPort) throw new Error('缺少 SMTP 端口 (smtpPort)');
-        if (!config.smtpUser) throw new Error('缺少 SMTP 用户名 (smtpUser)');
-        if (!config.smtpPassword) throw new Error('缺少 SMTP 密码 (smtpPassword)');
-        if (!config.fromEmail) throw new Error('缺少发件人邮箱 (fromEmail)');
+        if (!config.smtpHost) missingFields.push('smtpHost');
+        if (!config.smtpPort) missingFields.push('smtpPort');
+        if (!config.smtpUser) missingFields.push('smtpUser');
+        if (!config.smtpPassword) missingFields.push('smtpPassword');
+        if (!config.fromEmail) missingFields.push('fromEmail');
         break;
       
       case 'sendgrid':
       case 'resend':
-        if (!config.apiKey) throw new Error('缺少 API Key');
-        if (!config.fromEmail) throw new Error('缺少发件人邮箱 (fromEmail)');
+        if (!config.apiKey) missingFields.push('apiKey');
+        if (!config.fromEmail) missingFields.push('fromEmail');
         break;
       
       default:
-        // 允许未知提供商，但记录警告（或者可以选择抛出错误）
-        // 这里选择不做严格限制，以便将来添加新提供商时不需要强制修改代码
-        if (!config.fromEmail) throw new Error('缺少发件人邮箱 (fromEmail)');
+        // 允许未知提供商，但至少需要发件人邮箱
+        if (!config.fromEmail) missingFields.push('fromEmail');
         break;
+    }
+
+    if (missingFields.length > 0) {
+      throw new MessageError(
+        MessageErrorCode.INVALID_CONFIG,
+        `提供商 ${providerName} 配置缺少必要字段: ${missingFields.join(', ')}`,
+        { provider: providerName, missingFields }
+      );
     }
   }
 
@@ -115,13 +129,22 @@ export class EmailChannel extends BaseChannel {
 
     // ===== 验证必需参数 =====
     if (!to) {
-      throw new Error('收件人地址 (to) 是必需的');
+      throw new MessageError(
+        MessageErrorCode.MISSING_RECIPIENT,
+        '收件人地址 (to) 是必需的'
+      );
     }
     if (!finalSubject) {
-      throw new Error('邮件主题 (subject) 是必需的');
+      throw new MessageError(
+        MessageErrorCode.MISSING_SUBJECT,
+        '邮件主题 (subject) 是必需的'
+      );
     }
     if (!finalHtml && !finalText) {
-      throw new Error('邮件内容 (html 或 text) 是必需的');
+      throw new MessageError(
+        MessageErrorCode.MISSING_CONTENT,
+        '邮件内容 (html 或 text) 是必需的'
+      );
     }
 
     // ===== 获取提供商配置 =====
@@ -132,9 +155,22 @@ export class EmailChannel extends BaseChannel {
       provider = await this.getDefaultProvider();
     }
 
-    if (!provider || !provider.isEnabled) {
-      throw new Error('邮件服务未配置或未启用');
+    if (!provider) {
+      throw new MessageError(
+        MessageErrorCode.PROVIDER_NOT_CONFIGURED,
+        '邮件服务未配置'
+      );
     }
+    if (!provider.isEnabled) {
+      throw new MessageError(
+        MessageErrorCode.PROVIDER_DISABLED,
+        '邮件服务未启用',
+        { provider: provider.provider }
+      );
+    }
+
+    // ===== 验证提供商配置 =====
+    this.validateConfig(provider.provider, provider.config);
 
     if (isDev) {
       this.fastify.log.info(`[邮件发送] 收件人: ${to}, 数据: ${JSON.stringify(data)}, 模板: ${template || '自定义'}`);
@@ -143,7 +179,11 @@ export class EmailChannel extends BaseChannel {
     // ===== 获取发送函数 =====
     const senderFn = emailProviderSenders[provider.provider];
     if (!senderFn) {
-      throw new Error(`不支持的邮件提供商: ${provider.provider}`);
+      throw new MessageError(
+        MessageErrorCode.UNSUPPORTED_PROVIDER,
+        `不支持的邮件提供商: ${provider.provider}`,
+        { provider: provider.provider }
+      );
     }
 
     const sendPromise = senderFn(provider.config, {
@@ -170,3 +210,4 @@ export class EmailChannel extends BaseChannel {
     return { queued: true };
   }
 }
+
