@@ -138,12 +138,19 @@ function ImageViewer({ src, alt, onClose }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isClosingGesture, setIsClosingGesture] = useState(false);
+  const [closeOffsetY, setCloseOffsetY] = useState(0);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   
   const imgRef = useRef(null);
   const containerRef = useRef(null);
   const hasMoved = useRef(false);
   const scaleRef = useRef(scale);
+  const pointersRef = useRef(new Map());
+  const pinchStartRef = useRef({ distance: 0, scale: 1 });
+  const closeDragRef = useRef({ active: false, startY: 0, offsetY: 0 });
+  const [isPinching, setIsPinching] = useState(false);
+  const clickStartOnImageRef = useRef(false);
 
   // 同步 scaleRef 以便在 event listener 中获取最新值
   useEffect(() => {
@@ -204,19 +211,129 @@ function ImageViewer({ src, alt, onClose }) {
     }
   };
 
-  // 拖拽逻辑
-  const handleMouseDown = (e) => {
+  const getDistance = (p1, p2) => {
+    const dx = p1.x - p2.x;
+    const dy = p1.y - p2.y;
+    return Math.hypot(dx, dy);
+  };
+
+  const CLOSE_SWIPE_THRESHOLD = 90;
+  const CLOSE_SWIPE_DAMPING = 300;
+
+  const applyDamping = (value) => {
+    const abs = Math.abs(value);
+    const damped = abs / (1 + abs / CLOSE_SWIPE_DAMPING);
+    return Math.sign(value) * damped;
+  };
+
+  const startCloseDrag = (e) => {
+    closeDragRef.current = {
+      active: true,
+      startY: e.clientY,
+      offsetY: 0,
+    };
+    setIsClosingGesture(true);
+  };
+
+  const updateCloseDrag = (e) => {
+    const deltaY = e.clientY - closeDragRef.current.startY;
+    const damped = applyDamping(deltaY);
+    closeDragRef.current.offsetY = damped;
+    setCloseOffsetY(damped);
+    if (Math.abs(deltaY) > 2) {
+      hasMoved.current = true;
+    }
+  };
+
+  const endCloseDrag = () => {
+    const offsetY = closeDragRef.current.offsetY;
+    closeDragRef.current.active = false;
+    closeDragRef.current.offsetY = 0;
+    setIsClosingGesture(false);
+
+    if (Math.abs(offsetY) > CLOSE_SWIPE_THRESHOLD) {
+      setCloseOffsetY(0);
+      onClose?.();
+      return;
+    }
+
+    setCloseOffsetY(0);
+  };
+
+  const handlePointerDown = (e) => {
     hasMoved.current = false;
-    if (scale > 1) {
-      e.preventDefault();
+    clickStartOnImageRef.current = isClickOnImage(e);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (e.pointerType === 'touch' || scaleRef.current > 1) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
+    if (pointersRef.current.size === 2) {
+      if (closeDragRef.current.active) {
+        closeDragRef.current.active = false;
+        closeDragRef.current.offsetY = 0;
+        setIsClosingGesture(false);
+        setCloseOffsetY(0);
+      }
+      setIsPinching(true);
+      const points = Array.from(pointersRef.current.values());
+      pinchStartRef.current = {
+        distance: getDistance(points[0], points[1]),
+        scale: scaleRef.current,
+      };
+    } else if (
+      pointersRef.current.size === 1 &&
+      scaleRef.current <= 1.001 &&
+      e.pointerType === 'touch' &&
+      clickStartOnImageRef.current
+    ) {
+      startCloseDrag(e);
+    } else if (pointersRef.current.size === 1 && scaleRef.current > 1) {
       setIsDragging(true);
       setStartPos({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
   };
 
-  const handleMouseMove = (e) => {
-    if (isDragging && scale > 1) {
+  const handlePointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    if (
+      e.pointerType === 'touch' ||
+      isDragging ||
+      pointersRef.current.size === 2 ||
+      closeDragRef.current.active
+    ) {
       e.preventDefault();
+    }
+
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 2) {
+      if (closeDragRef.current.active) {
+        closeDragRef.current.active = false;
+        closeDragRef.current.offsetY = 0;
+        setIsClosingGesture(false);
+        setCloseOffsetY(0);
+      }
+      const points = Array.from(pointersRef.current.values());
+      const distance = getDistance(points[0], points[1]);
+      const { distance: startDistance, scale: startScale } = pinchStartRef.current;
+      if (startDistance > 0) {
+        const nextScale = Math.min(Math.max(0.1, startScale * (distance / startDistance)), 20);
+        if (nextScale < 1) {
+          setPosition({ x: 0, y: 0 });
+        }
+        setScale(nextScale);
+        hasMoved.current = true;
+      }
+      return;
+    }
+
+    if (closeDragRef.current.active && scaleRef.current <= 1.001) {
+      updateCloseDrag(e);
+      return;
+    }
+
+    if (isDragging && scaleRef.current > 1) {
       hasMoved.current = true;
       setPosition({
         x: e.clientX - startPos.x,
@@ -225,26 +342,50 @@ function ImageViewer({ src, alt, onClose }) {
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e) => {
+    if (pointersRef.current.has(e.pointerId)) {
+      pointersRef.current.delete(e.pointerId);
+    }
+    if (pointersRef.current.size < 2) {
+      setIsPinching(false);
+    }
+    if (closeDragRef.current.active) {
+      endCloseDrag();
+    }
     setIsDragging(false);
+  };
+
+  const isClickOnImage = (event) => {
+    if (!imgRef.current) return false;
+    const rect = imgRef.current.getBoundingClientRect();
+    return (
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    );
+  };
+
+  const handleContainerClick = (e) => {
+    e.stopPropagation();
+    if (hasMoved.current) return;
+    if (clickStartOnImageRef.current) return;
+    if (!isClickOnImage(e)) {
+      onClose?.();
+    }
+    clickStartOnImageRef.current = false;
   };
 
   return (
     <div 
       ref={containerRef}
-      className="w-full h-full flex items-center justify-center cursor-move"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      className="w-full h-full flex items-center justify-center cursor-move touch-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (hasMoved.current) return;
-        if (e.target === e.currentTarget) {
-          onClose?.();
-        }
-      }}
+      onClick={handleContainerClick}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -252,9 +393,10 @@ function ImageViewer({ src, alt, onClose }) {
         src={src}
         alt={alt || ''}
         style={{
-          transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
-          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0.2, 1)',
+          transform: `translateY(${closeOffsetY}px) scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+          transition: (isDragging || isPinching || isClosingGesture) ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0.2, 1)',
           cursor: scale > 1 ? 'grab' : 'zoom-in',
+          willChange: isDragging || isPinching || isClosingGesture ? 'transform' : undefined,
         }}
         // 使用 max-w/h-full 确保默认状态下适应屏幕
         className="max-w-full max-h-full object-contain select-none"
