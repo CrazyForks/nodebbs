@@ -45,6 +45,7 @@ export default async function rootRoutes(fastify, options) {
   fastify.get(
     '/stats',
     {
+      preHandler: [fastify.optionalAuth],
       schema: {
         tags: ['system'],
         description: '获取论坛统计',
@@ -62,6 +63,11 @@ export default async function rootRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
+      const canViewStats = await fastify.permission.can(request, 'system.stats');
+      if (!canViewStats) {
+        return reply.code(404).send({});
+      }
+
       // 获取话题总数（不含已删除）
       const [{ count: totalTopics }] = await db
         .select({ count: count() })

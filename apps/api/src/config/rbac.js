@@ -16,6 +16,7 @@ export const MODULE_OPTIONS = [
   { value: 'user', label: '用户' },
   { value: 'upload', label: '上传' },
   { value: 'invitation', label: '邀请' },
+  { value: 'system', label: '系统' },
   { value: 'dashboard', label: '管理后台' },
 ];
 
@@ -31,6 +32,9 @@ export const COMMON_ACTIONS = [
 export const MODULE_SPECIAL_ACTIONS = {
   topic: [
     { value: 'close', label: '关闭' },
+  ],
+  system: [
+    { value: 'stats', label: '统计' },
   ],
   dashboard: [
     { value: 'access', label: '访问后台' },
@@ -291,6 +295,16 @@ export const SYSTEM_PERMISSIONS = [
     conditions: ['rateLimit', 'accountAge'],
   },
 
+  // ========== 系统权限 ==========
+  {
+    slug: 'system.stats',
+    name: '查看统计',
+    module: 'system',
+    action: 'stats',
+    isSystem: true,
+    conditions: [],
+  },
+
   // ========== 管理后台权限 ==========
   {
     slug: 'dashboard.access',
@@ -479,6 +493,8 @@ export const ROLE_PERMISSION_MAP = {
     'post.create', 'post.read', 'post.update', 'post.delete',
     // 用户：查看、编辑、注销自己的资料
     'user.read', 'user.update', 'user.delete',
+    // 系统统计
+    'system.stats',
     // 上传
     'upload.create',
     // 邀请
@@ -516,6 +532,7 @@ export const ALLOWED_ROLES_PERMISSIONS = {
     'topic.read',
     'post.read',
     'user.read',
+    'system.stats',
   ],
   user: SYSTEM_PERMISSIONS
     .filter(p => !p.slug.startsWith('dashboard.'))

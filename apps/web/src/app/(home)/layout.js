@@ -9,6 +9,7 @@ export default async function HomeLayout({ children }) {
     getCategoriesData({ isFeatured: true }),
     getStatsData(),
   ]);
+  const safeStats = stats || null;
 
   return (
     <div className='container mx-auto py-3 sm:p-2 lg:px-4 lg:py-6 space-y-3'>
@@ -17,7 +18,7 @@ export default async function HomeLayout({ children }) {
         <div className='fixed z-10 -left-full lg:static lg:w-64 shrink-0'>
           <StickySidebar className='sticky top-[81px] space-y-4'>
             <AdSlot slotCode='home_sidebar_top' />
-            <Sidebar categories={categories} stats={stats} />
+            <Sidebar categories={categories} stats={safeStats} />
             <AdSlot slotCode='home_sidebar_bottom' />
           </StickySidebar>
         </div>

@@ -105,12 +105,7 @@ export async function getCategoryBySlug(slug) {
 export async function getStatsData() {
   try {
     const data = await request('/stats');
-    return data || {
-      totalTopics: 0,
-      totalPosts: 0,
-      totalUsers: 0,
-      online: { total: 0 },
-    };
+    return data || null;
   } catch (error) {
     console.error('Error fetching stats:', error);
     return {

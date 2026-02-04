@@ -125,7 +125,7 @@ export function SidebarUI({ categories, stats, currentPath }) {
   return (
     <div className='space-y-6'>
       <CategoryList categories={categories} currentPath={currentPath} />
-      <StatsPanel stats={stats} />
+      {stats ? <StatsPanel stats={stats} /> : null}
     </div>
   );
 }
