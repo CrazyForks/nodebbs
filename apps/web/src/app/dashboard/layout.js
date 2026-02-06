@@ -4,6 +4,10 @@ import RequireAdmin from '@/components/auth/RequireAdmin';
 
 export const metadata = {
   title: '管理后台',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function AdminLayout({ children }) {

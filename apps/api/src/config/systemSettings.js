@@ -84,6 +84,22 @@ export const SETTING_KEYS = {
     category: 'general',
     accessLevel: ACCESS_LEVEL.PUBLIC,
   },
+  SITE_URL: {
+    key: 'site_url',
+    defaultValue: '',
+    valueType: 'string',
+    description: '站点 URL（用于 SEO 和社交分享，如 https://example.com）',
+    category: 'general',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+  },
+  SITE_KEYWORDS: {
+    key: 'site_keywords',
+    defaultValue: '',
+    valueType: 'string',
+    description: 'SEO 关键词（多个关键词用英文逗号分隔）',
+    category: 'general',
+    accessLevel: ACCESS_LEVEL.PUBLIC,
+  },
 
   // ============ 功能开关 ============
   REGISTRATION_MODE: {

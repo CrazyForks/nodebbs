@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation';
 import TopicLayout from './components/TopicLayout';
 import { getTopicData, getPostsData, getRewardEnabledStatus, getRewardStats } from '@/lib/server/topics';
+import { getSiteInfo } from '@/lib/server/layout';
 
 // 生成页面元数据（SEO优化）
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const topic = await getTopicData(id);
+  const [topic, { siteName, siteUrl, siteLogo }] = await Promise.all([
+    getTopicData(id),
+    getSiteInfo(),
+  ]);
 
   if (!topic) {
     return {
@@ -17,18 +21,34 @@ export async function generateMetadata({ params }) {
   const description =
     topic.content?.replace(/[#*`\[\]]/g, '').substring(0, 160) || '';
 
-  return {
+  const metadata = {
     title: `${topic.title} - 话题详情`,
     description,
     openGraph: {
       title: topic.title,
       description,
       type: 'article',
+      siteName,
       publishedTime: topic.createdAt,
       modifiedTime: topic.updatedAt,
       authors: [topic.userName || topic.username],
     },
+    twitter: {
+      card: 'summary',
+      title: topic.title,
+      description,
+    },
   };
+
+  // 有 siteUrl 时添加 URL 和图片
+  if (siteUrl) {
+    const ogImageUrl = siteLogo.startsWith('http') ? siteLogo : `${siteUrl}${siteLogo}`;
+    metadata.openGraph.url = `${siteUrl}/topic/${id}`;
+    metadata.openGraph.images = [{ url: ogImageUrl, alt: siteName }];
+    metadata.twitter.images = [ogImageUrl];
+  }
+
+  return metadata;
 }
 
 // 主页面组件（服务端组件）

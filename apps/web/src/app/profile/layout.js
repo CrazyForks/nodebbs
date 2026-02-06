@@ -5,6 +5,10 @@ import StickySidebar from '@/components/common/StickySidebar';
 export const metadata = {
   title: '个人中心',
   description: '管理你的话题和个人设置',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function ProfileLayout({ children }) {

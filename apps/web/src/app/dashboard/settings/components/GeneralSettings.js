@@ -65,6 +65,54 @@ export function GeneralSettings({
         </div>
       )}
 
+      {/* 站点 URL */}
+      {settings.site_url && (
+        <div className='border border-border rounded-lg bg-card'>
+          <div className='px-4 py-4 space-y-3'>
+            <div className='space-y-1'>
+              <Label htmlFor='site_url' className='text-sm font-semibold'>
+                站点 URL
+              </Label>
+              <p className='text-sm text-muted-foreground'>
+                {settings.site_url.description}
+              </p>
+            </div>
+            <Input
+              id='site_url'
+              defaultValue={settings.site_url.value}
+              onBlur={(e) => handleStringChange('site_url', e.target.value)}
+              disabled={saving}
+              className='max-w-md'
+              placeholder='https://example.com'
+            />
+          </div>
+        </div>
+      )}
+
+      {/* SEO 关键词 */}
+      {settings.site_keywords && (
+        <div className='border border-border rounded-lg bg-card'>
+          <div className='px-4 py-4 space-y-3'>
+            <div className='space-y-1'>
+              <Label htmlFor='site_keywords' className='text-sm font-semibold'>
+                SEO 关键词
+              </Label>
+              <p className='text-sm text-muted-foreground'>
+                {settings.site_keywords.description}
+              </p>
+            </div>
+            <Input
+              id='site_keywords'
+              defaultValue={settings.site_keywords.value}
+              onBlur={(e) => handleStringChange('site_keywords', e.target.value)}
+              disabled={saving}
+              className='max-w-md'
+              placeholder='论坛,社区,讨论'
+            />
+          </div>
+        </div>
+      )}
+
       {/* 站点图标 */}
       <div className='border border-border rounded-lg bg-card'>
         <div className='px-4 py-4 space-y-4'>
