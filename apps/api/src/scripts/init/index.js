@@ -22,6 +22,7 @@ import { ShopSeeder } from './shop.js';
 import { CaptchaSeeder } from './captcha.js';
 import { AdsSeeder } from './ads.js';
 import { RBACSeeder } from './rbac.js';
+import { CategorySeeder } from './categories.js';
 
 const { Pool } = pg;
 
@@ -142,6 +143,7 @@ manager.register(new ShopSeeder());
 manager.register(new CaptchaSeeder());
 manager.register(new AdsSeeder());
 manager.register(new RBACSeeder());
+manager.register(new CategorySeeder());
 
 // Parse Arguments
 const args = process.argv.slice(2);
