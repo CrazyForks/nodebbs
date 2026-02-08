@@ -2,6 +2,7 @@ import { FormatTool, HeadingTool } from './format';
 import { LinkTool, VideoTool, AudioTool } from './media';
 import { TableTool } from './table';
 import { ImageTool } from './image';
+import { EmojiTool } from './emoji';
 
 // 工具注册表
 export const ToolRegistry = {
@@ -24,4 +25,5 @@ export const ToolRegistry = {
   video: VideoTool,
   audio: AudioTool,
   image: ImageTool,
+  emoji: EmojiTool,
 };

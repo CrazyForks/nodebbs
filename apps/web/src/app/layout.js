@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LedgerProvider } from '@/extensions/ledger/contexts/LedgerContext';
+import { EmojiProvider } from '@/components/common/Emoji/EmojiProvider';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -43,9 +44,7 @@ async function AppLayout({ children, settings, apiInfo }) {
 export default async function RootLayout({ children }) {
   // 获取所有 SSR 数据 (并行)
   const { settings, apiInfo, user, activeCurrencies } = await getLayoutData();
-  
 
-  
   // 生成初始化脚本
   const initScript = generateThemeScript();
 
@@ -71,12 +70,14 @@ export default async function RootLayout({ children }) {
             <AuthProvider initialUser={user}>
               <LedgerProvider activeCurrencies={activeCurrencies}>
                 <AdsProvider>
+                <EmojiProvider>
                 <ProgressBar>
                   <AppLayout apiInfo={apiInfo}>{children}</AppLayout>
                   <AutoCheckIn />
                   <Toaster/>
                   <ConfirmPopoverPortal />
                 </ProgressBar>
+                </EmojiProvider>
                 </AdsProvider>
               </LedgerProvider>
             </AuthProvider>

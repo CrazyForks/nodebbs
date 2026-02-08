@@ -13,7 +13,9 @@ import PollWidget from './components/PollWidget';
 import AudioPlayer from './components/AudioPlayer';
 import VideoPlayer from './components/VideoPlayer';
 import ContentImage from './components/ContentImage';
+import { Emoji } from '@/components/common/Emoji';
 import { ImagePreviewProvider } from '@/components/common/ImagePreview/ImagePreviewContext';
+import remarkEmoji from './plugins/remark-emoji';
 
 import { cn } from '@/lib/utils';
 
@@ -22,13 +24,76 @@ const ALLOWED_PROTOCOLS = ['magnet:', 'thunder:', 'ed2k:'];
 
 // 自定义 URL 转换函数，允许更多协议
 function customUrlTransform(url) {
-  // 检查是否是允许的额外协议
   if (ALLOWED_PROTOCOLS.some(protocol => url.startsWith(protocol))) {
     return url;
   }
-  // 其他情况使用默认转换
   return defaultUrlTransform(url);
 }
+
+// 插件列表（模块级常量，避免每次渲染重建导致 react-markdown 重新初始化插件管线）
+const REMARK_PLUGINS = [
+  [remarkGfm, { singleTilde: false }],
+  remarkDirective,
+  remarkMedia,
+  remarkSticker,
+  remarkPoll,
+  remarkEmoji,
+  remarkRestoreDirectives,
+];
+
+// 自定义组件映射（模块级常量，所有组件函数均为纯函数，不捕获外部变量）
+const COMPONENTS = {
+  a: ({ node, ...props }) => (
+    <Link {...props} target='_blank' rel='noopener noreferrer' />
+  ),
+  img: ({ node, src, alt, ...props }) => (
+    <ContentImage src={src} alt={alt} {...props} />
+  ),
+  audio: ({ node, src, ...props }) => (
+    <AudioPlayer src={src} {...props} />
+  ),
+  video: ({ node, src, title, ...props }) => (
+    <VideoPlayer src={src} title={title} {...props} />
+  ),
+  code({ children, className, node, ...rest }) {
+    // 仅处理行内代码，代码块由 pre 标签处理
+    return (
+      <code
+        {...rest}
+        className={cn("not-prose bg-muted px-1.5 py-0.5 rounded-sm font-bold", className)}
+      >
+        {children}
+      </code>
+    );
+  },
+  pre({ node, ...props }) {
+    const codeNode = node.children && node.children[0];
+
+    if (codeNode && codeNode.tagName === 'code') {
+      const className = codeNode.properties?.className || [];
+      const match = /language-(\w+)/.exec((Array.isArray(className) ? className.join(' ') : className) || '');
+      const language = match ? match[1] : 'text';
+      const code = codeNode.children[0]?.value || '';
+
+      return (
+        <div className="not-prose w-full">
+          <CodeBlock language={language} code={code} />
+        </div>
+      );
+    }
+
+    return <pre {...props} />;
+  },
+  // 投票组件
+  poll({ node, ...props }) {
+    const pollId = props['data-poll-id'];
+    return <PollWidget pollId={pollId} />;
+  },
+  // 表情组件
+  emoji({ node, ...props }) {
+    return <Emoji code={props.code} size={props.size} className={props.className} />;
+  },
+};
 
 function MarkdownRender({ content }) {
   return (
@@ -36,59 +101,9 @@ function MarkdownRender({ content }) {
       <ImagePreviewProvider>
         <Markdown
           urlTransform={customUrlTransform}
-          remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkDirective, remarkMedia, remarkSticker, remarkPoll, remarkRestoreDirectives]}
-          components={{
-          a: ({ node, ...props }) => (
-            <Link {...props} target='_blank' rel='noopener noreferrer' />
-          ),
-          img: ({ node, src, alt, ...props }) => (
-            <ContentImage src={src} alt={alt} {...props} />
-          ),
-          audio: ({ node, src, ...props }) => (
-            <AudioPlayer src={src} {...props} />
-          ),
-          video: ({ node, src, title, ...props }) => (
-            <VideoPlayer src={src} title={title} {...props} />
-          ),
-          code(props) {
-            const { children, className, node, ...rest } = props;
-            // 仅处理行内代码，因为代码块由 pre 标签处理
-            return (
-              <code
-                {...rest}
-                className={cn("not-prose bg-muted px-1.5 py-0.5 rounded-sm font-bold", className)}
-              >
-                {children}
-              </code>
-            );
-          },
-          pre: ({ node, ...props }) => {
-            const codeNode = node.children && node.children[0];
-
-            if (codeNode && codeNode.tagName === 'code') {
-               const className = codeNode.properties?.className || [];
-               const match = /language-(\w+)/.exec((Array.isArray(className) ? className.join(' ') : className) || '');
-               const language = match ? match[1] : 'text'; // 如果没有语言则默认为 text
-
-               // 从代码节点中提取文本内容
-               const code = codeNode.children[0]?.value || '';
-
-               return (
-                 <div className="not-prose w-full">
-                   <CodeBlock language={language} code={code} />
-                 </div>
-               );
-            }
-
-            return <pre {...props} />;
-          },
-          // 投票组件
-          'poll': ({ node, ...props }) => {
-            const pollId = props['data-poll-id'];
-            return <PollWidget pollId={pollId} />;
-          },
-        }}
-      >
+          remarkPlugins={REMARK_PLUGINS}
+          components={COMPONENTS}
+        >
           {content}
         </Markdown>
       </ImagePreviewProvider>
@@ -115,7 +130,7 @@ class MarkdownErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      // Fallback: 显示原始内容
+      // 回退：显示原始内容
       return (
         <div className="whitespace-pre-wrap break-words">
           {this.props.fallbackContent}
