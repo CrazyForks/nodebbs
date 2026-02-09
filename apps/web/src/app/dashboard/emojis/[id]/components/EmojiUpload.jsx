@@ -51,7 +51,8 @@ export default function EmojiUpload({ groupId, onUploadSuccess }) {
        file,
        preview: URL.createObjectURL(file), // 稍后需要释放
        name: file.name,
-       code: file.name.split('.')[0].replace(/[^a-zA-Z0-9-_]/g, ''),
+       // 保留中文、英文、数字、连字符和下划线
+       code: file.name.split('.')[0].replace(/[^\u4e00-\u9fa5a-zA-Z0-9-_]/g, ''),
        status: 'pending'
     }));
 

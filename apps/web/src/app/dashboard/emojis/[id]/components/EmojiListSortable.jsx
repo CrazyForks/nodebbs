@@ -5,6 +5,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -16,7 +17,7 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { Trash2 } from 'lucide-react';
+import { Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function SortableEmojiItem({ emoji, onDelete }) {
@@ -34,6 +35,8 @@ function SortableEmojiItem({ emoji, onDelete }) {
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     transition,
+    // 防止拖动时选中文本，但允许页面滚动（touchAction 只在拖拽手柄上禁用）
+    userSelect: 'none',
   };
 
   return (
@@ -45,14 +48,22 @@ function SortableEmojiItem({ emoji, onDelete }) {
         'hover:border-primary/50 hover:shadow-sm',
         isDragging && 'shadow-lg opacity-50 z-50 scale-105'
       )}
-      {...attributes}
-      {...listeners}
     >
+      {/* 拖拽手柄：只有这个区域可以拖动，避免整个卡片都是拖拽区域 */}
+      <div 
+        className="absolute top-1 left-1 p-1 text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </div>
+
       <div className="flex-1 flex items-center justify-center py-2 h-16 w-full">
          <img 
             src={emoji.url} 
             alt={emoji.code}
             className="w-10 h-10 object-contain pointer-events-none select-none"
+            draggable={false}
          />
       </div>
       
@@ -60,18 +71,18 @@ function SortableEmojiItem({ emoji, onDelete }) {
         {emoji.code}
       </div>
 
-      {/* 删除按钮（悬停时显示） */}
+      {/* 删除按钮：移动端始终可见，桌面端悬停显示 */}
       <button
         onClick={(e) => {
            e.stopPropagation(); // 阻止冒泡
+           e.preventDefault();
            onDelete(emoji);
         }}
-        // 使用 pointer-events-auto 确保点击事件能被捕获
-        className="absolute top-1 right-1 p-1.5 bg-destructive/10 text-destructive rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-background pointer-events-auto"
+        className="absolute top-1 right-1 p-1.5 bg-destructive/10 text-destructive rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-background"
         title="删除表情"
-        // 阻止 DndKit 将此元素作为拖拽句柄
         data-no-dnd="true"
         onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -92,9 +103,17 @@ export default function EmojiListSortable({ emojis, onReorder, onDelete }) {
   }, [emojis]);
 
   const sensors = useSensors(
+    // 鼠标/指针传感器：需要移动 8px 才激活拖拽
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    // 触摸传感器：需要长按 250ms 才激活拖拽，防止与滚动冲突
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
