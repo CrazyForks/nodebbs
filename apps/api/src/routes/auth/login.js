@@ -67,6 +67,10 @@ export default async function loginRoute(fastify, options) {
       // 规范化标识符 (Trim + Lowercase if email)
       identifier = normalizeIdentifier(identifier);
 
+      if (!identifier) {
+        return reply.code(400).send({ error: '请输入用户名或邮箱' });
+      }
+
       // 判断 identifier 是邮箱还是用户名
       const isEmail = identifier.includes('@');
       
