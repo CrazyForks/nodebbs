@@ -1,17 +1,30 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
 import { useEmoji } from './EmojiProvider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Search, X, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// 搜索防抖 hook
+function useDebouncedValue(value, delay = 150) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 export function EmojiPicker({ onSelect, className }) {
   const { groups, loading } = useEmoji();
   const [search, setSearch] = useState('');
+  const [searching, setSearching] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
   const [hoveredEmoji, setHoveredEmoji] = useState(null);
+  const debouncedSearch = useDebouncedValue(search, 150);
+  const searchInputRef = useRef(null);
 
   // 初始化默认激活分组
   useEffect(() => {
@@ -20,39 +33,48 @@ export function EmojiPicker({ onSelect, className }) {
     }
   }, [groups, activeTab]);
 
-  // 根据搜索关键词过滤表情
+  // 根据搜索关键词过滤表情（防抖后触发）
   const filteredGroups = useMemo(() => {
-    if (!search.trim()) return groups;
+    if (!debouncedSearch.trim()) return groups;
 
-    const lowerSearch = search.toLowerCase();
+    const lowerSearch = debouncedSearch.toLowerCase();
 
     return groups.map(group => ({
       ...group,
       emojis: group.emojis?.filter(emoji =>
-        emoji.code.toLowerCase().includes(lowerSearch)
+        emoji.code.toLowerCase().includes(lowerSearch) ||
+        (emoji.name && emoji.name.toLowerCase().includes(lowerSearch))
       ) || []
     })).filter(group => group.emojis.length > 0);
-  }, [groups, search]);
+  }, [groups, debouncedSearch]);
 
   // 当前显示的分组
   const currentGroup = useMemo(() => {
-    if (search) return null;
+    if (debouncedSearch) return null;
     return groups.find(g => g.slug === activeTab);
-  }, [groups, activeTab, search]);
+  }, [groups, activeTab, debouncedSearch]);
 
   // 处理表情选择
   const handleSelect = useCallback((groupSlug, code) => {
     onSelect(`${groupSlug}/${code}`);
   }, [onSelect]);
 
-  // 清空搜索
-  const clearSearch = useCallback(() => {
+  // 打开搜索
+  const openSearch = useCallback(() => {
+    setSearching(true);
+    // 下一帧聚焦输入框
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
+
+  // 关闭搜索
+  const closeSearch = useCallback(() => {
     setSearch('');
+    setSearching(false);
   }, []);
 
   if (loading) {
     return (
-      <div className={cn("flex flex-col h-[360px] w-[340px] items-center justify-center", className)}>
+      <div className={cn("flex flex-col h-80 w-[380px] items-center justify-center", className)}>
         <Smile className="h-8 w-8 text-muted-foreground/50 animate-pulse" />
         <span className="text-sm text-muted-foreground mt-2">加载表情...</span>
       </div>
@@ -61,7 +83,7 @@ export function EmojiPicker({ onSelect, className }) {
 
   if (groups.length === 0) {
     return (
-      <div className={cn("flex flex-col h-[360px] w-[340px] items-center justify-center", className)}>
+      <div className={cn("flex flex-col h-80 w-[380px] items-center justify-center", className)}>
         <Smile className="h-8 w-8 text-muted-foreground/30" />
         <span className="text-sm text-muted-foreground mt-2">暂无表情包</span>
       </div>
@@ -69,57 +91,64 @@ export function EmojiPicker({ onSelect, className }) {
   }
 
   return (
-    <div className={cn("flex flex-col h-[360px] w-[340px] bg-popover rounded-lg overflow-hidden", className)}>
-      {/* 搜索栏 */}
-      <div className="p-3 border-b bg-muted/30">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="搜索表情..."
-            className="pl-9 pr-8 h-9 bg-background/80 border-0 focus-visible:ring-1 focus-visible:ring-ring"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
+    <div className={cn("flex flex-col h-80 w-[380px] bg-popover rounded-lg overflow-hidden", className)}>
+      {/* 顶部栏：分组标签 + 搜索入口，搜索时切换为搜索输入框 */}
+      <div className="flex items-center border-b bg-muted/20 overflow-hidden">
+        {searching ? (
+          <div className="flex items-center flex-1 px-2 py-1.5 gap-1">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              ref={searchInputRef}
+              placeholder="搜索表情..."
+              className="h-7 border-0 shadow-none bg-transparent focus-visible:ring-0 px-1 text-sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             <button
-              onClick={clearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+              onClick={closeSearch}
+              className="p-1 rounded-full hover:bg-muted transition-colors shrink-0"
             >
               <X className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-1 overflow-x-auto scrollbar-none">
+              {groups.map(group => (
+                <button
+                  key={group.slug}
+                  onClick={() => setActiveTab(group.slug)}
+                  className={cn(
+                    "shrink-0 px-4 py-2.5 text-sm font-medium transition-all relative",
+                    "hover:bg-muted/50",
+                    activeTab === group.slug
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {group.name}
+                  <span className={cn(
+                    "absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-primary rounded-full transition-all duration-200",
+                    activeTab === group.slug ? "w-6 opacity-100" : "w-0 opacity-0"
+                  )} />
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={openSearch}
+              className="shrink-0 px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="搜索表情"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* 分组标签栏 */}
-      {!search && (
-        <div className="flex border-b bg-muted/20 overflow-x-auto scrollbar-none">
-          {groups.map(group => (
-            <button
-              key={group.slug}
-              onClick={() => setActiveTab(group.slug)}
-              className={cn(
-                "flex-shrink-0 px-4 py-2.5 text-sm font-medium transition-all relative",
-                "hover:bg-muted/50",
-                activeTab === group.slug
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {group.name}
-              {/* 激活指示器 */}
-              {activeTab === group.slug && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* 表情网格区域 */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-3">
-          {search ? (
+          {debouncedSearch ? (
             filteredGroups.length > 0 ? (
               <div className="space-y-4">
                 {filteredGroups.map(group => (
@@ -134,6 +163,7 @@ export function EmojiPicker({ onSelect, className }) {
                           key={emoji.id}
                           emoji={emoji}
                           groupSlug={group.slug}
+                          groupSize={group.size}
                           onSelect={handleSelect}
                           onHover={setHoveredEmoji}
                         />
@@ -157,6 +187,7 @@ export function EmojiPicker({ onSelect, className }) {
                     key={emoji.id}
                     emoji={emoji}
                     groupSlug={currentGroup.slug}
+                    groupSize={currentGroup.size}
                     onSelect={handleSelect}
                     onHover={setHoveredEmoji}
                   />
@@ -168,18 +199,24 @@ export function EmojiPicker({ onSelect, className }) {
       </ScrollArea>
 
       {/* 底部预览栏 */}
-      <div className="h-10 border-t bg-muted/20 px-3 flex items-center">
+      <div className="h-10 border-t bg-muted/20 px-3 flex items-center relative">
         {hoveredEmoji ? (
           <div className="flex items-center gap-2 text-sm">
             <img
               src={hoveredEmoji.url}
               alt={hoveredEmoji.code}
-              className="inline-block"
-              style={{ width: 20, height: 20 }}
+              className="inline-block shrink-0 absolute bottom-1 pointer-events-none"
+              style={{
+                width: hoveredEmoji.groupSize || 24,
+                height: hoveredEmoji.groupSize || 24,
+              }}
               draggable={false}
             />
-            <span className="text-muted-foreground font-mono text-xs truncate">
-              :emoji[{hoveredEmoji.groupSlug}/{hoveredEmoji.code}]
+            <span
+              className="text-muted-foreground font-mono text-xs truncate"
+              style={{ marginLeft: (hoveredEmoji.groupSize || 24) + 8 }}
+            >
+              {hoveredEmoji.groupSlug}/{hoveredEmoji.code}
             </span>
           </div>
         ) : (
@@ -193,7 +230,7 @@ export function EmojiPicker({ onSelect, className }) {
 }
 
 // 表情按钮组件（memo 避免 hoveredEmoji 变化时全量重渲染）
-const EmojiButton = memo(function EmojiButton({ emoji, groupSlug, onSelect, onHover }) {
+const EmojiButton = memo(function EmojiButton({ emoji, groupSlug, groupSize, onSelect, onHover }) {
   return (
     <button
       className={cn(
@@ -203,7 +240,7 @@ const EmojiButton = memo(function EmojiButton({ emoji, groupSlug, onSelect, onHo
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
       )}
       onClick={() => onSelect(groupSlug, emoji.code)}
-      onMouseEnter={() => onHover({ ...emoji, groupSlug })}
+      onMouseEnter={() => onHover({ ...emoji, groupSlug, groupSize })}
       onMouseLeave={() => onHover(null)}
     >
       <img
@@ -211,6 +248,7 @@ const EmojiButton = memo(function EmojiButton({ emoji, groupSlug, onSelect, onHo
         alt={emoji.code}
         className="inline-block select-none"
         style={{ width: 28, height: 28 }}
+        loading="lazy"
         draggable={false}
       />
     </button>
