@@ -386,6 +386,7 @@ export default async function postRoutes(fastify, options) {
             const author = enrichedUserMap.get(post.userId);
             if (author) {
                 post.userAvatarFrame = author.avatarFrame;
+                post.userDisplayRole = author.displayRole || null;
             }
 
             // 被回复用户

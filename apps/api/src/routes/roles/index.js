@@ -247,6 +247,9 @@ export default async function rolesRoutes(fastify, options) {
         .where(eq(roles.id, id))
         .returning();
 
+      // 清除角色展示信息缓存，确保 displayRole 及时更新
+      await permission.invalidateRolesDisplayCache();
+
       return updated;
     }
   );

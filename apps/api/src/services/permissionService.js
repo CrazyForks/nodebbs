@@ -643,13 +643,15 @@ class PermissionService {
   async enrichUser(user) {
     if (!user) return null;
 
-    const [userRolesList, userPermissions] = await Promise.all([
+    const [userRolesList, userPermissions, rolesDisplayMap] = await Promise.all([
       this.getUserRoles(user.id),
       this.getUserPermissions(user.id),
+      this.getRolesDisplayMap(),
     ]);
 
-    // 获取展示角色（最高优先级且允许展示的角色）
+    // 获取展示角色（最高优先级且允许展示的角色），使用角色级缓存的最新数据
     const displayRole = userRolesList
+      .map(r => rolesDisplayMap[r.id] || r)
       .filter(r => r.isDisplayed)
       .sort((a, b) => b.priority - a.priority)[0] || null;
 
@@ -775,6 +777,48 @@ class PermissionService {
    */
   async getAllRoles() {
     return db.select().from(roles).orderBy(roles.priority);
+  }
+
+  /**
+   * 获取角色展示信息映射表（角色级缓存，仅一个 key）
+   * 用于 rbacEnricher 组装 displayRole，避免依赖 user 级缓存中的角色元数据
+   * @returns {Promise<Object>} roleId → { slug, name, color, icon, isDisplayed, priority }
+   */
+  async getRolesDisplayMap() {
+    const cacheKey = 'roles:display';
+
+    const fetchMap = async () => {
+      const allRoles = await db
+        .select({
+          id: roles.id,
+          slug: roles.slug,
+          name: roles.name,
+          color: roles.color,
+          icon: roles.icon,
+          isDisplayed: roles.isDisplayed,
+          priority: roles.priority,
+        })
+        .from(roles);
+
+      const map = {};
+      allRoles.forEach(r => { map[r.id] = r; });
+      return map;
+    };
+
+    if (this.fastify?.cache) {
+      return this.fastify.cache.remember(cacheKey, PERMISSION_CACHE_TTL, fetchMap);
+    }
+
+    return fetchMap();
+  }
+
+  /**
+   * 清除角色展示信息缓存（角色名称/颜色等变更时调用）
+   */
+  async invalidateRolesDisplayCache() {
+    if (this.fastify?.cache) {
+      await this.fastify.cache.invalidate(['roles:display']);
+    }
   }
 
   /**

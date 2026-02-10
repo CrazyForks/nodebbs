@@ -119,8 +119,6 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
             ? 'border-chart-5/30 bg-chart-5/5'
             : isRejected
             ? 'border-destructive/30 bg-destructive/5'
-            : localReply.userRole === 'admin'
-            ? 'border-border'
             : 'border-border'
         }`}
         data-post-number={localReply.postNumber}
@@ -168,10 +166,17 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded, isR
                       楼主
                     </Badge>
                   )}
-                  
-                  {localReply.userRole === 'admin' && (
-                     <Badge variant="secondary" className="px-1.5 h-4 text-[10px] font-normal bg-chart-1/10 text-chart-1 hover:bg-chart-1/20 border-0 rounded">
-                      管理员
+
+                  {localReply.userDisplayRole && (
+                     <Badge
+                       variant="secondary"
+                       className="px-1.5 h-4 text-[10px] font-normal border-0 rounded"
+                       style={{
+                         backgroundColor: localReply.userDisplayRole.color ? localReply.userDisplayRole.color + '15' : undefined,
+                         color: localReply.userDisplayRole.color || undefined,
+                       }}
+                     >
+                      {localReply.userDisplayRole.name}
                     </Badge>
                   )}
 
