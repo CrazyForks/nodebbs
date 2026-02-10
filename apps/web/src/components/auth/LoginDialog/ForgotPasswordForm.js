@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DialogFooter } from '@/components/ui/dialog';
 import { FormMessage } from './FormMessage';
 import { Loader2, Mail, Lock, CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/lib/api';
@@ -152,7 +151,7 @@ export function ForgotPasswordForm({ onSuccess }) {
             </div>
           </div>
 
-          <DialogFooter>
+          <div className="pt-2">
             <Button type='submit' className='w-full' disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -166,7 +165,7 @@ export function ForgotPasswordForm({ onSuccess }) {
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       )}
 
@@ -226,7 +225,7 @@ export function ForgotPasswordForm({ onSuccess }) {
             </div>
           </div>
 
-          <DialogFooter className='gap-2'>
+          <div className='flex gap-2 pt-2'>
             <Button
               type='button'
               variant='outline'
@@ -260,7 +259,7 @@ export function ForgotPasswordForm({ onSuccess }) {
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       )}
     </div>

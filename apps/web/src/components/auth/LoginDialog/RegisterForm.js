@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DialogFooter } from '@/components/ui/dialog';
 import { FormMessage } from './FormMessage';
 import { CaptchaWidget } from '@/components/captcha/CaptchaWidget';
 
@@ -125,11 +124,11 @@ export function RegisterForm({
         <CaptchaWidget scene="register" onVerify={onCaptchaVerify} />
       </div>
 
-      <DialogFooter>
+      <div className="pt-2">
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? '注册中...' : '注册'}
         </Button>
-      </DialogFooter>
+      </div>
     </form>
   );
 }
