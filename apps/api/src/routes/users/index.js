@@ -1,20 +1,11 @@
 import db from '../../db/index.js';
-import { users, accounts, topics, posts, follows, bookmarks, categories, userRoles, roles } from '../../db/schema.js';
+import { users, accounts, topics, posts, follows, bookmarks, categories, userRoles, roles, moderationLogs } from '../../db/schema.js';
 import { eq, sql, desc, and, ne, like, inArray, count } from 'drizzle-orm';
-import { pipeline } from 'stream/promises';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import crypto from 'crypto';
 import { userEnricher } from '../../services/userEnricher.js';
 import { validateUsername } from '../../utils/validateUsername.js';
 import { normalizeEmail, normalizeUsername } from '../../utils/normalization.js';
 import { VerificationCodeType } from '../../plugins/message/config/verificationCode.js';
 import { verifyCode, deleteVerificationCode } from '../../plugins/message/utils/verificationCode.js';
-import { moderationLogs } from '../../db/schema.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export default async function userRoutes(fastify, options) {
   const { permission } = fastify;
@@ -179,7 +170,6 @@ export default async function userRoutes(fastify, options) {
       .limit(limit)
       .offset(offset);
 
-
     // 获取总数量
     let countQuery = db.select({ count: count() }).from(users);
     if (conditions.length > 0) {
@@ -192,7 +182,7 @@ export default async function userRoutes(fastify, options) {
       .select({ id: users.id })
       .from(users)
       .where(eq(users.role, 'admin'))
-      .orderBy(users.createdAt) // 按创建时间排序
+      .orderBy(users.id)
       .limit(1);
     
     const founderId = firstAdmin?.id;
@@ -499,7 +489,7 @@ export default async function userRoutes(fastify, options) {
       }
       const isValidPassword = await fastify.verifyPassword(currentPassword, user.passwordHash);
       if (!isValidPassword) {
-        return reply.code(200).send({ error: '当前密码不正确' });
+        return reply.code(400).send({ error: '当前密码不正确' });
       }
     }
 
@@ -897,6 +887,7 @@ export default async function userRoutes(fastify, options) {
 
   // 获取用户的关注者
   fastify.get('/:username/followers', {
+    preHandler: [fastify.optionalAuth],
     schema: {
       tags: ['users'],
       description: '获取用户粉丝',
@@ -969,6 +960,7 @@ export default async function userRoutes(fastify, options) {
 
   // 获取用户关注列表
   fastify.get('/:username/following', {
+    preHandler: [fastify.optionalAuth],
     schema: {
       tags: ['users'],
       description: '获取用户关注列表',
@@ -1158,11 +1150,6 @@ export default async function userRoutes(fastify, options) {
       total,
     };
   });
-
-
-  // 上传头像 - 已废弃：使用 /api/upload?type=avatars 后再 PATCH /users/me
-  // 以前的逻辑已迁移到通用上传接口 + 用户资料更新接口
-
 
   // 管理员更新用户
   fastify.patch('/:userId', {

@@ -107,6 +107,10 @@ The project is a monorepo managed by **Turborepo** and **pnpm**.
   3. **NEVER** write raw SQL unless absolutely necessary.
 - **Queries**: Use Drizzle query builder syntax.
   - `await db.select().from(users).where(eq(users.id, 1))`
+- **排序字段命名**:
+  - **显示顺序**: 使用 `displayOrder`（integer, default 0），查询时用 `asc()` 排序（值越小越靠前）。
+  - **优先级**: 使用 `priority`（integer, default 0），查询时用 `desc()` 排序（值越大越靠前）。
+  - 注意：已有表中存在 `position`、`order` 等历史命名，不做迁移，但**新建表必须遵循此规范**。
 
 ## 🔄 Git & Version Control
 
