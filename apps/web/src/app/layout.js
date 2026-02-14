@@ -15,6 +15,8 @@ import { getLayoutData, generateThemeScript, getLayoutMetadata } from '@/lib/ser
 import { Toaster } from '@/components/common/Toaster';
 import { ConfirmPopoverPortal } from '@/components/common/ConfirmPopover';
 import { AdsProvider } from '@/extensions/ads/components';
+import { ChineseNewYear } from '@/components/effects/ChineseNewYear';
+
 
 // 强制动态渲染，因为需要读取 cookies
 export const dynamic = 'force-dynamic';
@@ -76,6 +78,7 @@ export default async function RootLayout({ children }) {
                   <AutoCheckIn />
                   <Toaster/>
                   <ConfirmPopoverPortal />
+                  <ChineseNewYear />
                 </ProgressBar>
                 </EmojiProvider>
                 </AdsProvider>

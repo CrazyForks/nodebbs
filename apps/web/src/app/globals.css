@@ -1,3 +1,4 @@
+/* @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap'); */
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -6,6 +7,7 @@
 @custom-variant sunrise (&:is(.sunrise *));
 @custom-variant iceblue (&:is(.iceblue *));
 @custom-variant nord (&:is(.nord *));
+@custom-variant cny (&:is(.cny *));
 
 @theme inline {
   --color-background: var(--background);
@@ -345,6 +347,98 @@
   --sidebar-ring: #5E81AC; /* nord10 */
 
   --radius: 0.5rem;
+}
+
+.cny {
+  --background: oklch(0.98 0.01 30);      /* Warm off-white/red tint */
+  --foreground: oklch(0.25 0.05 30);      /* Dark Red/Brown */
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.05 30);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.05 30);
+
+  --primary: oklch(0.56 0.24 29);         /* China Red */
+  --primary-foreground: oklch(1 0 0);     /* White */
+
+  --secondary: oklch(0.92 0.05 85);       /* Pale Gold */
+  --secondary-foreground: oklch(0.35 0.08 30);
+
+  --muted: oklch(0.96 0.02 30);
+  --muted-foreground: oklch(0.55 0.05 30);
+
+  --accent: oklch(0.92 0.05 85);          /* Pale Gold */
+  --accent-foreground: oklch(0.56 0.24 29);
+
+  --destructive: oklch(0.56 0.24 29);     /* Red */
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.9 0.03 85);           /* Gold tint border */
+  --input: oklch(0.9 0.03 85);
+  --ring: oklch(0.56 0.24 29);
+
+  --chart-1: oklch(0.56 0.24 29);         /* Red */
+  --chart-2: oklch(0.85 0.18 85);         /* Gold */
+  --chart-3: oklch(0.45 0.15 30);         /* Dark Red */
+  --chart-4: oklch(0.75 0.2 55);          /* Orange */
+  --chart-5: oklch(0.6 0.15 350);         /* Pink/Plum */
+
+  --sidebar: oklch(0.99 0.005 30);
+  --sidebar-foreground: oklch(0.25 0.05 30);
+  --sidebar-primary: oklch(0.56 0.24 29);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.05 85);
+  --sidebar-accent-foreground: oklch(0.56 0.24 29);
+  --sidebar-border: oklch(0.9 0.03 85);
+  --sidebar-ring: oklch(0.56 0.24 29);
+
+  --radius: 0.75rem;
+}
+
+.cny.dark {
+  --background: oklch(0.25 0.1 29);       /* Deep Red Background */
+  --foreground: oklch(0.95 0.05 85);      /* Pale Gold Text */
+
+  --card: oklch(0.3 0.1 29);              /* Slightly lighter red card */
+  --card-foreground: oklch(0.95 0.05 85);
+
+  --popover: oklch(0.3 0.1 29);
+  --popover-foreground: oklch(0.95 0.05 85);
+
+  --primary: oklch(0.85 0.18 85);         /* Gold Primary */
+  --primary-foreground: oklch(0.25 0.1 29); /* Deep Red Text on Gold */
+
+  --secondary: oklch(0.35 0.1 29);
+  --secondary-foreground: oklch(0.95 0.05 85);
+
+  --muted: oklch(0.35 0.1 29);
+  --muted-foreground: oklch(0.7 0.1 85);
+
+  --accent: oklch(0.35 0.1 29);           /* Darker Red Accent */
+  --accent-foreground: oklch(0.85 0.18 85);
+
+  --destructive: oklch(0.6 0.2 29);       /* Bright Red */
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.4 0.1 29);
+  --input: oklch(0.4 0.1 29);
+  --ring: oklch(0.85 0.18 85);            /* Gold Ring */
+
+  --chart-1: oklch(0.85 0.18 85);         /* Gold */
+  --chart-2: oklch(0.6 0.2 29);           /* Red */
+  --chart-3: oklch(0.75 0.2 55);          /* Orange */
+  --chart-4: oklch(0.9 0.1 95);           /* Light Yellow */
+  --chart-5: oklch(0.5 0.15 350);         /* Plum */
+
+  --sidebar: oklch(0.22 0.08 29);         /* Darker Red Sidebar */
+  --sidebar-foreground: oklch(0.95 0.05 85);
+  --sidebar-primary: oklch(0.85 0.18 85);
+  --sidebar-primary-foreground: oklch(0.25 0.1 29);
+  --sidebar-accent: oklch(0.35 0.1 29);
+  --sidebar-accent-foreground: oklch(0.85 0.18 85);
+  --sidebar-border: oklch(0.4 0.1 29);
+  --sidebar-ring: oklch(0.85 0.18 85);
 }
 
 .nord.dark {
