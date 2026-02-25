@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { IconUpload } from '@/components/common/IconUpload';
 import { Switch } from '@/components/ui/switch';
+import { SettingSection, SettingItem } from '@/components/common/SettingLayout';
 
 export function GeneralSettings({
   settings,
@@ -15,233 +16,168 @@ export function GeneralSettings({
   saving,
 }) {
   return (
-    <div className='space-y-4'>
-      {/* 站点名称 */}
-      {settings.site_name && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label htmlFor='site_name' className='text-sm font-semibold'>
-                站点名称
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_name.description}
-              </p>
+    <div className='space-y-6'>
+      <SettingSection title="基础设置" description="配置站点的基础信息与元数据">
+        {settings.site_name && (
+          <SettingItem
+            title="站点名称"
+            description={settings.site_name.description}
+            layout="vertical"
+          >
+            <div className="flex flex-col gap-3 w-full">
+              <Input
+                id='site_name'
+                defaultValue={settings.site_name.value}
+                onBlur={(e) => handleStringChange('site_name', e.target.value)}
+                disabled={saving}
+                className='w-full max-w-xl'
+              />
+              {settings.show_logo_text && (
+                <div className='flex items-center space-x-2'>
+                  <Label
+                    htmlFor='show_logo_text'
+                    className='text-xs font-normal cursor-pointer text-muted-foreground'
+                  >
+                    {settings.show_logo_text.description}
+                  </Label>
+                  <Switch
+                    id='show_logo_text'
+                    checked={settings.show_logo_text.value === true}
+                    onCheckedChange={(checked) =>
+                      handleBooleanChange('show_logo_text', checked)
+                    }
+                    disabled={saving}
+                    className="scale-90"
+                  />
+                </div>
+              )}
             </div>
-            <Input
-              id='site_name'
-              defaultValue={settings.site_name.value}
-              onBlur={(e) => handleStringChange('site_name', e.target.value)}
-              disabled={saving}
-              className='max-w-md'
-            />
+          </SettingItem>
+        )}
 
-            {settings.show_logo_text && (
-              <div className='flex items-center space-x-2 pt-2'>
-                <Switch
-                  id='show_logo_text'
-                  checked={settings.show_logo_text.value === true}
-                  onCheckedChange={(checked) =>
-                    handleBooleanChange('show_logo_text', checked)
-                  }
-                  disabled={saving}
-                />
-                <Label
-                  htmlFor='show_logo_text'
-                  className='text-sm font-normal cursor-pointer text-muted-foreground'
-                >
-                  {settings.show_logo_text.description}
-                </Label>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 站点描述 */}
-      {settings.site_description && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label
-                htmlFor='site_description'
-                className='text-sm font-semibold'
-              >
-                站点描述
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_description.description}
-              </p>
-            </div>
-            <Input
+        {settings.site_description && (
+          <SettingItem
+            title="站点描述"
+            description={settings.site_description.description}
+            layout="vertical"
+          >
+            <Textarea
               id='site_description'
               defaultValue={settings.site_description.value}
-              onBlur={(e) =>
-                handleStringChange('site_description', e.target.value)
-              }
+              onBlur={(e) => handleStringChange('site_description', e.target.value)}
               disabled={saving}
-              className='max-w-md'
+              className='w-full max-w-xl min-h-[80px] resize-y'
             />
-          </div>
-        </div>
-      )}
+          </SettingItem>
+        )}
 
-      {/* 站点 URL */}
-      {settings.site_url && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label htmlFor='site_url' className='text-sm font-semibold'>
-                站点 URL
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_url.description}
-              </p>
-            </div>
+        {settings.site_url && (
+          <SettingItem
+            title="站点 URL"
+            description={settings.site_url.description}
+            layout="vertical"
+          >
             <Input
               id='site_url'
               defaultValue={settings.site_url.value}
               onBlur={(e) => handleStringChange('site_url', e.target.value)}
               disabled={saving}
-              className='max-w-md'
+              className='w-full max-w-xl'
               placeholder='https://example.com'
             />
-          </div>
-        </div>
-      )}
+          </SettingItem>
+        )}
 
-      {/* SEO 关键词 */}
-      {settings.site_keywords && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label htmlFor='site_keywords' className='text-sm font-semibold'>
-                SEO 关键词
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_keywords.description}
-              </p>
-            </div>
-            <Input
+        {settings.site_keywords && (
+          <SettingItem
+            title="SEO 关键词"
+            description={settings.site_keywords.description}
+            layout="vertical"
+          >
+            <Textarea
               id='site_keywords'
               defaultValue={settings.site_keywords.value}
               onBlur={(e) => handleStringChange('site_keywords', e.target.value)}
               disabled={saving}
-              className='max-w-md'
+              className='w-full max-w-xl min-h-[80px] resize-y'
               placeholder='论坛,社区,讨论'
+            />
+          </SettingItem>
+        )}
+      </SettingSection>
+
+      <SettingSection title="站点图标" description="自定义站点 Logo、Favicon 和 Apple Touch Icon，留空则使用默认图标">
+        <div className='p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-6'>
+          <div className='space-y-3'>
+            <Label className='text-sm font-medium'>Logo</Label>
+            <IconUpload
+              value={settings.site_logo?.value || ''}
+              onChange={(url) => handleStringChange('site_logo', url)}
+              placeholder='/logo.svg'
+              accept='image/svg+xml,image/png,image/jpeg,image/webp'
+              hint='SVG/PNG, 建议 128x128'
+            />
+          </div>
+
+          <div className='space-y-3'>
+            <Label className='text-sm font-medium'>Favicon</Label>
+            <IconUpload
+              value={settings.site_favicon?.value || ''}
+              onChange={(url) => handleStringChange('site_favicon', url)}
+              placeholder='/favicon.ico'
+              accept='image/x-icon,image/png,image/vnd.microsoft.icon'
+              hint='ICO/PNG, 建议 48x48+'
+            />
+          </div>
+
+          <div className='space-y-3'>
+            <Label className='text-sm font-medium'>Apple Touch Icon</Label>
+            <IconUpload
+              value={settings.site_apple_touch_icon?.value || ''}
+              onChange={(url) => handleStringChange('site_apple_touch_icon', url)}
+              placeholder='/apple-touch-icon.png'
+              accept='image/png'
+              hint='PNG, 建议 180x180'
             />
           </div>
         </div>
-      )}
+      </SettingSection>
 
-      {/* 站点图标 */}
-      <div className='border border-border rounded-lg bg-card'>
-        <div className='px-4 py-4 space-y-4'>
-          <div className='space-y-1'>
-            <Label className='text-sm font-semibold'>站点图标</Label>
-            <p className='text-sm text-muted-foreground'>
-              自定义站点 Logo、Favicon 和 Apple Touch Icon，留空则使用默认图标
-            </p>
-          </div>
-          
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            {/* 站点 Logo */}
-            <div className='space-y-2'>
-              <Label className='text-xs text-muted-foreground'>Logo</Label>
-              <IconUpload
-                value={settings.site_logo?.value || ''}
-                onChange={(url) => handleStringChange('site_logo', url)}
-                placeholder='/logo.svg'
-                accept='image/svg+xml,image/png,image/jpeg,image/webp'
-                hint='SVG/PNG, 建议 128x128'
-              />
-            </div>
-
-            {/* Favicon */}
-            <div className='space-y-2'>
-              <Label className='text-xs text-muted-foreground'>Favicon</Label>
-              <IconUpload
-                value={settings.site_favicon?.value || ''}
-                onChange={(url) => handleStringChange('site_favicon', url)}
-                placeholder='/favicon.ico'
-                accept='image/x-icon,image/png,image/vnd.microsoft.icon'
-                hint='ICO/PNG, 建议 48x48+'
-              />
-            </div>
-
-            {/* Apple Touch Icon */}
-            <div className='space-y-2'>
-              <Label className='text-xs text-muted-foreground'>Apple Touch Icon</Label>
-              <IconUpload
-                value={settings.site_apple_touch_icon?.value || ''}
-                onChange={(url) => handleStringChange('site_apple_touch_icon', url)}
-                placeholder='/apple-touch-icon.png'
-                accept='image/png'
-                hint='PNG, 建议 180x180'
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 站点统计脚本 */}
-      {settings.site_analytics_scripts && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label
-                htmlFor='site_analytics_scripts'
-                className='text-sm font-semibold'
-              >
-                站点统计脚本
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_analytics_scripts.description || '支持 Google Analytics、百度统计等脚本，不包含 <script> 标签的纯代码请自行包裹'}
-              </p>
-            </div>
+      <SettingSection title="高级代码注入" description="在页面头部和底部注入自定义代码和统计脚本">
+        {settings.site_analytics_scripts && (
+          <SettingItem
+            title="站点统计脚本"
+            description={settings.site_analytics_scripts.description || '支持 Google Analytics、百度统计等脚本，包含 <script> 标签的纯代码请自行包裹'}
+            layout="vertical"
+          >
             <Textarea
               id='site_analytics_scripts'
               defaultValue={settings.site_analytics_scripts.value}
-              onBlur={(e) =>
-                handleStringChange('site_analytics_scripts', e.target.value)
-              }
+              onBlur={(e) => handleStringChange('site_analytics_scripts', e.target.value)}
               disabled={saving}
-              className='max-w-md min-h-[100px] font-mono text-xs'
+              className='w-full min-h-[140px] font-mono text-xs resize-y'
               placeholder='<script>...</script>'
             />
-          </div>
-        </div>
-      )}
+          </SettingItem>
+        )}
 
-      {/* 页脚自定义 HTML */}
-      {settings.site_footer_html && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4 space-y-3'>
-            <div className='space-y-1'>
-              <Label
-                htmlFor='site_footer_html'
-                className='text-sm font-semibold'
-              >
-                页脚自定义 HTML
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.site_footer_html.description || '支持 HTML 标签，将显示在页脚区域'}
-              </p>
-            </div>
+        {settings.site_footer_html && (
+          <SettingItem
+            title="页脚自定义 HTML"
+            description={settings.site_footer_html.description || '支持 HTML 标签，将显示在页脚区域'}
+            layout="vertical"
+          >
             <Textarea
               id='site_footer_html'
               defaultValue={settings.site_footer_html.value}
-              onBlur={(e) =>
-                handleStringChange('site_footer_html', e.target.value)
-              }
+              onBlur={(e) => handleStringChange('site_footer_html', e.target.value)}
               disabled={saving}
-              className='max-w-md min-h-[100px] font-mono text-xs'
+              className='w-full min-h-[140px] font-mono text-xs resize-y'
               placeholder='<span>...</span>'
             />
-          </div>
-        </div>
-      )}
-
+          </SettingItem>
+        )}
+      </SettingSection>
     </div>
   );
 }
