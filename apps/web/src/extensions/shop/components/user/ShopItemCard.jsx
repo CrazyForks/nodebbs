@@ -64,7 +64,7 @@ export function ShopItemCard({ item, userBalance, onPurchase, isAuthenticated })
             )}
           </div>
         </div>
-        <CardDescription className="text-xs md:text-sm line-clamp-1 md:line-clamp-2 min-h-0 md:min-h-[2.5rem]">
+        <CardDescription className="text-xs md:text-sm line-clamp-1 md:line-clamp-2 min-h-0 md:min-h-10">
             {item.description || '暂无描述'}
         </CardDescription>
       </CardHeader>

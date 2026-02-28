@@ -120,7 +120,7 @@ export default function Badge({
             {content}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="p-0 bg-muted/95 backdrop-blur-sm shadow-xl border-border/50 [&_.z-50]:!bg-muted/95 [&_.z-50]:!fill-muted/95">
+        <TooltipContent side="bottom" className="p-0 bg-muted/95 backdrop-blur-sm shadow-xl border-border/50 [&_.z-50]:bg-muted/95! [&_.z-50]:fill-muted/95!">
           <div className="flex flex-col rounded-md overflow-hidden">
             {/* 大图展示区 */}
             <div className="w-full aspect-square flex items-center justify-center p-6 relative">

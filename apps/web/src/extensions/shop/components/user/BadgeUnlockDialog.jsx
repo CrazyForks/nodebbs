@@ -109,7 +109,7 @@ export function BadgeUnlockDialog({ open, onOpenChange, badgeItem }) {
             <h3 className="text-xl font-semibold text-white">
               {badgeItem.name}
             </h3>
-            <p className="text-sm text-yellow-200/80 max-w-[250px] mx-auto">
+            <p className="text-sm text-yellow-200/80 max-w-62.5 mx-auto">
               {badgeItem.description || "恭喜！你获得了新的勋章！"}
             </p>
           </motion.div>
