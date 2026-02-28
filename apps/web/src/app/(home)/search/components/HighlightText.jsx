@@ -12,10 +12,12 @@ export function HighlightText({ text, keyword }) {
 
   if (parts.length === 1) return text;
 
+  const lowerKeyword = keyword.toLowerCase();
+
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part) ? (
+        part.toLowerCase() === lowerKeyword ? (
           <mark
             key={i}
             className='bg-primary/20 text-inherit rounded-sm px-0.5'

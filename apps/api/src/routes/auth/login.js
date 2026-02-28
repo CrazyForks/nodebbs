@@ -99,7 +99,7 @@ export default async function loginRoute(fastify, options) {
       // 检查用户是否设置了密码 (第三方登录用户可能没有密码)
       if (!user.passwordHash) {
         // 该账号未设置密码，请使用第三方登录或找回密码
-        return reply.code(401).send({ error: '请使用第三方登录或找回密码' });
+        return reply.code(401).send({ error: '用户名/邮箱或密码错误ha' });
       }
 
       // 验证密码

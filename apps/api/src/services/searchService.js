@@ -275,7 +275,8 @@ export async function searchUsers(searchPattern, blockedUserIds, page, limit) {
  * @returns {Promise<Object>} 搜索结果 { items, total, page, limit }
  */
 export async function search({ keyword, type, page = 1, limit = 20, userId = null }) {
-  const searchPattern = `%${keyword}%`;
+  const escaped = keyword.replace(/%/g, '\\%').replace(/_/g, '\\_');
+  const searchPattern = `%${escaped}%`;
   const blockedUserIds = await getBlockedUserIds(userId);
 
   switch (type) {
