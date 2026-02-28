@@ -99,7 +99,7 @@ export default function BadgeCard({
             )}
 
             {/* Top Bar */}
-            <div className="w-full flex justify-between items-start min-h-[24px] mb-3 relative z-10">
+            <div className="w-full flex justify-between items-start min-h-6 mb-3 relative z-10">
               {/* Effect Indicator */}
               {hasEffects ? (
                  <div className="p-1 rounded-full bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20">
@@ -174,7 +174,7 @@ export default function BadgeCard({
         <TooltipContent 
           side="bottom" 
           arrowClassName="fill-background/95 bg-background/95" 
-          className="max-w-[220px] p-4 bg-background/95 backdrop-blur-xl border-border/50 shadow-xl z-50"
+          className="max-w-55 p-4 bg-background/95 backdrop-blur-xl border-border/50 shadow-xl z-50"
         >
            <div className="space-y-3">
              <div className="space-y-2">

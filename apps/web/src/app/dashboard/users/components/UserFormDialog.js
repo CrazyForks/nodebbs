@@ -104,7 +104,7 @@ export function UserFormDialog({
       submitText={isCreate ? '创建用户' : '保存修改'}
       onSubmit={handleSubmit}
       loading={submitting}
-      maxWidth="sm:max-w-[500px]"
+      maxWidth="sm:max-w-125"
     >
       <div className="space-y-4 py-4">
         <div className="space-y-2">

@@ -44,7 +44,7 @@ export function UsernameChangeDialog({
           onOpenChange(false);
           setFormData({ newUsername: '', password: '' });
       }}
-      maxWidth="sm:max-w-[500px]"
+      maxWidth="sm:max-w-125"
     >
         <div className='space-y-4 py-4'>
           <div>

@@ -430,7 +430,7 @@ export default function AdminAdsPage() {
               {
                 key: 'isActive',
                 label: '状态',
-                width: 'w-[80px]',
+                width: 'w-20',
                 render: (isActive, ad) => (
                   <Badge 
                     variant={isActive ? 'default' : 'secondary'}
@@ -447,7 +447,7 @@ export default function AdminAdsPage() {
               {
                 key: 'stats',
                 label: '数据',
-                width: 'w-[140px]',
+                width: 'w-35',
                 render: (_, ad) => (
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -559,7 +559,7 @@ export default function AdminAdsPage() {
               {
                 key: 'isActive',
                 label: '状态',
-                width: 'w-[80px]',
+                width: 'w-20',
                 render: (isActive, slot) => (
                   <Badge 
                     variant={isActive ? 'default' : 'secondary'}

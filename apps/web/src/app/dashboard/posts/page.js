@@ -213,7 +213,7 @@ export default function AdminPostsPage() {
     {
       key: 'likeCount',
       label: '点赞',
-      width: 'w-[80px]',
+      width: 'w-20',
       align: 'center',
       render: (value) => (
         <span className='text-sm text-muted-foreground'>{value}</span>

@@ -130,7 +130,7 @@ export function EmailChangeDialog({
       }}
       title="修改邮箱地址"
       description={getStepDescription()}
-      maxWidth="sm:max-w-[500px]"
+      maxWidth="sm:max-w-125"
       footer={
         <DialogFooter className="shrink-0 p-6 pt-4">
           <Button

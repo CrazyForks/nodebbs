@@ -74,7 +74,7 @@ export function EmojiPicker({ onSelect, className }) {
 
   if (loading) {
     return (
-      <div className={cn("flex flex-col h-80 w-[380px] items-center justify-center", className)}>
+      <div className={cn("flex flex-col h-80 w-95 items-center justify-center", className)}>
         <Smile className="h-8 w-8 text-muted-foreground/50 animate-pulse" />
         <span className="text-sm text-muted-foreground mt-2">加载表情...</span>
       </div>
@@ -83,7 +83,7 @@ export function EmojiPicker({ onSelect, className }) {
 
   if (groups.length === 0) {
     return (
-      <div className={cn("flex flex-col h-80 w-[380px] items-center justify-center", className)}>
+      <div className={cn("flex flex-col h-80 w-95 items-center justify-center", className)}>
         <Smile className="h-8 w-8 text-muted-foreground/30" />
         <span className="text-sm text-muted-foreground mt-2">暂无表情包</span>
       </div>
@@ -91,7 +91,7 @@ export function EmojiPicker({ onSelect, className }) {
   }
 
   return (
-    <div className={cn("flex flex-col h-80 w-[380px] bg-popover rounded-lg overflow-hidden", className)}>
+    <div className={cn("flex flex-col h-80 w-95 bg-popover rounded-lg overflow-hidden", className)}>
       {/* 顶部栏：分组标签 + 搜索入口，搜索时切换为搜索输入框 */}
       <div className="flex items-center border-b bg-muted/20 overflow-hidden">
         {searching ? (

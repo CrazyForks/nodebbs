@@ -244,7 +244,7 @@ export function LedgerCurrencies() {
                 description={editingCurrency ? `编辑 ${editingCurrency.name} (${editingCurrency.code}) 的信息` : '添加新的系统货币类型'}
                 onSubmit={handleSaveCurrency}
                 loading={submitting}
-                maxWidth="sm:max-w-[680px]"
+                maxWidth="sm:max-w-170"
             >
                 <div className="space-y-4 py-4">
                     <div className="grid gap-2">

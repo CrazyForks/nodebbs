@@ -359,7 +359,7 @@ export function RolesTab() {
           {
             key: 'priority',
             label: '优先级',
-            width: 'w-[80px]',
+            width: 'w-20',
             render: (value) => (
               <Badge variant="outline">{value}</Badge>
             ),
@@ -426,7 +426,7 @@ export function RolesTab() {
         submitText={dialogMode === 'create' ? '创建' : '保存'}
         onSubmit={handleSubmitRole}
         loading={submitting}
-        maxWidth="sm:max-w-[500px]"
+        maxWidth="sm:max-w-125"
       >
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">

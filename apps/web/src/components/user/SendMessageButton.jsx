@@ -115,7 +115,7 @@ export default function SendMessageButton({ recipientId, recipientName, recipien
         onSubmit={handleSend}
         loading={sending}
         disabled={sending || !content.trim()}
-        maxWidth="sm:max-w-[500px]"
+        maxWidth="sm:max-w-125"
       >
           <div className='space-y-4 py-4'>
             <div className='space-y-2'>

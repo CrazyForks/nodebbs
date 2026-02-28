@@ -263,7 +263,7 @@ export function PermissionsTab() {
           {
             key: 'isSystem',
             label: '类型',
-            width: 'w-[80px]',
+            width: 'w-20',
             render: (value) => (
               value ? (
                 <Badge variant="secondary" className="text-xs">系统</Badge>
@@ -321,7 +321,7 @@ export function PermissionsTab() {
         submitText={dialogMode === 'create' ? '创建' : '保存'}
         onSubmit={handleSubmit}
         loading={submitting}
-        maxWidth="sm:max-w-[500px]"
+        maxWidth="sm:max-w-125"
       >
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">

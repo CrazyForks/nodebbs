@@ -115,7 +115,7 @@ export function PurchaseDialog({ open, item, accounts = [], onConfirm, onCancel,
     <FormDialog
       open={open}
       onOpenChange={onCancel}
-      maxWidth="sm:max-w-[440px]"
+      maxWidth="sm:max-w-110"
       title={mode === 'gift' ? '赠送商品' : '购买商品'}
       description={item.name}
       footer={

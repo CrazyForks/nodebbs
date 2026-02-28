@@ -122,7 +122,7 @@ export function CreatedTopics() {
         <div className='flex items-center gap-2'>
           <span className='text-sm text-muted-foreground'>排序:</span>
           <Select value={sortBy} onValueChange={handleSortChange}>
-            <SelectTrigger className='w-[140px]'>
+            <SelectTrigger className='w-35'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

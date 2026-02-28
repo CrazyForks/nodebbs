@@ -75,7 +75,7 @@ export default function ReportDialog({
       loading={submitting}
       submitClassName="bg-orange-500 hover:bg-orange-600"
       disabled={submitting || reason.trim().length < 10}
-      maxWidth="sm:max-w-[500px]"
+      maxWidth="sm:max-w-125"
     >
         <div className='space-y-4 py-4'>
           <div className='space-y-2'>

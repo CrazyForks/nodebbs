@@ -123,7 +123,7 @@ export default function FilesManagement() {
     {
       key: 'preview',
       label: '预览',
-      width: 'w-[80px]',
+      width: 'w-20',
       render: (_, file) => {
         const isImage = file.mimetype?.startsWith('image/');
         if (isImage) {

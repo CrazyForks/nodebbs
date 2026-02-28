@@ -182,7 +182,7 @@ export default function ReportsManagement() {
     {
       key: 'id',
       label: 'ID',
-      width: 'w-[80px]',
+      width: 'w-20',
       render: (value) => <span className='font-mono text-xs'>#{value}</span>,
     },
     {
@@ -388,7 +388,7 @@ export default function ReportsManagement() {
           onSubmit={handleResolve}
           loading={resolving}
           submitClassName={resolveAction === 'resolve' ? 'bg-green-600 hover:bg-green-700' : ''}
-          maxWidth='sm:max-w-[500px]'
+          maxWidth='sm:max-w-125'
       >
           <div className='space-y-4 py-4'>
             <div className='space-y-2'>
