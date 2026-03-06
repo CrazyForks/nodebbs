@@ -33,7 +33,6 @@ export default function TagsManagement() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    color: '#3B82F6',
   });
 
   useEffect(() => {
@@ -147,7 +146,6 @@ export default function TagsManagement() {
       name: tag.name,
       slug: tag.slug,
       description: tag.description || '',
-      color: tag.color || '#3B82F6',
     });
     setIsEdit(true);
     setShowDialog(true);
@@ -159,7 +157,6 @@ export default function TagsManagement() {
     setFormData({
       name: '',
       description: '',
-      color: '#3B82F6',
     });
     setSelectedTag(null);
   };
@@ -300,26 +297,7 @@ export default function TagsManagement() {
                 rows={3}
               />
             </div>
-            <div className='space-y-2'>
-              <Label htmlFor="color">颜色</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="color"
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-20 h-10"
-                />
-                <Badge
-                  style={{
-                    backgroundColor: formData.color,
-                    color: '#fff',
-                  }}
-                >
-                  预览
-                </Badge>
-              </div>
-            </div>
+
           </div>
       </FormDialog>
 

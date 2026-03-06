@@ -224,7 +224,6 @@ export const tags = pgTable(
     name: varchar('name', { length: 50 }).notNull().unique(),
     slug: varchar('slug', { length: 50 }).notNull().unique(),
     description: text('description'),
-    color: varchar('color', { length: 7 }).default('#000000'),
     topicCount: integer('topic_count').notNull().default(0),
   },
   (table) => [

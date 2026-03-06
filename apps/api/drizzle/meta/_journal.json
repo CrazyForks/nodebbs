@@ -29,6 +29,13 @@
       "when": 1740182400000,
       "tag": "0005_remove_is_default",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772803901301,
+      "tag": "0004_violet_sabra",
+      "breakpoints": true
     }
   ]
 }
