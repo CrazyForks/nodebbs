@@ -211,6 +211,7 @@ export function useReplyItem({
             topicId: topicId,
             replyToPostId: replyToPostId,
             replyToPost: {
+              id: localReply.id,
               postNumber: localReply.postNumber,
               userName: localReply.userName,
               userUsername: localReply.userUsername,
