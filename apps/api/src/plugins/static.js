@@ -22,7 +22,7 @@ const ipxHandler = createIPXNodeServer(ipx);
  * 支持图片处理和静态资源服务
  */
 async function staticPlugin(fastify, options) {
-  const types = ['avatars', 'topics', 'badges', 'items', 'frames', 'emojis'].join('|');
+  const types = ['assets', 'avatars', 'topics', 'badges', 'items', 'frames', 'emojis'].join('|');
   // 为每种上传类型注册 IPX 图片处理路由
   fastify.get(
     `/uploads/:modifiers/:type(${types})/*`,
