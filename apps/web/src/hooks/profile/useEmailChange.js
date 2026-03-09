@@ -38,16 +38,17 @@ export function useEmailChange() {
 
   // ===== 重置表单 =====
   const resetForm = useCallback(() => {
+    const skipOldEmail = user?.isEmailVerified === false;
     setFormData({
       oldEmailCode: '',
       newEmail: '',
       newEmailCode: '',
       password: '',
-      oldEmailCodeSent: false,
+      oldEmailCodeSent: skipOldEmail,
       newEmailCodeSent: false,
     });
-    setStep(1);
-  }, []);
+    setStep(skipOldEmail ? 2 : 1);
+  }, [user?.isEmailVerified]);
 
   // ===== 打开对话框 =====
   const openDialog = useCallback(() => {
@@ -108,7 +109,7 @@ export function useEmailChange() {
 
   // ===== 提交邮箱修改 =====
   const handleSubmit = useCallback(async () => {
-    if (!formData.oldEmailCode.trim()) {
+    if (user?.isEmailVerified !== false && !formData.oldEmailCode.trim()) {
       toast.error('请输入旧邮箱验证码');
       return;
     }
@@ -147,7 +148,7 @@ export function useEmailChange() {
     } finally {
       setLoading(false);
     }
-  }, [formData, settings, closeDialog, refreshUser]);
+  }, [formData, settings, closeDialog, refreshUser, user?.isEmailVerified]);
 
   return {
     // ===== 用户和设置 =====

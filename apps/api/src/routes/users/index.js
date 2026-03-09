@@ -964,17 +964,19 @@ export default async function userRoutes(fastify, options) {
     }
 
     try {
-      // 步骤 1：验证旧邮箱验证码
-      const oldEmailResult = await verifyCode(
-        user.email,
-        oldEmailCode,
-        VerificationCodeType.EMAIL_CHANGE_OLD
-      );
+      // 步骤 1：如果原邮箱已验证，则必须验证旧邮箱验证码
+      if (user.isEmailVerified) {
+        const oldEmailResult = await verifyCode(
+          user.email,
+          oldEmailCode,
+          VerificationCodeType.EMAIL_CHANGE_OLD
+        );
 
-      if (!oldEmailResult.valid) {
-        return reply.code(400).send({
-          error: oldEmailResult.error || '旧邮箱验证码错误或已过期'
-        });
+        if (!oldEmailResult.valid) {
+          return reply.code(400).send({
+            error: oldEmailResult.error || '旧邮箱验证码错误或已过期'
+          });
+        }
       }
 
       // 步骤 2：验证邮箱格式
@@ -1012,10 +1014,12 @@ export default async function userRoutes(fastify, options) {
       }).where(eq(users.id, userId));
 
       // 删除已使用的验证码
-      await deleteVerificationCode(
-        user.email,
-        VerificationCodeType.EMAIL_CHANGE_OLD
-      );
+      if (user.isEmailVerified) {
+        await deleteVerificationCode(
+          user.email,
+          VerificationCodeType.EMAIL_CHANGE_OLD
+        );
+      }
       await deleteVerificationCode(
         newEmailLower,
         VerificationCodeType.EMAIL_CHANGE_NEW

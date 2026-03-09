@@ -136,7 +136,7 @@ export function EmailChangeDialog({
           <Button
             variant='outline'
             onClick={() => {
-              if (emailStep === 1) {
+              if (emailStep === 1 || (emailStep === 2 && user?.isEmailVerified === false)) {
                 handleClose();
               } else if (emailStep === 2 && emailData.newEmailCodeSent) {
                 onEmailDataChange({
@@ -150,7 +150,7 @@ export function EmailChangeDialog({
             }}
             disabled={loading}
           >
-            {emailStep === 1 ? '取消' : '上一步'}
+            {(emailStep === 1 || (emailStep === 2 && user?.isEmailVerified === false)) ? '取消' : '上一步'}
           </Button>
           <Button
             onClick={handleNextStep}
@@ -171,7 +171,7 @@ export function EmailChangeDialog({
         <div className='space-y-4 py-4'>
           {/* 步骤指示器 */}
           <div className='flex items-center justify-center space-x-2 pb-2'>
-            {[1, 2, 3].map((step) => (
+            {(user?.isEmailVerified === false ? [2, 3] : [1, 2, 3]).map((step, index, arr) => (
               <div key={step} className='flex items-center'>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -182,9 +182,9 @@ export function EmailChangeDialog({
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
-                  {emailStep > step ? <CheckCircle2 className='h-4 w-4' /> : step}
+                  {emailStep > step ? <CheckCircle2 className='h-4 w-4' /> : index + 1}
                 </div>
-                {step < 3 && (
+                {index < arr.length - 1 && (
                   <div
                     className={`w-12 h-0.5 ${
                       emailStep > step ? 'bg-green-500' : 'bg-muted'
