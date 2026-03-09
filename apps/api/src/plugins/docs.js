@@ -50,6 +50,9 @@ async function docsPlugin(fastify, opts) {
         { name: 'roles', description: 'RBAC 角色权限管理' },
         { name: 'message-providers', description: '消息服务提供商（邮件、短信）' },
         { name: 'upload', description: '文件上传' },
+        { name: 'storage-providers', description: '存储服务商管理' },
+        { name: 'files', description: '文件管理' },
+        { name: 'emojis', description: '表情包管理' },
       ],
       components: {
         securitySchemes: {
@@ -74,28 +77,48 @@ async function docsPlugin(fastify, opts) {
           // 分页元数据
           PaginationMeta: {
             type: 'object',
+            description:
+              '分页元数据。支持两种模式：\n' +
+              '1. Page 模式（传统偏移分页）：返回 page + total，适用于需要页码跳转的场景\n' +
+              '2. Cursor 模式（游标分页）：返回 nextCursor，适用于无限滚动的信息流场景',
             properties: {
-              page: { type: 'number', description: '当前页码', minimum: 1 },
+              page: { type: 'number', description: '当前页码（Page 模式下有效）', minimum: 1 },
               limit: {
                 type: 'number',
                 description: '每页条数',
                 minimum: 1,
                 maximum: 100,
               },
-              total: { type: 'number', description: '总记录数', minimum: 0 },
+              total: { type: 'number', description: '总记录数（Page 模式下返回，Cursor 模式下为 0）', minimum: 0 },
+              nextCursor: {
+                type: 'string',
+                nullable: true,
+                description:
+                  '下一页游标（Cursor 模式下返回）。将此值作为下次请求的 cursor 参数即可获取下一页；为空表示已到末页',
+              },
             },
-            required: ['page', 'limit', 'total'],
+            required: ['page', 'limit'],
           },
           // 分页响应（泛型模板）
           PaginatedResponse: {
             type: 'object',
+            description:
+              '统一分页响应格式，兼容 Page 模式和 Cursor 模式。\n' +
+              '- Page 模式：请求参数 ?page=2&limit=20，响应包含 total\n' +
+              '- Cursor 模式：请求参数 ?cursor=xxx&limit=20，响应包含 nextCursor',
             properties: {
               items: { type: 'array', description: '数据列表' },
               page: { type: 'number', description: '当前页码' },
               limit: { type: 'number', description: '每页条数' },
-              total: { type: 'number', description: '总记录数' },
+              total: { type: 'number', description: '总记录数（Cursor 模式下为 0）' },
+              nextCursor: {
+                type: 'string',
+                nullable: true,
+                description:
+                  '下一页游标（仅 Cursor 模式返回）。将此值传入下次请求的 cursor 参数即可翻页',
+              },
             },
-            required: ['items', 'page', 'limit', 'total'],
+            required: ['items', 'page', 'limit'],
           },
 
           // ============ 用户相关 ============
@@ -1261,6 +1284,214 @@ async function docsPlugin(fastify, opts) {
               },
             },
           },
+
+          // ============ 存储服务商相关 ============
+          // 存储服务商配置
+          StorageProvider: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: '服务商ID' },
+              slug: { type: 'string', description: '服务商标识' },
+              type: { type: 'string', description: '服务商类型' },
+              isEnabled: { type: 'boolean', description: '是否启用' },
+              config: {
+                type: 'object',
+                nullable: true,
+                description: '服务商配置（如 accessKey、bucket 等）',
+              },
+              displayName: {
+                type: 'string',
+                nullable: true,
+                description: '显示名称',
+              },
+              displayOrder: { type: 'number', description: '排序权重' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '创建时间',
+              },
+              updatedAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '更新时间',
+              },
+            },
+          },
+          // 创建存储服务商
+          StorageProviderCreate: {
+            type: 'object',
+            required: ['slug', 'type', 'displayName'],
+            properties: {
+              slug: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 50,
+                description: '服务商标识',
+              },
+              type: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 20,
+                description: '服务商类型',
+              },
+              displayName: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 100,
+                description: '显示名称',
+              },
+              config: {
+                type: 'object',
+                description: '服务商配置',
+              },
+            },
+          },
+          // 更新存储服务商
+          StorageProviderUpdate: {
+            type: 'object',
+            properties: {
+              isEnabled: { type: 'boolean', description: '是否启用' },
+              config: { type: 'object', description: '服务商配置' },
+              displayName: { type: 'string', description: '显示名称' },
+              displayOrder: { type: 'number', description: '排序权重' },
+            },
+          },
+
+          // ============ 文件管理相关 ============
+          // 文件信息
+          FileItem: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer', description: '文件ID' },
+              url: { type: 'string', description: '文件访问地址' },
+              filename: { type: 'string', description: '存储文件名' },
+              originalName: {
+                type: 'string',
+                nullable: true,
+                description: '原始文件名',
+              },
+              category: { type: 'string', description: '文件分类' },
+              mimetype: { type: 'string', description: 'MIME 类型' },
+              size: { type: 'integer', description: '文件大小（字节）' },
+              width: {
+                type: 'integer',
+                nullable: true,
+                description: '图片宽度（仅图片）',
+              },
+              height: {
+                type: 'integer',
+                nullable: true,
+                description: '图片高度（仅图片）',
+              },
+              provider: {
+                type: 'string',
+                nullable: true,
+                description: '存储服务商标识',
+              },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                description: '上传时间',
+              },
+              user: {
+                type: 'object',
+                description: '上传者信息',
+                properties: {
+                  id: { type: 'integer', description: '用户ID' },
+                  username: { type: 'string', description: '用户名' },
+                  avatar: {
+                    type: 'string',
+                    nullable: true,
+                    description: '头像URL',
+                  },
+                },
+              },
+            },
+          },
+
+          // ============ 表情包相关 ============
+          // 表情包分组
+          EmojiGroup: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer', description: '分组ID' },
+              name: { type: 'string', description: '分组名称' },
+              slug: { type: 'string', description: '分组标识' },
+              order: { type: 'integer', description: '排序权重' },
+              isActive: { type: 'boolean', description: '是否启用' },
+              size: {
+                type: 'integer',
+                nullable: true,
+                description: '表情尺寸（像素）',
+              },
+              emojis: {
+                type: 'array',
+                description: '分组下的表情列表',
+                items: { $ref: '#/components/schemas/EmojiItem' },
+              },
+            },
+          },
+          // 创建表情包分组
+          EmojiGroupCreate: {
+            type: 'object',
+            required: ['name', 'slug'],
+            properties: {
+              name: { type: 'string', maxLength: 50, description: '分组名称' },
+              slug: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 10,
+                description: '分组标识',
+              },
+              order: { type: 'integer', description: '排序权重' },
+              isActive: { type: 'boolean', description: '是否启用' },
+              size: {
+                type: 'integer',
+                nullable: true,
+                description: '表情尺寸',
+              },
+            },
+          },
+          // 单个表情
+          EmojiItem: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer', description: '表情ID' },
+              code: { type: 'string', description: '表情代码' },
+              url: { type: 'string', description: '表情图片地址' },
+              order: { type: 'integer', description: '排序权重' },
+              groupId: { type: 'integer', description: '所属分组ID' },
+            },
+          },
+          // 创建表情
+          EmojiCreate: {
+            type: 'object',
+            required: ['groupId', 'code', 'url'],
+            properties: {
+              groupId: { type: 'integer', description: '所属分组ID' },
+              code: { type: 'string', description: '表情代码' },
+              url: { type: 'string', description: '表情图片地址' },
+            },
+          },
+          // 批量排序
+          EmojiBatchReorder: {
+            type: 'object',
+            required: ['items'],
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['id', 'order'],
+                  properties: {
+                    id: { type: 'integer', description: '表情/分组ID' },
+                    groupId: { type: 'integer', description: '目标分组ID（表情排序时需要）' },
+                    order: { type: 'integer', description: '排序权重' },
+                  },
+                },
+              },
+            },
+          },
         },
         responses: {
           // 400 错误响应
@@ -1373,6 +1604,20 @@ async function docsPlugin(fastify, opts) {
               minimum: 1,
               maximum: 100,
               default: 20,
+            },
+          },
+          // 分页参数 - 游标（用于游标分页模式）
+          CursorParam: {
+            name: 'cursor',
+            in: 'query',
+            description:
+              '游标分页参数。传入上一次响应中的 nextCursor 值即可获取下一页。' +
+              '首次请求不传或传任意值均视为从头开始。' +
+              '仅在接口支持游标分页且排序方式兼容时生效（如 latest/newest），' +
+              '计算型排序（如 popular/trending）会自动降级为 Page 模式。',
+            required: false,
+            schema: {
+              type: 'string',
             },
           },
           // 搜索参数
