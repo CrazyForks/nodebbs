@@ -79,6 +79,9 @@ export function ContentImage({ src, alt, ...props }) {
       ref={spanRef}
       className={`inline-block relative ${isZoomable ? 'cursor-zoom-in group/image' : ''} not-prose`}
       onClick={isZoomable ? handleImageClick : undefined}
+      style={{
+        maxWidth: `min(100%, ${MIN_ZOOM_SIZE}px)`,
+      }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -90,7 +93,6 @@ export function ContentImage({ src, alt, ...props }) {
         onError={handleImageError}
         className="max-w-full h-auto rounded"
         style={{
-          maxWidth: `min(100%, ${MIN_ZOOM_SIZE}px)`,
           maxHeight: `${MIN_ZOOM_SIZE}px`,
         }}
         {...props}
