@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
-import { cn, getImageUrl } from '@/lib/utils';
+import { cn, getImageUrl, generateAvatarColor } from '@/lib/utils';
 
 // 预定义动画类名映射
 const ANIMATION_CLASSES = {
@@ -132,20 +132,27 @@ export default function UserAvatar({
   const altText = name || '用户头像';
 
   // 抽取的头像渲染函数，消除重复代码
-  const renderAvatar = (avatarClassName = '') => (
-    <Avatar className={cn('w-full h-full', avatarClassName)}>
-      {avatarUrl && (
-        <AvatarImage
-          src={avatarUrl}
-          alt={altText}
-          className="object-cover"
-        />
-      )}
-      <AvatarFallback className="bg-muted text-muted-foreground">
-        {fallbackContent}
-      </AvatarFallback>
-    </Avatar>
-  );
+  const renderAvatar = (avatarClassName = '') => {
+    const bgColor = !avatarUrl ? generateAvatarColor(name) : null;
+    
+    return (
+      <Avatar className={cn('w-full h-full', avatarClassName)}>
+        {avatarUrl && (
+          <AvatarImage
+            src={avatarUrl}
+            alt={altText}
+            className="object-cover"
+          />
+        )}
+        <AvatarFallback 
+          className={bgColor ? "text-white" : "bg-muted text-muted-foreground"}
+          style={bgColor ? { background: bgColor } : undefined}
+        >
+          {fallbackContent}
+        </AvatarFallback>
+      </Avatar>
+    );
+  };
 
   // 图片头像框
   if (isImageFrame) {
