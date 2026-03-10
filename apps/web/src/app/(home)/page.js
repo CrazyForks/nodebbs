@@ -27,14 +27,12 @@ const PAGE_OPTS = {
 export async function generateMetadata({ searchParams }) {
   const resolvedParams = await searchParams;
   const sort = resolvedParams.sort || 'latest';
-  const { description, title } = PAGE_OPTS[sort] || PAGE_OPTS.latest;
+  const { title } = PAGE_OPTS[sort] || PAGE_OPTS.latest;
 
   return {
     // title,
-    description,
     openGraph: {
       title,
-      description,
       type: 'website',
     },
   };
