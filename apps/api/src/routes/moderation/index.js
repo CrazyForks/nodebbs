@@ -907,7 +907,14 @@ export default async function moderationRoutes(fastify, options) {
 
       // 触发话题创建事件（幂等性由 rewards listener 的 referenceId 去重保障）
       if (fastify.eventBus) {
-        fastify.eventBus.emit(EVENTS.TOPIC_CREATED, updated);
+        fastify.eventBus.emit(EVENTS.TOPIC_CREATED, {
+          id: updated.id,
+          userId: updated.userId,
+          title: updated.title,
+          slug: updated.slug,
+          categoryId: updated.categoryId,
+          createdAt: updated.createdAt,
+        });
       }
 
       return { message: '话题已批准（包含话题内容）', topic: updated };
@@ -940,7 +947,14 @@ export default async function moderationRoutes(fastify, options) {
 
       // 触发回复创建事件（幂等性由 rewards listener 的 referenceId 去重保障）
       if (fastify.eventBus) {
-        fastify.eventBus.emit(EVENTS.POST_CREATED, updated);
+        fastify.eventBus.emit(EVENTS.POST_CREATED, {
+          id: updated.id,
+          userId: updated.userId,
+          topicId: updated.topicId,
+          postNumber: updated.postNumber,
+          replyToPostId: updated.replyToPostId || null,
+          createdAt: updated.createdAt,
+        });
       }
 
       return { message: '回复已批准', post: updated };

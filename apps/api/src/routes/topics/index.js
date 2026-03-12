@@ -874,7 +874,14 @@ export default async function topicRoutes(fastify, options) {
 
       // 积分奖励：发布话题后发放积分（仅当不需要审核或已批准时）
       if (approvalStatus === 'approved' && fastify.eventBus) {
-        fastify.eventBus.emit(EVENTS.TOPIC_CREATED, newTopic);
+        fastify.eventBus.emit(EVENTS.TOPIC_CREATED, {
+          id: newTopic.id,
+          userId: newTopic.userId,
+          title: newTopic.title,
+          slug: newTopic.slug,
+          categoryId: newTopic.categoryId,
+          createdAt: newTopic.createdAt,
+        });
       }
 
       const message = contentModerationEnabled

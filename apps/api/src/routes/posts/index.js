@@ -913,7 +913,14 @@ export default async function postRoutes(fastify, options) {
 
     // 积分奖励：发布回复后发放积分（仅当不需要审核或已批准时，且不是话题的第一个帖子）
     if (approvalStatus === 'approved' && postNumber > 1 && fastify.eventBus) {
-      fastify.eventBus.emit(EVENTS.POST_CREATED, newPost);
+      fastify.eventBus.emit(EVENTS.POST_CREATED, {
+        id: newPost.id,
+        userId: newPost.userId,
+        topicId: newPost.topicId,
+        postNumber: newPost.postNumber,
+        replyToPostId: newPost.replyToPostId || null,
+        createdAt: newPost.createdAt,
+      });
     }
 
     const message = contentModerationEnabled
