@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,8 @@ export default function AdminTopicsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   const limit = 20;
 
@@ -46,14 +48,15 @@ export default function AdminTopicsPage() {
     }
   }, [debouncedSearch]);
 
+  // 筛选条件变化时清空选择
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [debouncedSearch, statusFilter]);
+
   // 数据请求 - page 和 statusFilter 立即响应，debouncedSearch 变化也会触发（因为已经在 fetchTopics 中使用了，但这里需要确保重新获取）
   // 注意：当 debouncedSearch 变化导致的 setPage(1) 会触发这里的 useEffect (如果 page 改变了)。
   // 如果 page 本来就是 1，setPage(1) 不会触发重渲染，所以我们需要将 debouncedSearch 加入依赖。
-  useEffect(() => {
-    fetchTopics();
-  }, [page, statusFilter, debouncedSearch]);
-
-  const fetchTopics = async () => {
+  const fetchTopics = useCallback(async () => {
     setLoading(true);
     try {
       const params = {
@@ -90,7 +93,11 @@ export default function AdminTopicsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, debouncedSearch]);
+
+  useEffect(() => {
+    fetchTopics();
+  }, [fetchTopics]);
 
   const handleTogglePin = async (topicId, isPinned) => {
     try {
@@ -181,6 +188,29 @@ export default function AdminTopicsPage() {
     } catch (err) {
       console.error('删除失败:', err);
       toast.error(err.message || '删除失败');
+    }
+  };
+
+  const handleBatchDelete = async (ids, e) => {
+    const count = ids.size;
+    const confirmed = await confirm(e, {
+      title: `确认批量删除 ${count} 个话题？`,
+      description: '删除后话题将不再显示，但数据仍保留在数据库中。',
+      confirmText: '确认删除',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    try {
+      const result = await topicApi.batchDelete([...ids]);
+      toast.success(`已删除 ${result.count} 个话题`);
+      setSelectedIds(new Set());
+      fetchTopics();
+    } catch (err) {
+      toast.error(err.message || '批量删除失败');
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -384,6 +414,19 @@ export default function AdminTopicsPage() {
           onPageChange: setPage,
         }}
         emptyMessage='暂无话题'
+        selection={hasPermission('dashboard.topics') ? {
+          selectedIds,
+          onSelectionChange: setSelectedIds,
+        } : undefined}
+        batchActions={[
+          {
+            label: '批量删除',
+            icon: Trash2,
+            variant: 'destructive',
+            onClick: handleBatchDelete,
+            loading: batchDeleting,
+          },
+        ]}
       />
 
       {/* 删除确认对话框 */}

@@ -1148,6 +1148,99 @@ export default async function topicRoutes(fastify, options) {
     }
   );
 
+  // 批量删除话题
+  fastify.post(
+    '/batch-delete',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['topics'],
+        description: '批量删除话题（需要 dashboard.topics 权限）',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['ids'],
+          properties: {
+            ids: {
+              type: 'array',
+              items: { type: 'number' },
+              minItems: 1,
+              maxItems: 100,
+            },
+            permanent: { type: 'boolean', default: false },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { ids, permanent = false } = request.body;
+
+      // 批量操作需要 dashboard.topics 权限
+      const { conditions } = await fastify.permission.check(request, 'dashboard.topics');
+
+      // 彻底删除需要 allowPermanent 条件
+      if (permanent && !conditions?.allowPermanent) {
+        return reply.code(403).send({ error: '没有彻底删除的权限' });
+      }
+
+      // 查询所有待删除的话题
+      const topicList = await db
+        .select({ id: topics.id })
+        .from(topics)
+        .where(inArray(topics.id, ids));
+
+      const existingIds = topicList.map((t) => t.id);
+
+      if (existingIds.length === 0) {
+        return reply.code(404).send({ error: '未找到任何话题' });
+      }
+
+      if (permanent) {
+        // 彻底删除（事务保护）
+        await db.transaction(async (tx) => {
+          // 1. 获取并减少标签计数
+          const relatedTags = await tx
+            .select({ tagId: topicTags.tagId })
+            .from(topicTags)
+            .where(inArray(topicTags.topicId, existingIds));
+
+          if (relatedTags.length > 0) {
+            const tagCountMap = {};
+            for (const t of relatedTags) {
+              tagCountMap[t.tagId] = (tagCountMap[t.tagId] || 0) + 1;
+            }
+            for (const [tagId, tagCount] of Object.entries(tagCountMap)) {
+              await tx
+                .update(tags)
+                .set({ topicCount: sql`${tags.topicCount} - ${tagCount}` })
+                .where(eq(tags.id, Number(tagId)));
+            }
+          }
+
+          // 2. 删除相关数据
+          await tx.delete(topicTags).where(inArray(topicTags.topicId, existingIds));
+          await tx.delete(bookmarks).where(inArray(bookmarks.topicId, existingIds));
+          await tx.delete(subscriptions).where(inArray(subscriptions.topicId, existingIds));
+          await tx.delete(posts).where(inArray(posts.topicId, existingIds));
+
+          // 3. 删除话题
+          await tx.delete(topics).where(inArray(topics.id, existingIds));
+        });
+      } else {
+        // 逻辑删除
+        await db
+          .update(topics)
+          .set({ isDeleted: true })
+          .where(inArray(topics.id, existingIds));
+      }
+
+      return {
+        message: permanent ? '话题已批量彻底删除' : '话题已批量删除',
+        count: existingIds.length,
+      };
+    }
+  );
+
   // 删除话题
   fastify.delete(
     '/:id',

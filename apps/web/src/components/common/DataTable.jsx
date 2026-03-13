@@ -17,10 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Inbox, Loader2 } from 'lucide-react';
+import { Search, Inbox, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Pager } from './Pagination';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 
 // 自定义 Table 包装器，移除默认的滚动容器以支持 sticky 列
 function TableWrapper({ className, children, ...props }) {
@@ -49,6 +51,8 @@ function TableWrapper({ className, children, ...props }) {
  * @param {Array} props.filters - 多个过滤配置 [{ value, onChange, options, label?, width? }]
  * @param {string} props.emptyMessage - 空数据提示
  * @param {Function} props.onRowClick - 行点击事件
+ * @param {Object} props.selection - 选择配置 { selectedIds: Set, onSelectionChange: (Set) => void, rowIdKey?: string }
+ * @param {Array} props.batchActions - 批量操作 [{ label, icon, variant, onClick, disabled?, hidden?, loading? }]
  */
 export function DataTable({
   columns = [],
@@ -60,12 +64,98 @@ export function DataTable({
   filters,
   emptyMessage = '暂无数据',
   onRowClick,
+  selection,
+  batchActions = [],
 }) {
   // 向后兼容：如果传入 filter 但没有 filters，将其转换为 filters 数组
   const filterList = filters || (filter ? [filter] : []);
   const totalPages = pagination
     ? Math.ceil(pagination.total / pagination.limit)
     : 0;
+
+  // === 多选相关派生状态 ===
+  const selectionEnabled = !!selection;
+  const rowIdKey = selection?.rowIdKey || 'id';
+  const selectedIds = selection?.selectedIds || new Set();
+  const onSelectionChange = selection?.onSelectionChange;
+
+  const currentPageIds = selectionEnabled
+    ? data.map((row) => row[rowIdKey])
+    : [];
+  const allOnPageSelected =
+    currentPageIds.length > 0 &&
+    currentPageIds.every((id) => selectedIds.has(id));
+  const someOnPageSelected =
+    !allOnPageSelected && currentPageIds.some((id) => selectedIds.has(id));
+
+  const visibleBatchActions = batchActions.filter((action) => !action.hidden);
+
+  // === 选择处理函数 ===
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+    if (allOnPageSelected) {
+      const next = new Set(selectedIds);
+      currentPageIds.forEach((id) => next.delete(id));
+      onSelectionChange(next);
+    } else {
+      const next = new Set(selectedIds);
+      currentPageIds.forEach((id) => next.add(id));
+      onSelectionChange(next);
+    }
+  };
+
+  const handleSelectRow = (rowId) => {
+    if (!onSelectionChange) return;
+    const next = new Set(selectedIds);
+    if (next.has(rowId)) {
+      next.delete(rowId);
+    } else {
+      next.add(rowId);
+    }
+    onSelectionChange(next);
+  };
+
+  const handleDeselectAll = () => {
+    if (!onSelectionChange) return;
+    onSelectionChange(new Set());
+  };
+
+  // === 自动插入 Checkbox 列 ===
+  const checkboxColumn = {
+    key: '__selection',
+    width: 'w-[40px]',
+    sticky: 'left',
+    label: (
+      <Checkbox
+        checked={
+          allOnPageSelected
+            ? true
+            : someOnPageSelected
+              ? 'indeterminate'
+              : false
+        }
+        onCheckedChange={handleSelectAll}
+        disabled={loading || data.length === 0}
+        aria-label="全选"
+      />
+    ),
+    render: (_, row) => {
+      const rowId = row[rowIdKey];
+      return (
+        <Checkbox
+          checked={selectedIds.has(rowId)}
+          onCheckedChange={() => handleSelectRow(rowId)}
+          onClick={(e) => e.stopPropagation()}
+          disabled={loading}
+          aria-label={`选择行 ${rowId}`}
+        />
+      );
+    },
+  };
+
+  const effectiveColumns = selectionEnabled
+    ? [checkboxColumn, ...columns]
+    : columns;
 
   // 获取列的样式（包括固定定位）
   const getColumnStyle = (column) => {
@@ -82,7 +172,12 @@ export function DataTable({
       }
 
       if (column.sticky === 'left') {
-        style.left = '0';
+        // checkbox 列存在时，其他 sticky left 列偏移 40px
+        if (selectionEnabled && column.key !== '__selection') {
+          style.left = '40px';
+        } else {
+          style.left = '0';
+        }
         style.zIndex = 20;
       } else if (column.sticky === 'right') {
         style.right = '0';
@@ -99,15 +194,15 @@ export function DataTable({
 
     if (column.sticky) {
       classes.push('sticky');
-      
+
       // 背景色 - 使用 backdrop-blur 实现毛玻璃效果，但为了 sticky 需要有背景色
       if (isHeader) {
         classes.push('bg-muted/90 backdrop-blur-sm supports-[backdrop-filter]:bg-muted/60');
       } else {
-        classes.push('bg-card/90 backdrop-blur-sm supports-[backdrop-filter]:bg-card/60 group-hover:bg-accent/90 transition-colors');
+        classes.push('bg-card/90 backdrop-blur-sm supports-[backdrop-filter]:bg-card/60 group-hover:bg-accent/90 group-data-[state=selected]:bg-primary/5 transition-colors');
       }
 
-      // 边框 - 移除阴影
+      // 边框
       if (column.sticky === 'left') {
         classes.push('border-r border-border/50');
       } else if (column.sticky === 'right') {
@@ -162,7 +257,55 @@ export function DataTable({
 
       {/* 表格容器 */}
       <div className='relative bg-card/40 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden transition-all hover:border-border/80'>
-        
+
+        {/* 批量操作栏 - 内嵌在表格容器顶部，使用 grid-rows 实现平滑展开/收起 */}
+        {selectionEnabled && visibleBatchActions.length > 0 && (
+          <div className={cn(
+            "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+            selectedIds.size > 0
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0"
+          )}>
+            <div className="overflow-hidden">
+              <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-primary/5 border-b border-primary/20">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-foreground">
+                    已选择 <span className="text-primary font-semibold">{selectedIds.size}</span> 项
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeselectAll}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    取消全选
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  {visibleBatchActions.map((action, index) => (
+                    <Button
+                      key={index}
+                      variant={action.variant || 'outline'}
+                      size="sm"
+                      onClick={(e) => action.onClick(selectedIds, e)}
+                      disabled={action.disabled || action.loading}
+                      className="h-7 text-xs"
+                    >
+                      {action.loading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : action.icon ? (
+                        <action.icon className="h-3.5 w-3.5" />
+                      ) : null}
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading Overlay - 仅在非初始加载（已有数据）时显示 */}
         {loading && data.length > 0 && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px] transition-all duration-300">
@@ -176,7 +319,7 @@ export function DataTable({
         <TableWrapper>
           <TableHeader className="bg-muted/30">
             <TableRow className="hover:bg-transparent border-b border-border/50">
-              {columns.map((column) => (
+              {effectiveColumns.map((column) => (
                 <TableHead
                   key={column.key}
                   className={cn(
@@ -195,13 +338,17 @@ export function DataTable({
               // Skeleton Loading State - 仅在初始加载（无数据）时显示
               Array.from({ length: Math.max(pagination?.limit || 5, 5) }).map((_, rowIndex) => (
                 <TableRow key={`skeleton-${rowIndex}`} className="border-b border-border/40 hover:bg-transparent">
-                  {columns.map((column, colIndex) => (
+                  {effectiveColumns.map((column, colIndex) => (
                     <TableCell
                       key={`skeleton-cell-${colIndex}`}
                       className={cn(getColumnClassName(column, false))}
                       style={getColumnStyle(column)}
                     >
-                      <Skeleton className="h-5 w-full bg-primary/5 rounded opacity-70" />
+                      {column.key === '__selection' ? (
+                        <Skeleton className="h-4 w-4 bg-primary/5 rounded" />
+                      ) : (
+                        <Skeleton className="h-5 w-full bg-primary/5 rounded opacity-70" />
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -209,7 +356,7 @@ export function DataTable({
             ) : data.length === 0 ? (
               // Empty State
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-64 text-center">
+                <TableCell colSpan={effectiveColumns.length} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center gap-3 py-8 text-muted-foreground/60">
                     <div className="p-4 rounded-full bg-muted/30 mb-2">
                       <Inbox className="h-8 w-8 text-muted-foreground/50" />
@@ -228,14 +375,16 @@ export function DataTable({
               data.map((row, rowIndex) => (
                 <TableRow
                   key={row.id || rowIndex}
+                  data-state={selectionEnabled && selectedIds.has(row[rowIdKey]) ? 'selected' : undefined}
                   onClick={() => !loading && onRowClick?.(row)}
                   className={cn(
                     'group border-b border-border/40 transition-all duration-200',
                     onRowClick ? 'cursor-pointer hover:bg-accent/40 hover:shadow-sm' : 'hover:bg-accent/50',
-                    loading && 'opacity-50 pointer-events-none' // 加载时禁用交互但保持可见
+                    loading && 'opacity-50 pointer-events-none',
+                    selectionEnabled && selectedIds.has(row[rowIdKey]) && 'bg-primary/5'
                   )}
                 >
-                  {columns.map((column) => (
+                  {effectiveColumns.map((column) => (
                     <TableCell
                       key={column.key}
                       className={cn(
@@ -268,7 +417,7 @@ export function DataTable({
                 </div>
               )}
             </div>
-            
+
             {!loading && (
               <Pager
                 total={pagination.total}

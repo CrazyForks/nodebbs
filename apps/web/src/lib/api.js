@@ -430,6 +430,11 @@ export const topicApi = {
     return apiClient.delete(`/topics/${id}${query}`);
   },
 
+  // 批量删除话题
+  async batchDelete(ids, permanent = false) {
+    return apiClient.post('/topics/batch-delete', { ids, permanent });
+  },
+
   // 收藏话题
   async bookmark(id) {
     return apiClient.post(`/topics/${id}/bookmark`);
