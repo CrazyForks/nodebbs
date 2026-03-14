@@ -45,6 +45,9 @@ export const users = pgTable(
     // 用户名修改相关字段
     usernameChangedAt: timestamp('username_changed_at'),
     usernameChangeCount: integer('username_change_count').notNull().default(0),
+    // 账号注销相关字段
+    deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true }), // 用户自助注销请求时间
+    deletionReason: text('deletion_reason'), // 注销原因（可选）
   },
   (table) => [
     index('users_email_idx').on(table.email),

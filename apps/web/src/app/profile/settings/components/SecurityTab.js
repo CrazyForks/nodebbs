@@ -12,11 +12,13 @@ import { useEmailChange } from '@/hooks/profile/useEmailChange';
 import { useBindEmail } from '@/hooks/profile/useBindEmail';
 import { useBindPhone } from '@/hooks/profile/useBindPhone';
 import { usePhoneChange } from '@/hooks/profile/usePhoneChange';
+import { useAccountDeletion } from '@/hooks/profile/useAccountDeletion';
 import { useSettings } from '@/contexts/SettingsContext';
 import { EmailChangeDialog } from './EmailChangeDialog';
 import { BindEmailDialog } from './BindEmailDialog';
 import { BindPhoneDialog } from './BindPhoneDialog';
 import { PhoneChangeDialog } from './PhoneChangeDialog';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 /**
  * 安全设置 Tab
@@ -39,6 +41,7 @@ export function SecurityTab() {
   const bindEmailHook = useBindEmail();
   const bindPhoneHook = useBindPhone();
   const phoneChange = usePhoneChange();
+  const accountDeletion = useAccountDeletion();
 
   if (!user) return null;
 
@@ -285,6 +288,46 @@ export function SecurityTab() {
         onOpenChange={bindPhoneHook.setShowDialog}
         bindPhone={bindPhoneHook}
       />
+
+      {/* 危险操作 */}
+      {user.role !== 'admin' && (
+        <>
+          <div className='border border-destructive/50 rounded-lg overflow-hidden'>
+            <div className='px-4 py-3 bg-destructive/5 border-b border-destructive/50'>
+              <h3 className='text-sm font-medium text-destructive'>
+                危险操作
+              </h3>
+            </div>
+            <div className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div className='flex-1 mr-4'>
+                  <p className='text-sm text-card-foreground font-medium mb-1'>
+                    注销账号
+                  </p>
+                  <p className='text-xs text-muted-foreground'>
+                    注销后账号将无法登录，30天内可联系管理员恢复
+                  </p>
+                </div>
+                <Button
+                  variant='destructive'
+                  size='sm'
+                  onClick={accountDeletion.openDialog}
+                >
+                  注销账号
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DeleteAccountDialog
+            open={accountDeletion.showDialog}
+            onOpenChange={accountDeletion.setShowDialog}
+            user={user}
+            onConfirm={accountDeletion.handleConfirm}
+            loading={accountDeletion.loading}
+          />
+        </>
+      )}
     </div>
   );
 }

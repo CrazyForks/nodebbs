@@ -1,7 +1,9 @@
 import fp from 'fastify-plugin';
 import db from '../db/index.js';
-import { qrLoginRequests } from '../db/schema.js';
-import { lt } from 'drizzle-orm';
+import { qrLoginRequests, users, moderationLogs } from '../db/schema.js';
+import { and, eq, lt, sql } from 'drizzle-orm';
+import { anonymizeUser } from '../services/account-cleanup.js';
+import { DELETION_COOLDOWN_MS } from '../constants/user.js';
 
 /**
  * 数据清理插件
@@ -61,6 +63,62 @@ async function cleanupPlugin(fastify, options) {
     } catch (err) {
       throw err; // 让运行器捕获错误
     }
+  });
+
+  // 3. 到期注销用户自动匿名化
+  registerCleanupTask('pending-deletion-users', async () => {
+    const threshold = new Date(Date.now() - DELETION_COOLDOWN_MS);
+    const expiredUsers = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        name: users.name,
+        deletionReason: users.deletionReason,
+      })
+      .from(users)
+      .where(and(
+        eq(users.isDeleted, true),
+        sql`${users.deletionRequestedAt} IS NOT NULL`,
+        lt(users.deletionRequestedAt, threshold)
+      ));
+
+    if (expiredUsers.length === 0) {
+      return 0;
+    }
+
+    let processed = 0;
+    for (const user of expiredUsers) {
+      try {
+        // 在匿名化之前记录审计日志
+        await db.insert(moderationLogs).values({
+          action: 'anonymize',
+          targetType: 'user',
+          targetId: user.id,
+          moderatorId: user.id, // 系统自动执行，记录用户自身 ID
+          previousStatus: 'pending_deletion',
+          newStatus: 'anonymized',
+          reason: '30天冷静期到期，系统自动匿名化',
+          metadata: JSON.stringify({
+            username: user.username,
+            email: user.email,
+            name: user.name,
+            deletionReason: user.deletionReason,
+          }),
+        });
+
+        await anonymizeUser(user.id);
+        await db.update(users).set({
+          deletionRequestedAt: null,
+          deletionReason: null,
+        }).where(eq(users.id, user.id));
+        processed++;
+      } catch (err) {
+        fastify.log.error(`[清理] 匿名化用户 ${user.id} 失败:`, err);
+      }
+    }
+
+    return processed;
   });
 
 

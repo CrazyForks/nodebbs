@@ -365,6 +365,21 @@ export const userApi = {
       body: JSON.stringify({ roleIds }),
     });
   },
+
+  // 用户自助注销
+  async requestDeletion(data) {
+    return apiClient.post('/users/me/request-deletion', data);
+  },
+
+  // 恢复待注销用户（管理员）
+  async restoreUser(userId) {
+    return apiClient.post(`/users/${userId}/restore`);
+  },
+
+  // 匿名化用户（管理员）
+  async anonymizeUser(userId) {
+    return apiClient.post(`/users/${userId}/anonymize`);
+  },
 };
 
 // ============= 分类 API =============

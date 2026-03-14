@@ -9,7 +9,7 @@ import { ActionMenu } from '@/components/common/ActionMenu';
 import { PageHeader } from '@/components/common/PageHeader';
 import UserAvatar from '@/components/user/UserAvatar';
 import { confirm } from '@/components/common/ConfirmPopover';
-import { Ban, ShieldCheck, UserCog, Trash2, UserPlus, Pencil, CheckCircle2, XCircle } from 'lucide-react';
+import { Ban, ShieldCheck, UserCog, Trash2, UserPlus, Pencil, CheckCircle2, XCircle, RotateCcw, UserX } from 'lucide-react';
 import { userApi, moderationApi, rbacApi } from '@/lib/api';
 import { toast } from 'sonner';
 import Time from '@/components/common/Time';
@@ -18,6 +18,8 @@ import { UserFormDialog } from './components/UserFormDialog';
 import { RoleEditDialog } from './components/RoleEditDialog';
 import { BanUserDialog } from './components/BanUserDialog';
 import { usePermission } from '@/hooks/usePermission';
+
+const DELETION_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 天冷静期
 
 export default function UsersManagement() {
   const { hasPermission, hasCondition } = usePermission();
@@ -77,6 +79,7 @@ export default function UsersManagement() {
       if (statusFilter === 'banned') params.isBanned = true;
       if (statusFilter === 'active') params.isBanned = false;
       if (statusFilter === 'deleted') params.includeDeleted = true;
+      if (statusFilter === 'pending_deletion') params.pendingDeletion = true;
 
       const data = await userApi.getList(params);
       setUsers(data.items);
@@ -188,6 +191,65 @@ export default function UsersManagement() {
     }
   };
 
+  const handleRestoreClick = async (e, user) => {
+    const confirmed = await confirm(e, {
+      title: '确认恢复用户？',
+      description: (
+        <>
+          确定要恢复用户 &quot;{user.username}&quot; 的账号吗？
+          <br />
+          恢复后该用户将可以正常登录使用。
+        </>
+      ),
+      confirmText: '确认恢复',
+    });
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      await userApi.restoreUser(user.id);
+      toast.success(`已恢复用户 ${user.username}`);
+      setUsers(prev => prev.map(u =>
+        u.id === user.id ? { ...u, isDeleted: false, deletionRequestedAt: null } : u
+      ));
+    } catch (err) {
+      console.error('恢复失败:', err);
+      toast.error(err.message || '恢复失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAnonymizeClick = async (e, user) => {
+    const confirmed = await confirm(e, {
+      title: '确认匿名化用户？',
+      description: (
+        <>
+          此操作将
+          <span className="font-semibold text-destructive"> 永久清除 </span>
+          用户 &quot;{user.username}&quot; 的所有个人信息。
+          <br />
+          <span className="font-semibold text-destructive">此操作不可恢复！</span>
+        </>
+      ),
+      confirmText: '确认匿名化',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      await userApi.anonymizeUser(user.id);
+      toast.success(`已匿名化用户 ${user.username}`);
+      fetchUsers();
+    } catch (err) {
+      console.error('匿名化失败:', err);
+      toast.error(err.message || '匿名化失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // ---- 回调 ----
 
   const handleUserCreated = () => fetchUsers();
@@ -271,6 +333,16 @@ export default function UsersManagement() {
       label: '状态',
       width: 'w-25',
       render: (_, user) => {
+        if (user.isDeleted && user.deletionRequestedAt) {
+          const requestedAt = new Date(user.deletionRequestedAt).getTime();
+          const expiresAt = requestedAt + DELETION_COOLDOWN_MS;
+          const daysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+          return (
+            <Badge variant="destructive" className="text-xs">
+              待注销 ({daysRemaining}天)
+            </Badge>
+          );
+        }
         if (user.isDeleted) return <Badge variant="destructive" className="text-xs">已删除</Badge>;
         if (user.isBanned) return <Badge variant="destructive" className="text-xs">已封禁</Badge>;
         return <Badge variant="outline" className="text-xs">正常</Badge>;
@@ -325,6 +397,8 @@ export default function UsersManagement() {
             { separator: true },
             { label: '解封用户', icon: ShieldCheck, onClick: (e) => handleUnbanClick(e, user), hidden: !user.isBanned || !hasPermission('dashboard.users') },
             { label: '封禁用户', icon: Ban, variant: 'warning', onClick: () => openBanDialog(user), disabled: !canModifyUser(user), hidden: user.isBanned || !hasPermission('dashboard.users') },
+            { label: '恢复账号', icon: RotateCcw, onClick: (e) => handleRestoreClick(e, user), hidden: !(user.isDeleted && user.deletionRequestedAt) || !hasPermission('dashboard.users') },
+            { label: '匿名化', icon: UserX, variant: 'destructive', onClick: (e) => handleAnonymizeClick(e, user), hidden: !user.isDeleted || !hasPermission('dashboard.users') },
             { separator: true, hidden: !hasPermission('user.delete') },
             { label: '删除', icon: Trash2, variant: 'warning', onClick: (e) => handleDeleteClick(e, user, 'soft'), disabled: !canModifyUser(user), hidden: !hasPermission('user.delete') },
             { label: '彻底删除', icon: Trash2, variant: 'destructive', onClick: (e) => handleDeleteClick(e, user, 'hard'), disabled: !canModifyUser(user), hidden: !hasCondition('dashboard.users', 'allowPermanent') },
@@ -370,6 +444,7 @@ export default function UsersManagement() {
             { value: 'all-active', label: '正常用户' },
             { value: 'all-banned', label: '已封禁' },
             { value: 'all-deleted', label: '已删除' },
+            { value: 'all-pending_deletion', label: '待注销' },
           ],
         }}
         pagination={{ page, total, limit, onPageChange: setPage }}
