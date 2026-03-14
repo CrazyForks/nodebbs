@@ -376,7 +376,7 @@ export default async function moderationRoutes(fastify, options) {
       .returning();
 
     // 记录审核日志
-    await db.insert(moderationLogs).values({
+    await fastify.moderation.log({
       action: 'ban',
       targetType: 'user',
       targetId: id,
@@ -384,7 +384,9 @@ export default async function moderationRoutes(fastify, options) {
       reason,
       previousStatus: 'active',
       newStatus: 'banned',
-      metadata: JSON.stringify({ duration, bannedUntil }),
+      metadata: { duration, bannedUntil },
+      ip: request.ip,
+      targetLabel: user.username,
     });
 
     // 清除用户缓存，使封禁立即生效
@@ -439,13 +441,15 @@ export default async function moderationRoutes(fastify, options) {
       .returning();
 
     // 记录审核日志
-    await db.insert(moderationLogs).values({
+    await fastify.moderation.log({
       action: 'unban',
       targetType: 'user',
       targetId: id,
       moderatorId: request.user.id,
       previousStatus: 'banned',
       newStatus: 'active',
+      ip: request.ip,
+      targetLabel: user.username,
     });
 
     // 清除用户缓存，使解封立即生效
@@ -896,13 +900,15 @@ export default async function moderationRoutes(fastify, options) {
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志
-      await db.insert(moderationLogs).values({
+      await fastify.moderation.log({
         action: 'approve',
         targetType: 'topic',
         targetId: id,
         moderatorId: request.user.id,
         previousStatus: 'pending',
-        newStatus: 'approved'
+        newStatus: 'approved',
+        ip: request.ip,
+        targetLabel: topic.title,
       });
 
       // 触发话题创建事件（幂等性由 rewards listener 的 referenceId 去重保障）
@@ -936,13 +942,14 @@ export default async function moderationRoutes(fastify, options) {
         .returning();
 
       // 记录审核日志
-      await db.insert(moderationLogs).values({
+      await fastify.moderation.log({
         action: 'approve',
         targetType: 'post',
         targetId: id,
         moderatorId: request.user.id,
         previousStatus: 'pending',
-        newStatus: 'approved'
+        newStatus: 'approved',
+        ip: request.ip,
       });
 
       // 触发回复创建事件（幂等性由 rewards listener 的 referenceId 去重保障）
@@ -1005,13 +1012,15 @@ export default async function moderationRoutes(fastify, options) {
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志
-      await db.insert(moderationLogs).values({
+      await fastify.moderation.log({
         action: 'reject',
         targetType: 'topic',
         targetId: id,
         moderatorId: request.user.id,
         previousStatus: 'pending',
-        newStatus: 'rejected'
+        newStatus: 'rejected',
+        ip: request.ip,
+        targetLabel: topic.title,
       });
 
       return { message: '话题已拒绝（包含话题内容）', topic: updated };
@@ -1033,13 +1042,14 @@ export default async function moderationRoutes(fastify, options) {
         .returning();
 
       // 记录审核日志
-      await db.insert(moderationLogs).values({
+      await fastify.moderation.log({
         action: 'reject',
         targetType: 'post',
         targetId: id,
         moderatorId: request.user.id,
         previousStatus: 'pending',
-        newStatus: 'rejected'
+        newStatus: 'rejected',
+        ip: request.ip,
       });
 
       return { message: '回复已拒绝', post: updated };
@@ -1059,7 +1069,7 @@ export default async function moderationRoutes(fastify, options) {
         type: 'object',
         properties: {
           targetType: { type: 'string', enum: ['topic', 'post', 'user', 'all'] },
-          action: { type: 'string', enum: ['approve', 'reject', 'delete', 'restore', 'close', 'open', 'pin', 'unpin', 'all'] },
+          action: { type: 'string', enum: ['approve', 'reject', 'ban', 'unban', 'username_change', 'email_bind', 'phone_bind', 'email_change', 'phone_change', 'request_deletion', 'restore', 'anonymize', 'edit_resubmit', 'resubmit', 'all'] },
           targetId: { type: 'number' },
           moderatorId: { type: 'number' },
           page: { type: 'number', default: 1 },

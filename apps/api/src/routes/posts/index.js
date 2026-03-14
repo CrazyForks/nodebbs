@@ -1,5 +1,5 @@
 import db from '../../db/index.js';
-import { posts, topics, users, likes, subscriptions, moderationLogs, blockedUsers, userItems, shopItems } from '../../db/schema.js';
+import { posts, topics, users, likes, subscriptions, blockedUsers, userItems, shopItems } from '../../db/schema.js';
 import { eq, sql, desc, and, inArray, ne, like, or, not, count, lt, gt } from 'drizzle-orm';
 import { createPaginator } from '../../utils/pagination.js';
 import { userEnricher } from '../../services/user/index.js';
@@ -1037,14 +1037,15 @@ export default async function postRoutes(fastify, options) {
         ? '已批准的回复编辑后重新提交审核'
         : '被拒绝的回复编辑后重新提交审核';
 
-      await db.insert(moderationLogs).values({
+      await fastify.moderation.log({
         action,
         targetType: 'post',
         targetId: id,
         moderatorId: request.user.id,
         previousStatus,
         newStatus: 'pending',
-        metadata: JSON.stringify({ note }),
+        metadata: { note },
+        ip: request.ip,
       });
     }
 

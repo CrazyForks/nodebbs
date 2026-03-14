@@ -15,7 +15,6 @@ import {
   subscriptions,
   likes,
   notifications,
-  moderationLogs,
   blockedUsers,
   userItems,
   shopItems,
@@ -1056,14 +1055,15 @@ export default async function topicRoutes(fastify, options) {
           ? '已批准的话题编辑后重新提交审核'
           : '被拒绝的话题编辑后重新提交审核';
 
-        await db.insert(moderationLogs).values({
+        await fastify.moderation.log({
           action,
           targetType: 'topic',
           targetId: id,
           moderatorId: request.user.id,
           previousStatus,
           newStatus: 'pending',
-          metadata: JSON.stringify({ note }),
+          metadata: { note },
+          ip: request.ip,
         });
       }
 

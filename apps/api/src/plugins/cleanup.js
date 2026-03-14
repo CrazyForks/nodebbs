@@ -1,9 +1,10 @@
 import fp from 'fastify-plugin';
 import db from '../db/index.js';
-import { qrLoginRequests, users, moderationLogs } from '../db/schema.js';
+import { qrLoginRequests, users } from '../db/schema.js';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { anonymizeUser } from '../services/user/index.js';
 import { DELETION_COOLDOWN_MS } from '../constants/user.js';
+import moderationLogService from '../services/moderationLogService.js';
 
 /**
  * 数据清理插件
@@ -91,7 +92,7 @@ async function cleanupPlugin(fastify, options) {
     for (const user of expiredUsers) {
       try {
         // 在匿名化之前记录审计日志
-        await db.insert(moderationLogs).values({
+        await moderationLogService.log({
           action: 'anonymize',
           targetType: 'user',
           targetId: user.id,
@@ -99,12 +100,14 @@ async function cleanupPlugin(fastify, options) {
           previousStatus: 'pending_deletion',
           newStatus: 'anonymized',
           reason: '30天冷静期到期，系统自动匿名化',
-          metadata: JSON.stringify({
+          metadata: {
             username: user.username,
             email: user.email,
             name: user.name,
             deletionReason: user.deletionReason,
-          }),
+          },
+          ip: null,
+          targetLabel: user.username,
         });
 
         await anonymizeUser(user.id);

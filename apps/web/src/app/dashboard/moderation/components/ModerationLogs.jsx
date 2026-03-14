@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -24,6 +23,12 @@ import Link from '@/components/common/Link';
 import { Loading } from '@/components/common/Loading';
 import { Pager } from '@/components/common/Pagination';
 import Time from '@/components/common/Time';
+import {
+  ACTION_COLORS,
+  ACTION_FILTER_OPTIONS,
+  getActionDescription,
+  isSelfAction,
+} from '@/constants/moderation';
 
 export function ModerationLogs() {
   const [logs, setLogs] = useState([]);
@@ -70,7 +75,7 @@ export function ModerationLogs() {
 
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value });
-    setPage(1); // 重置到第一页
+    setPage(1);
   };
 
   const handlePageChange = (newPage) => {
@@ -79,7 +84,7 @@ export function ModerationLogs() {
 
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setPage(1); // 重置到第一页
+    setPage(1);
   };
 
   if (loading && logs.length === 0) {
@@ -99,7 +104,7 @@ export function ModerationLogs() {
             />
           </div>
         </div>
-        
+
         <div className='flex items-center gap-4'>
           <div className='flex items-center gap-2'>
             <span className='text-sm text-muted-foreground'>类型:</span>
@@ -129,15 +134,11 @@ export function ModerationLogs() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='all'>全部</SelectItem>
-              <SelectItem value='approve'>批准</SelectItem>
-              <SelectItem value='reject'>拒绝</SelectItem>
-              <SelectItem value='delete'>删除</SelectItem>
-              <SelectItem value='restore'>恢复</SelectItem>
-              <SelectItem value='close'>关闭</SelectItem>
-              <SelectItem value='open'>打开</SelectItem>
-              <SelectItem value='pin'>置顶</SelectItem>
-              <SelectItem value='unpin'>取消置顶</SelectItem>
+              {ACTION_FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -158,38 +159,9 @@ export function ModerationLogs() {
         <>
           <div className='space-y-3'>
             {logs.map((log) => {
-              const actionText =
-                {
-                  approve: '批准',
-                  reject: '拒绝',
-                  delete: '删除',
-                  restore: '恢复',
-                  close: '关闭',
-                  open: '打开',
-                  pin: '置顶',
-                  unpin: '取消置顶',
-                  resubmit: '重新提交',
-                }[log.action] || log.action;
-
-              const targetTypeText =
-                {
-                  topic: '话题',
-                  post: '回复',
-                  user: '用户',
-                }[log.targetType] || log.targetType;
-
-              const actionColor =
-                {
-                  approve: 'text-green-600',
-                  reject: 'text-red-600',
-                  delete: 'text-red-600',
-                  restore: 'text-blue-600',
-                  close: 'text-yellow-600',
-                  open: 'text-green-600',
-                  pin: 'text-blue-600',
-                  unpin: 'text-gray-600',
-                  resubmit: 'text-blue-600',
-                }[log.action] || 'text-foreground';
+              const actionDescription = getActionDescription(log.action, log.targetType);
+              const actionColor = ACTION_COLORS[log.action] || 'text-foreground';
+              const hiddenTarget = isSelfAction(log.action);
 
               const ActionIcon =
                 {
@@ -212,11 +184,10 @@ export function ModerationLogs() {
                         <span className='font-medium'>
                           {log.moderatorName || log.moderatorUsername}
                         </span>
-                        <span className='text-muted-foreground'>
-                          <span className={actionColor}>{actionText}</span>了
-                          {targetTypeText}
+                        <span className={actionColor}>
+                          {actionDescription}
                         </span>
-                        {log.targetInfo && (
+                        {log.targetInfo && !hiddenTarget && (
                           <>
                             {log.targetType === 'topic' &&
                               log.targetInfo.title && (

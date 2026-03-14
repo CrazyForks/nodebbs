@@ -577,7 +577,10 @@ export const moderationLogs = pgTable(
   'moderation_logs',
   {
     ...$defaults,
-    action: varchar('action', { length: 20 }).notNull(), // 'approve', 'reject', 'delete', 'restore', 'close', 'open', 'pin', 'unpin'
+    // action 值: approve, reject, ban, unban, username_change, email_bind, phone_bind,
+    //            email_change, phone_change, request_deletion, restore, anonymize,
+    //            edit_resubmit, resubmit
+    action: varchar('action', { length: 50 }).notNull(),
     targetType: varchar('target_type', { length: 20 }).notNull(), // 'topic' (话题), 'post' (帖子), 'user' (用户)
     targetId: integer('target_id').notNull(), // 目标对象的ID
     moderatorId: integer('moderator_id')
@@ -587,6 +590,8 @@ export const moderationLogs = pgTable(
     previousStatus: varchar('previous_status', { length: 20 }), // 操作前的状态
     newStatus: varchar('new_status', { length: 20 }), // 操作后的状态
     metadata: text('metadata'), // 额外的元数据（JSON格式）
+    ip: varchar('ip', { length: 45 }), // 操作者 IP
+    targetLabel: varchar('target_label', { length: 255 }), // 目标快照（话题标题/用户名等）
   },
   (table) => [
     index('moderation_logs_action_idx').on(table.action),
