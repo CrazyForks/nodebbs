@@ -95,4 +95,3 @@ class UserEnricher {
 }
 
 export const userEnricher = new UserEnricher();
-

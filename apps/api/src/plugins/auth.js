@@ -8,7 +8,7 @@ import ms from 'ms';
 import env from '../config/env.js';
 import { createPermissionService } from '../services/permissionService.js';
 import registerRbacEnricher from '../services/rbacEnricher.js';
-import { userEnricher } from '../services/userEnricher.js';
+import { userEnricher } from '../services/user/index.js';
 
 async function authPlugin(fastify) {
   // 注入日志实例到 userEnricher（需在注册 enrichers 之前）

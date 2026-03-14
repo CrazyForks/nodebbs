@@ -1,4 +1,4 @@
-import { userEnricher } from './userEnricher.js';
+import { userEnricher } from './user/index.js';
 import { getPermissionService } from './permissionService.js';
 
 /**

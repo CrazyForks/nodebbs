@@ -2,7 +2,7 @@ import fp from 'fastify-plugin';
 import db from '../db/index.js';
 import { qrLoginRequests, users, moderationLogs } from '../db/schema.js';
 import { and, eq, lt, sql } from 'drizzle-orm';
-import { anonymizeUser } from '../services/account-cleanup.js';
+import { anonymizeUser } from '../services/user/index.js';
 import { DELETION_COOLDOWN_MS } from '../constants/user.js';
 
 /**

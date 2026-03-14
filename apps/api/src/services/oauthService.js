@@ -9,7 +9,7 @@ import { users, accounts } from '../db/schema.js';
 import { eq, and, count } from 'drizzle-orm';
 import crypto from 'crypto';
 import { normalizeEmail } from '../utils/normalization.js';
-import { generateAutoUsername, generateUniqueUsername } from './usernameService.js';
+import { generateAutoUsername, generateUniqueUsername } from './user/index.js';
 import { getSetting } from './settingsService.js';
 import { getPermissionService } from './permissionService.js';
 

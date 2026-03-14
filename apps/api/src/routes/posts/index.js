@@ -2,7 +2,7 @@ import db from '../../db/index.js';
 import { posts, topics, users, likes, subscriptions, moderationLogs, blockedUsers, userItems, shopItems } from '../../db/schema.js';
 import { eq, sql, desc, and, inArray, ne, like, or, not, count, lt, gt } from 'drizzle-orm';
 import { createPaginator } from '../../utils/pagination.js';
-import { userEnricher } from '../../services/userEnricher.js';
+import { userEnricher } from '../../services/user/index.js';
 import { sysCurrencies, sysAccounts } from '../../extensions/ledger/schema.js';
 import { DEFAULT_CURRENCY_CODE } from '../../extensions/ledger/constants.js';
 import { getPassiveEffects } from '../../extensions/badges/services/badgeService.js';

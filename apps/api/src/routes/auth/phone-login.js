@@ -1,4 +1,4 @@
-import { userEnricher } from '../../services/userEnricher.js';
+import { userEnricher, generateAutoUsername } from '../../services/user/index.js';
 import db from '../../db/index.js';
 import { users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -7,7 +7,6 @@ import {
   verifyCode,
   deleteVerificationCode,
 } from '../../plugins/message/utils/verificationCode.js';
-import { generateAutoUsername } from '../../services/usernameService.js';
 
 export default async function phoneLoginRoute(fastify) {
   // 手机号验证码登录（用户不存在则自动注册）

@@ -1,4 +1,4 @@
-import { userEnricher } from '../../services/userEnricher.js';
+import { userEnricher } from '../../services/user/index.js';
 import { getUserBadges, getUsersBadges } from './services/badgeService.js';
 import { DEFAULT_CURRENCY_CODE } from '../ledger/constants.js';
 

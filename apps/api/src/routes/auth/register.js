@@ -1,4 +1,4 @@
-import { userEnricher } from '../../services/userEnricher.js';
+import { userEnricher } from '../../services/user/index.js';
 import db from '../../db/index.js';
 import { users } from '../../db/schema.js';
 import { count, eq } from 'drizzle-orm';

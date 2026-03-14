@@ -21,7 +21,7 @@ import {
   shopItems,
 } from '../../db/schema.js';
 import { createPaginator } from '../../utils/pagination.js';
-import { userEnricher } from '../../services/userEnricher.js';
+import { userEnricher } from '../../services/user/index.js';
 import { shouldHideUserInfo } from '../../utils/visibility.js';
 
 /**

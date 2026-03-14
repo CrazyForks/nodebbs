@@ -1,9 +1,9 @@
-import db from '../db/index.js';
+import db from '../../db/index.js';
 import {
   users, accounts, sessions, follows, bookmarks, likes,
   notifications, blockedUsers, verifications, conversations,
   messages, subscriptions,
-} from '../db/schema.js';
+} from '../../db/schema.js';
 import { eq, or } from 'drizzle-orm';
 import crypto from 'crypto';
 
