@@ -38,6 +38,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import NotificationPopover from '@/components/common/NotificationPopover';
+import MessageBadge from '@/components/common/MessageBadge';
 import ThemeSwitcher from '@/components/common/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -146,6 +147,9 @@ export default function Header() {
                     </Button>
                   </Link>
                 )}
+
+                {/* 站内信 */}
+                {/* {isAuthenticated && <MessageBadge />} */}
 
                 {/* 通知按钮 */}
                 {isAuthenticated && <NotificationPopover />}

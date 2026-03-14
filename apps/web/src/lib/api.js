@@ -690,47 +690,42 @@ export const systemApi = {
   },
 };
 
-// ============= 站内信 API =============
-export const messageApi = {
-  // 获取会话列表（按用户分组）
-  async getConversations(page = 1, limit = 20) {
-    return apiClient.get('/messages/conversations', { page, limit });
+// ============= 会话 API =============
+export const conversationApi = {
+  // 获取会话列表
+  async getList(page = 1, limit = 20) {
+    return apiClient.get('/conversations', { page, limit });
   },
 
-  // 获取消息列表（旧接口，保留向后兼容）
-  async getList(box = 'inbox', page = 1, limit = 20) {
-    return apiClient.get('/messages', { box, page, limit });
+  // 获取未读总数
+  async getUnreadCount() {
+    return apiClient.get('/conversations/unread-count');
   },
 
-  // 获取单个消息
-  async getById(id) {
-    return apiClient.get(`/messages/${id}`);
+  // 获取与某用户的消息记录（cursor 分页）
+  async getMessages(userId, cursor, limit = 20) {
+    const params = { limit, cursor: cursor || '1' };
+    return apiClient.get(`/conversations/${userId}`, params);
   },
 
-  // 获取和某个用户的会话记录
-  async getConversation(userId, page = 1, limit = 20) {
-    return apiClient.get(`/messages/conversation/${userId}`, { page, limit });
+  // 向某用户发送消息（自动创建会话）
+  async send(userId, { content }) {
+    return apiClient.post(`/conversations/${userId}`, { content });
   },
 
-  // 发送消息
-  async send(data) {
-    // data: { recipientId, subject, content }
-    return apiClient.post('/messages', data);
+  // 标记该会话所有消息已读
+  async markAsRead(userId) {
+    return apiClient.post(`/conversations/${userId}/read`);
   },
 
-  // 删除消息
-  async delete(id) {
-    return apiClient.delete(`/messages/${id}`);
-  },
-
-  // 删除与某个用户的所有消息（会话）
+  // 删除与某用户的会话
   async deleteConversation(userId) {
-    return apiClient.delete(`/messages/conversation/${userId}`);
+    return apiClient.delete(`/conversations/${userId}`);
   },
 
-  // 标记为已读
-  async markAsRead(id) {
-    return apiClient.patch(`/messages/${id}/read`);
+  // 删除单条消息
+  async deleteMessage(messageId) {
+    return apiClient.delete(`/messages/${messageId}`);
   },
 };
 

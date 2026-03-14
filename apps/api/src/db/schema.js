@@ -439,18 +439,64 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// ============ Conversations (会话) ============
+export const conversations = pgTable(
+  'conversations',
+  {
+    ...$defaults,
+    user1Id: integer('user1_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }), // 始终为较小的 userId
+    user2Id: integer('user2_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }), // 始终为较大的 userId
+    lastMessageId: integer('last_message_id'), // FK 在 messages 定义后手动处理
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+    user1UnreadCount: integer('user1_unread_count').notNull().default(0),
+    user2UnreadCount: integer('user2_unread_count').notNull().default(0),
+    isDeletedByUser1: boolean('is_deleted_by_user1').notNull().default(false),
+    isDeletedByUser2: boolean('is_deleted_by_user2').notNull().default(false),
+  },
+  (table) => [
+    unique('conversations_user_pair').on(table.user1Id, table.user2Id),
+    index('conversations_user1_idx').on(table.user1Id),
+    index('conversations_user2_idx').on(table.user2Id),
+    index('conversations_last_message_at_idx').on(table.lastMessageAt),
+  ]
+);
+
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  user1: one(users, {
+    fields: [conversations.user1Id],
+    references: [users.id],
+    relationName: 'conversationsAsUser1',
+  }),
+  user2: one(users, {
+    fields: [conversations.user2Id],
+    references: [users.id],
+    relationName: 'conversationsAsUser2',
+  }),
+  lastMessage: one(messages, {
+    fields: [conversations.lastMessageId],
+    references: [messages.id],
+  }),
+  messages: many(messages),
+}));
+
 // ============ Messages (私信) ============
 export const messages = pgTable(
   'messages',
   {
     ...$defaults,
+    conversationId: integer('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
     senderId: integer('sender_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     recipientId: integer('recipient_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    subject: varchar('subject', { length: 255 }),
     content: text('content').notNull(),
     isRead: boolean('is_read').notNull().default(false),
     readAt: timestamp('read_at'),
@@ -460,14 +506,20 @@ export const messages = pgTable(
       .default(false),
   },
   (table) => [
+    index('messages_conversation_idx').on(table.conversationId),
     index('messages_sender_idx').on(table.senderId),
     index('messages_recipient_idx').on(table.recipientId),
     index('messages_is_read_idx').on(table.isRead),
     index('messages_created_at_idx').on(table.createdAt),
+    index('messages_conversation_created_at_idx').on(table.conversationId, table.createdAt),
   ]
 );
 
 export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
   sender: one(users, {
     fields: [messages.senderId],
     references: [users.id],

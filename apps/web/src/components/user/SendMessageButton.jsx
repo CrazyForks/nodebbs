@@ -3,18 +3,16 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormDialog } from '@/components/common/FormDialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, Loader2 } from 'lucide-react';
-import { messageApi, blockedUsersApi } from '@/lib/api';
+import { conversationApi, blockedUsersApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SendMessageButton({ recipientId, recipientName, recipientMessagePermission = 'everyone' }) {
   const { isAuthenticated, user, openLoginDialog } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -69,15 +67,12 @@ export default function SendMessageButton({ recipientId, recipientName, recipien
     setSending(true);
 
     try {
-      await messageApi.send({
-        recipientId,
-        subject: subject.trim() || null,
+      await conversationApi.send(recipientId, {
         content: content.trim()
       });
 
       toast.success('消息发送成功');
       setIsOpen(false);
-      setSubject('');
       setContent('');
     } catch (err) {
       console.error('发送消息失败:', err);
@@ -118,17 +113,6 @@ export default function SendMessageButton({ recipientId, recipientName, recipien
         maxWidth="sm:max-w-125"
       >
           <div className='space-y-4 py-4'>
-            <div className='space-y-2'>
-              <Label htmlFor='subject'>主题（可选）</Label>
-              <Input
-                id='subject'
-                placeholder='请输入消息主题'
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                disabled={sending}
-              />
-            </div>
-
             <div className='space-y-2'>
               <Label htmlFor='content'>内容 *</Label>
               <Textarea

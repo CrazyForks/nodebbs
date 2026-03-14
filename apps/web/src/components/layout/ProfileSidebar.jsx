@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from '@/components/common/Link';
 import {
@@ -21,41 +21,19 @@ import {
   Medal,
   Wallet,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
 import { useLedger, useDefaultCurrencyName } from '@/extensions/ledger/contexts/LedgerContext';
-import { messageApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function ProfileSidebar() {
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuth();
   const { isWalletEnabled } = useLedger();
   const currencyName = useDefaultCurrencyName();
-  const [unreadCount, setUnreadCount] = useState(0);
   const [openMenus, setOpenMenus] = useState({
     'content': true,
     'messages': true,
     'rewards-shop': true,
     'account': true,
   });
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchUnreadCount();
-    }
-  }, [isAuthenticated, user?.id]);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await messageApi.getList('inbox', 1, 1);
-      setUnreadCount(response.unreadCount || 0);
-    } catch (err) {
-      console.error('获取未读消息数失败:', err);
-    }
-  };
-
-
 
   const toggleMenu = (key) => {
     setOpenMenus((prev) => ({
@@ -91,7 +69,6 @@ export default function ProfileSidebar() {
           href: '/profile/messages',
           icon: Mail,
           label: '站内信',
-          badge: unreadCount > 0 ? unreadCount : null,
         },
         {
           href: '/profile/notifications',

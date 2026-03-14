@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, ArrowLeft, Send, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { messageApi } from '@/lib/api';
+import { conversationApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import UserAvatar from '@/components/user/UserAvatar';
 import Time from '@/components/common/Time';
 import { Loading } from '@/components/common/Loading';
+import { confirm } from '@/components/common/ConfirmPopover';
 
 export default function MessageDetailPage() {
   const params = useParams();
@@ -26,9 +26,8 @@ export default function MessageDetailPage() {
   const [error, setError] = useState(null);
   const [replyContent, setReplyContent] = useState('');
   const [replying, setReplying] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [deletingId, setDeletingId] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
 
   const messagesEndRef = useRef(null);
@@ -46,13 +45,16 @@ export default function MessageDetailPage() {
     }
   }, [otherUserId, user]);
 
+  const isInitialLoadRef = useRef(true);
+
   useEffect(() => {
-    if (conversation.length > 0) {
+    if (conversation.length > 0 && isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
       scrollToBottom();
     }
   }, [conversation]);
 
-  const fetchConversation = async (pageNum = 1, append = false) => {
+  const fetchConversation = async (cursor = null, append = false) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -61,10 +63,9 @@ export default function MessageDetailPage() {
     setError(null);
 
     try {
-      // Fetch the full conversation with the specified user
-      const conversationData = await messageApi.getConversation(
+      const conversationData = await conversationApi.getMessages(
         otherUserId,
-        pageNum,
+        cursor,
         20
       );
       // Reverse the array so newest messages are at the bottom
@@ -77,10 +78,12 @@ export default function MessageDetailPage() {
         setConversation(reversedItems);
       }
 
-      setOtherUser(conversationData.otherUser);
-      setTotal(conversationData.total);
-      setPage(pageNum);
-      setHasMore(conversationData.total > pageNum * 20);
+      // otherUser 仅首次请求返回，翻页时不覆盖
+      if (conversationData.otherUser) {
+        setOtherUser(conversationData.otherUser);
+      }
+      setNextCursor(conversationData.nextCursor || null);
+      setHasMore(!!conversationData.nextCursor);
     } catch (err) {
       console.error('获取会话失败:', err);
       setError(err.message);
@@ -92,7 +95,7 @@ export default function MessageDetailPage() {
   };
 
   const handleLoadMore = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || !nextCursor) return;
 
     // Save current scroll position
     const container = messagesContainerRef.current;
@@ -100,8 +103,7 @@ export default function MessageDetailPage() {
       previousScrollHeight.current = container.scrollHeight;
     }
 
-    const nextPage = page + 1;
-    await fetchConversation(nextPage, true);
+    await fetchConversation(nextCursor, true);
 
     // Restore scroll position after new messages are loaded
     setTimeout(() => {
@@ -127,8 +129,7 @@ export default function MessageDetailPage() {
     setReplying(true);
 
     try {
-      const newMessage = await messageApi.send({
-        recipientId: otherUser.id,
+      const newMessage = await conversationApi.send(otherUser.id, {
         content: replyContent.trim(),
       });
 
@@ -141,7 +142,6 @@ export default function MessageDetailPage() {
         senderId: user.id,
         recipientId: otherUser.id,
         content: newMessage.content,
-        subject: newMessage.subject,
         isRead: false,
         createdAt: newMessage.createdAt || new Date().toISOString(),
         senderUsername: user.username,
@@ -150,7 +150,6 @@ export default function MessageDetailPage() {
       };
 
       setConversation((prev) => [...prev, optimisticMessage]);
-      setTotal((prev) => prev + 1);
 
       // Scroll to bottom after adding message
       setTimeout(() => {
@@ -164,25 +163,29 @@ export default function MessageDetailPage() {
     }
   };
 
-  const handleDelete = async (messageId) => {
-    if (!confirm('确定要删除这条消息吗？')) {
-      return;
-    }
+  const handleDelete = async (e, messageId) => {
+    const confirmed = await confirm(e, {
+      title: '删除这条消息',
+      description: '删除后将无法恢复',
+      confirmText: '删除',
+      variant: 'destructive',
+    });
 
-    setDeleting(true);
+    if (!confirmed) return;
+
+    setDeletingId(messageId);
 
     try {
-      await messageApi.delete(messageId);
+      await conversationApi.deleteMessage(messageId);
       toast.success('消息已删除');
 
       // Remove the message from local state
       setConversation((prev) => prev.filter((msg) => msg.id !== messageId));
-      setTotal((prev) => prev - 1);
     } catch (err) {
       console.error('删除消息失败:', err);
       toast.error(err.message || '删除失败');
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
     }
   };
 
@@ -294,9 +297,7 @@ export default function MessageDetailPage() {
                     } group animate-in slide-in-from-bottom-2 duration-500`}
                   >
                     <div
-                      className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] ${
-                        isSentByMe ? 'flex-row' : 'flex-row'
-                      }`}
+                      className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%]`}
                     >
                       {/* 左侧头像 - 对方消息 */}
                       {!isSentByMe && (
@@ -328,11 +329,6 @@ export default function MessageDetailPage() {
                               : 'bg-card border border-border/50 text-card-foreground rounded-2xl rounded-bl-sm'
                           }`}
                         >
-                          {msg.subject && (
-                            <div className="font-bold mb-1 border-b border-white/20 pb-1">
-                              {msg.subject}
-                            </div>
-                          )}
                           <p className="leading-relaxed whitespace-pre-wrap">
                             {msg.content}
                           </p>
@@ -340,14 +336,14 @@ export default function MessageDetailPage() {
                           {/* 删除按钮 - 悬停优雅显示 */}
                           <div className={`absolute top-0 bottom-0 ${isSentByMe ? '-left-10' : '-right-10'} flex items-center opacity-0 group-hover:opacity-100 transition-opacity`}>
                               <Button
-                                onClick={() => handleDelete(msg.id)}
-                                disabled={deleting}
+                                onClick={(e) => handleDelete(e, msg.id)}
+                              disabled={deletingId === msg.id}
                                 variant='ghost'
                                 size='icon'
                                 className='h-8 w-8 text-muted-foreground hover:text-destructive rounded-full bg-background/50 backdrop-blur-sm'
                                 title='删除'
                               >
-                                {deleting ? <Loader2 className='h-3.5 w-3.5 animate-spin' /> : <Trash2 className='h-4 w-4' />}
+                                {deletingId === msg.id ? <Loader2 className='h-3.5 w-3.5 animate-spin' /> : <Trash2 className='h-4 w-4' />}
                               </Button>
                           </div>
                         </div>
@@ -388,7 +384,6 @@ export default function MessageDetailPage() {
                       }
                     }
                   }}
-                  disabled={replying}
                   rows={1}
                 />
                 <Button

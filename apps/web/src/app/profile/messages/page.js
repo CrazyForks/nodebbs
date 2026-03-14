@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { messageApi } from '@/lib/api';
+import { conversationApi } from '@/lib/api';
 import { toast } from 'sonner';
 import UserAvatar from '@/components/user/UserAvatar';
 import Time from '@/components/common/Time';
@@ -35,7 +35,6 @@ export default function MessagesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
-  const [totalUnread, setTotalUnread] = useState(0);
   const [deletingUserId, setDeletingUserId] = useState(null);
 
   useEffect(() => {
@@ -51,10 +50,9 @@ export default function MessagesPage() {
     setError(null);
 
     try {
-      const response = await messageApi.getConversations(page, pageSize);
+      const response = await conversationApi.getList(page, pageSize);
       setConversations(response.items || []);
       setTotal(response.total || 0);
-      setTotalUnread(response.totalUnread || 0);
     } catch (err) {
       console.error('获取会话列表失败:', err);
       setError(err.message);
@@ -77,7 +75,7 @@ export default function MessagesPage() {
     setDeletingUserId(userId);
 
     try {
-      await messageApi.deleteConversation(userId);
+      await conversationApi.deleteConversation(userId);
       toast.success('会话已删除');
 
       // Remove from local state
@@ -101,17 +99,6 @@ export default function MessagesPage() {
       <PageHeader
         title="站内信"
         description="查看你的私信会话"
-        actions={
-          totalUnread > 0 && (
-            <Badge
-              variant="default"
-              className="flex items-center gap-1.5 px-3 py-1"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              <span>{totalUnread} 条未读</span>
-            </Badge>
-          )
-        }
       />
 
       {/* 初始加载状态 */}
@@ -177,7 +164,7 @@ export default function MessagesPage() {
                           </span>
                         </div>
                         <span className='text-xs text-muted-foreground shrink-0'>
-                           <Time date={latestMessage.createdAt} fromNow />
+                           <Time date={latestMessage?.createdAt} fromNow />
                         </span>
                       </div>
 
@@ -185,12 +172,12 @@ export default function MessagesPage() {
                           <p className={`text-sm line-clamp-1 flex-1 ${
                              hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'
                           }`}>
-                            {latestMessage.isSentByMe && (
+                          {latestMessage?.isSentByMe && (
                               <span className='text-muted-foreground mr-1'>
                                 你:
                               </span>
                             )}
-                            {latestMessage.content}
+                            {latestMessage?.content}
                           </p>
                           
                           {/* 未读气泡 */}
@@ -256,10 +243,6 @@ export default function MessagesPage() {
                 page={page}
                 pageSize={pageSize}
                 onPageChange={(newPage) => setPage(newPage)}
-                // onPageSizeChange={(newSize) => {
-                //   setPageSize(newSize);
-                //   setPage(1);
-                // }}
               />
             </div>
           )}
