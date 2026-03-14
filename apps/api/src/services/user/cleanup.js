@@ -15,7 +15,7 @@ export async function anonymizeUser(userId) {
     // 1. 匿名化用户个人信息（使用 userId + 随机后缀避免 unique 冲突）
     const suffix = crypto.randomBytes(4).toString('hex');
     await tx.update(users).set({
-      username: `deleted_user_${userId}_${suffix}`,
+      username: `~deleted_${userId}_${suffix}`,
       email: null,
       phone: null,
       name: '已注销用户',
@@ -26,6 +26,8 @@ export async function anonymizeUser(userId) {
       lastLoginIp: null,
       isPhoneVerified: false,
       isEmailVerified: false,
+      deletionRequestedAt: null,
+      deletionReason: null,
     }).where(eq(users.id, userId));
 
     // 2. 清除关联数据

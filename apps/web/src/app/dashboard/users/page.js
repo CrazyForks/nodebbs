@@ -333,6 +333,9 @@ export default function UsersManagement() {
       label: '状态',
       width: 'w-25',
       render: (_, user) => {
+        if (user.isDeleted && user.username?.startsWith('~deleted_')) {
+          return <Badge variant="secondary" className="text-xs">已注销</Badge>;
+        }
         if (user.isDeleted && user.deletionRequestedAt) {
           const requestedAt = new Date(user.deletionRequestedAt).getTime();
           const expiresAt = requestedAt + DELETION_COOLDOWN_MS;
@@ -389,7 +392,9 @@ export default function UsersManagement() {
       label: '操作',
       align: 'right',
       sticky: 'right',
-      render: (_, user) => (
+      render: (_, user) => {
+        const isAnonymized = user.isDeleted && user.username?.startsWith('~deleted_');
+        return (
         <ActionMenu
           items={[
             { label: '编辑用户', icon: Pencil, onClick: () => openEditDialog(user), disabled: !canModifyUser(user), hidden: !hasPermission('user.update') },
@@ -397,14 +402,15 @@ export default function UsersManagement() {
             { separator: true },
             { label: '解封用户', icon: ShieldCheck, onClick: (e) => handleUnbanClick(e, user), hidden: !user.isBanned || !hasPermission('dashboard.users') },
             { label: '封禁用户', icon: Ban, variant: 'warning', onClick: () => openBanDialog(user), disabled: !canModifyUser(user), hidden: user.isBanned || !hasPermission('dashboard.users') },
-            { label: '恢复账号', icon: RotateCcw, onClick: (e) => handleRestoreClick(e, user), hidden: !(user.isDeleted && user.deletionRequestedAt) || !hasPermission('dashboard.users') },
-            { label: '匿名化', icon: UserX, variant: 'destructive', onClick: (e) => handleAnonymizeClick(e, user), hidden: !user.isDeleted || !hasPermission('dashboard.users') },
+            { label: '恢复账号', icon: RotateCcw, onClick: (e) => handleRestoreClick(e, user), hidden: !(user.isDeleted && user.deletionRequestedAt) || isAnonymized || !hasPermission('dashboard.users') },
+            { label: '匿名化', icon: UserX, variant: 'destructive', onClick: (e) => handleAnonymizeClick(e, user), hidden: !user.isDeleted || isAnonymized || !hasPermission('dashboard.users') },
             { separator: true, hidden: !hasPermission('user.delete') },
             { label: '删除', icon: Trash2, variant: 'warning', onClick: (e) => handleDeleteClick(e, user, 'soft'), disabled: !canModifyUser(user), hidden: !hasPermission('user.delete') },
             { label: '彻底删除', icon: Trash2, variant: 'destructive', onClick: (e) => handleDeleteClick(e, user, 'hard'), disabled: !canModifyUser(user), hidden: !hasCondition('dashboard.users', 'allowPermanent') },
           ]}
         />
-      ),
+        );
+      },
     },
   ];
 

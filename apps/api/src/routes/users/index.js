@@ -1991,6 +1991,11 @@ export default async function userRoutes(fastify, options) {
       return reply.code(404).send({ error: '用户不存在' });
     }
 
+    // 已匿名化的用户不可恢复（PII 已清除，恢复后无法登录）
+    if (user.username?.startsWith('~deleted_')) {
+      return reply.code(400).send({ error: '该用户已匿名化，无法恢复' });
+    }
+
     if (!user.isDeleted || !user.deletionRequestedAt) {
       return reply.code(400).send({ error: '该用户不在注销待处理状态' });
     }
@@ -2059,6 +2064,10 @@ export default async function userRoutes(fastify, options) {
 
     if (!user.isDeleted) {
       return reply.code(400).send({ error: '只能匿名化已删除的用户' });
+    }
+
+    if (user.username?.startsWith('~deleted_')) {
+      return reply.code(400).send({ error: '该用户已匿名化，无需重复操作' });
     }
 
     // 在匿名化之前记录审计日志（之后 PII 将被清除）

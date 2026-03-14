@@ -111,10 +111,6 @@ async function cleanupPlugin(fastify, options) {
         });
 
         await anonymizeUser(user.id);
-        await db.update(users).set({
-          deletionRequestedAt: null,
-          deletionReason: null,
-        }).where(eq(users.id, user.id));
         processed++;
       } catch (err) {
         fastify.log.error(`[清理] 匿名化用户 ${user.id} 失败:`, err);
