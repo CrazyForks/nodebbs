@@ -7,6 +7,7 @@ import { normalizeEmail, normalizeUsername, normalizePhone, isPhoneNumber, isEma
 import { VerificationCodeType } from '../../plugins/message/config/verificationCode.js';
 import { verifyCode, deleteVerificationCode } from '../../plugins/message/utils/verificationCode.js';
 import { DELETION_COOLDOWN_MS } from '../../constants/user.js';
+import { EVENTS } from '../../constants/events.js';
 
 export default async function userRoutes(fastify, options) {
   const { permission } = fastify;
@@ -1741,6 +1742,15 @@ export default async function userRoutes(fastify, options) {
       await db.update(topics).set({ lastPostUserId: null }).where(eq(topics.lastPostUserId, userId));
 
       await db.delete(users).where(eq(users.id, userId));
+
+      // 触发用户删除事件
+      if (fastify.eventBus) {
+        fastify.eventBus.emit(EVENTS.USER_DELETED, {
+          userId,
+          username: targetUser.username,
+        });
+      }
+
       return { message: '用户已彻底删除' };
     } else {
       // 软删除
@@ -1961,6 +1971,14 @@ export default async function userRoutes(fastify, options) {
     // 清除用户缓存
     await fastify.clearUserCache(userId);
 
+    // 触发注销请求事件
+    if (fastify.eventBus) {
+      fastify.eventBus.emit(EVENTS.USER_DELETION_REQUESTED, {
+        userId,
+        username: user.username,
+      });
+    }
+
     return { message: '注销请求已提交，账号已停用。30天内可联系管理员恢复。' };
   });
 
@@ -2094,6 +2112,14 @@ export default async function userRoutes(fastify, options) {
 
     await anonymizeUser(userId);
     await fastify.clearUserCache(userId);
+
+    // 触发用户删除事件
+    if (fastify.eventBus) {
+      fastify.eventBus.emit(EVENTS.USER_DELETED, {
+        userId,
+        username: user.username,
+      });
+    }
 
     return { message: '用户数据已匿名化' };
   });

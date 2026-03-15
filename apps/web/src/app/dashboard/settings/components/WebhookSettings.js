@@ -17,6 +17,8 @@ const AVAILABLE_EVENTS = [
   { value: 'post.created', label: '回复创建', description: '用户发布回复时触发' },
   { value: 'post.liked', label: '帖子点赞', description: '用户点赞帖子时触发' },
   { value: 'user.checkin', label: '用户签到', description: '用户完成签到时触发' },
+  { value: 'user.deletion_requested', label: '用户注销申请', description: '用户申请注销账号时触发' },
+  { value: 'user.deleted', label: '用户已删除', description: '用户数据被匿名化或彻底删除时触发' },
 ];
 
 export function WebhookSettings() {

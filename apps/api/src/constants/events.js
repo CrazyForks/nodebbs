@@ -7,10 +7,14 @@
  *   POST_CREATED  → { id, userId, topicId, postNumber, replyToPostId, createdAt }
  *   POST_LIKED    → { postId, postAuthorId, userId }
  *   USER_CHECKIN  → { userId, streak }
+ *   USER_DELETION_REQUESTED → { userId, username }
+ *   USER_DELETED  → { userId, username }
  */
 export const EVENTS = {
   TOPIC_CREATED: 'topic.created',
   POST_CREATED: 'post.created',
   POST_LIKED: 'post.liked',
   USER_CHECKIN: 'user.checkin',
+  USER_DELETION_REQUESTED: 'user.deletion_requested',
+  USER_DELETED: 'user.deleted',
 };

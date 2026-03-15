@@ -5,6 +5,7 @@ import { and, eq, lt, sql } from 'drizzle-orm';
 import { anonymizeUser } from '../services/user/index.js';
 import { DELETION_COOLDOWN_MS } from '../constants/user.js';
 import moderationLogService from '../services/moderationLogService.js';
+import { EVENTS } from '../constants/events.js';
 
 /**
  * 数据清理插件
@@ -111,6 +112,15 @@ async function cleanupPlugin(fastify, options) {
         });
 
         await anonymizeUser(user.id);
+
+        // 触发用户删除事件
+        if (fastify.eventBus) {
+          fastify.eventBus.emit(EVENTS.USER_DELETED, {
+            userId: user.id,
+            username: user.username,
+          });
+        }
+
         processed++;
       } catch (err) {
         fastify.log.error(`[清理] 匿名化用户 ${user.id} 失败:`, err);
