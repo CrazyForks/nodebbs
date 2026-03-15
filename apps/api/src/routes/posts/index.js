@@ -1046,6 +1046,7 @@ export default async function postRoutes(fastify, options) {
         newStatus: 'pending',
         metadata: { note },
         ip: request.ip,
+        targetLabel: content.substring(0, 100),
       });
     }
 

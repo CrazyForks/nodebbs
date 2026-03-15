@@ -782,6 +782,7 @@ export default async function userRoutes(fastify, options) {
           newEmail: emailLower
         },
         ip: request.ip,
+        targetLabel: user.username,
       });
 
       fastify.log.info(`[邮箱绑定] 用户 ${userId} 绑定邮箱: ${emailLower}`);
@@ -904,6 +905,7 @@ export default async function userRoutes(fastify, options) {
           newPhone: normalizedPhone
         },
         ip: request.ip,
+        targetLabel: user.username,
       });
 
       fastify.log.info(`[手机绑定] 用户 ${userId} 绑定手机号: ${normalizedPhone}`);
@@ -1052,6 +1054,7 @@ export default async function userRoutes(fastify, options) {
           newEmail: newEmailLower
         },
         ip: request.ip,
+        targetLabel: user.username,
       });
 
       fastify.log.info(`[邮箱修改] 完成邮箱更换: ${oldEmail} → ${newEmailLower}`);
@@ -1201,6 +1204,7 @@ export default async function userRoutes(fastify, options) {
           newPhone: normalizedPhone
         },
         ip: request.ip,
+        targetLabel: user.username,
       });
 
       fastify.log.info(`[手机号修改] 完成手机号更换: ${oldPhone} → ${normalizedPhone}`);

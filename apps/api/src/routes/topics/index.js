@@ -1064,6 +1064,7 @@ export default async function topicRoutes(fastify, options) {
           newStatus: 'pending',
           metadata: { note },
           ip: request.ip,
+          targetLabel: request.body.title || topic.title,
         });
       }
 

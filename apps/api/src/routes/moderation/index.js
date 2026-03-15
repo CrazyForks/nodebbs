@@ -950,6 +950,7 @@ export default async function moderationRoutes(fastify, options) {
         previousStatus: 'pending',
         newStatus: 'approved',
         ip: request.ip,
+        targetLabel: post.rawContent?.substring(0, 100),
       });
 
       // 触发回复创建事件（幂等性由 rewards listener 的 referenceId 去重保障）
@@ -1050,6 +1051,7 @@ export default async function moderationRoutes(fastify, options) {
         previousStatus: 'pending',
         newStatus: 'rejected',
         ip: request.ip,
+        targetLabel: post.rawContent?.substring(0, 100),
       });
 
       return { message: '回复已拒绝', post: updated };
@@ -1124,6 +1126,7 @@ export default async function moderationRoutes(fastify, options) {
         reason: moderationLogs.reason,
         previousStatus: moderationLogs.previousStatus,
         newStatus: moderationLogs.newStatus,
+        targetLabel: moderationLogs.targetLabel,
         metadata: moderationLogs.metadata,
         createdAt: moderationLogs.createdAt,
         moderatorUsername: users.username,
@@ -1168,15 +1171,15 @@ export default async function moderationRoutes(fastify, options) {
     const enrichedLogs = logsList.map(log => {
       let targetInfo = null;
 
-      if (log.targetType === 'topic' && log.topicTitle) {
+      if (log.targetType === 'topic' && (log.targetLabel || log.topicTitle)) {
         targetInfo = {
-          title: log.topicTitle,
+          title: log.targetLabel || log.topicTitle,
           slug: log.topicSlug,
           authorUsername: log.topicAuthor
         };
-      } else if (log.targetType === 'post' && log.postContent) {
+      } else if (log.targetType === 'post' && (log.targetLabel || log.postContent)) {
         targetInfo = {
-          content: log.postContent,
+          content: log.targetLabel || log.postContent,
           authorUsername: log.postAuthor,
           topicId: log.postTopicId,
           topicTitle: log.postTopicTitle
@@ -1191,6 +1194,7 @@ export default async function moderationRoutes(fastify, options) {
 
       // 清理扁平化字段
       const {
+        targetLabel,
         topicTitle, topicSlug, topicAuthor,
         postContent, postAuthor, postTopicId, postTopicTitle,
         targetUserUsername, targetUserName, targetUserRole,
