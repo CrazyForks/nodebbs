@@ -10,12 +10,12 @@ import { cn } from '@/lib/utils';
  */
 export function SettingSection({ title, description, children, className }) {
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {(title || description) && (
         <div>
           {title && <h3 className="text-lg font-medium">{title}</h3>}
           {description && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {description}
             </p>
           )}
@@ -48,12 +48,12 @@ export function SettingItem({ title, description, children, className, layout = 
   const hasLabel = title || description;
 
   return (
-    <div className={cn('p-4 sm:p-5', containerStyles[layout], className)}>
+    <div className={cn('px-4 py-3 sm:px-5 sm:py-3.5', containerStyles[layout], className)}>
       {hasLabel && (
-        <div className={cn('flex flex-col space-y-1', layout === 'horizontal' && 'pr-4')}>
+        <div className={cn('flex flex-col space-y-0.5', layout === 'horizontal' && 'pr-4')}>
           {title && <span className='text-sm font-semibold'>{title}</span>}
           {description && (
-            <span className='text-sm text-muted-foreground leading-snug'>
+            <span className='text-xs text-muted-foreground leading-snug'>
               {description}
             </span>
           )}
