@@ -65,7 +65,7 @@ export default async function TagTopicListPage({ params, searchParams }) {
   const totalPages = Math.ceil(topicsData.total / LIMIT);
 
   return (
-    <div className='container mx-auto p-0 sm:py-6 lg:px-4 flex-1'>
+    <>
       <div className="mb-4 sm:mb-8 p-4 sm:p-6 bg-card rounded-none sm:rounded-lg border-x-0 border-y sm:border border-border">
         <div className="flex items-start gap-4">
           <div className="p-3 bg-primary/10 rounded-lg">
@@ -99,6 +99,6 @@ export default async function TagTopicListPage({ params, searchParams }) {
         showPagination={true}
         useUrlPagination={true}
       />
-    </div>
+    </>
   );
 }

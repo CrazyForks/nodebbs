@@ -212,7 +212,7 @@ function CapWidgetWrapper({ config, onVerify, onError, className }) {
   const [CapWidget, setCapWidget] = useState(null);
 
   useEffect(() => {
-    import('@/components/wed/cap-widget').then(module => {
+    import('@/components/captcha/CapWidget').then(module => {
       setCapWidget(() => module.CapWidget);
     });
   }, []);
