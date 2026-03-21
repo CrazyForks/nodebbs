@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { FormDialog } from '@/components/common/FormDialog';
 import { Shield, ShieldOff, Loader2 } from 'lucide-react';
 import { blockedUsersApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -25,7 +16,6 @@ export default function BlockUserButton({ userId, username, variant = 'outline',
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showUnblockDialog, setShowUnblockDialog] = useState(false);
 
-  // 检查拉黑状态
   useEffect(() => {
     if (isAuthenticated && user) {
       checkBlockStatus();
@@ -47,7 +37,6 @@ export default function BlockUserButton({ userId, username, variant = 'outline',
 
   const handleBlock = async () => {
     setLoading(true);
-
     try {
       await blockedUsersApi.block(userId);
       setIsBlocked(true);
@@ -63,7 +52,6 @@ export default function BlockUserButton({ userId, username, variant = 'outline',
 
   const handleUnblock = async () => {
     setLoading(true);
-
     try {
       await blockedUsersApi.unblock(userId);
       setIsBlocked(false);
@@ -77,17 +65,9 @@ export default function BlockUserButton({ userId, username, variant = 'outline',
     }
   };
 
-  // 如果是自己，不显示按钮
-  if (user && user.id === userId) {
-    return null;
-  }
+  if (user && user.id === userId) return null;
+  if (!isAuthenticated) return null;
 
-  // 如果未登录，不显示按钮
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // 如果正在检查状态，显示加载状态
   if (checking) {
     return (
       <Button variant={variant} className={className} size={size} disabled>
@@ -100,88 +80,37 @@ export default function BlockUserButton({ userId, username, variant = 'outline',
   return (
     <>
       {isBlocked ? (
-        <Button
-          variant={variant}
-          size={size}
-          className={className}
-          onClick={() => setShowUnblockDialog(true)}
-        >
+        <Button variant={variant} size={size} className={className} onClick={() => setShowUnblockDialog(true)}>
           <ShieldOff className="h-4 w-4" />
           已拉黑
         </Button>
       ) : (
-        <Button
-          variant={variant}
-          size={size}
-          className={className}
-          onClick={() => setShowBlockDialog(true)}
-        >
+        <Button variant={variant} size={size} className={className} onClick={() => setShowBlockDialog(true)}>
           <Shield className="h-4 w-4" />
           拉黑用户
         </Button>
       )}
 
-      {/* 拉黑确认对话框 */}
-      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认拉黑用户？</AlertDialogTitle>
-            <AlertDialogDescription>
-              拉黑 {username} 后：
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>你们将无法互相发送站内信</li>
-                <li>对方将无法查看你的动态</li>
-                <li>你可以随时取消拉黑</li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBlock}
-              disabled={loading}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  拉黑中...
-                </>
-              ) : (
-                '确认拉黑'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <FormDialog
+        open={showBlockDialog}
+        onOpenChange={setShowBlockDialog}
+        title="确认拉黑用户？"
+        description={`拉黑 ${username} 后，你们将无法互相发送站内信，对方将无法查看你的动态。你可以随时取消拉黑。`}
+        submitText="确认拉黑"
+        submitClassName="bg-destructive hover:bg-destructive/90"
+        onSubmit={handleBlock}
+        loading={loading}
+      />
 
-      {/* 取消拉黑确认对话框 */}
-      <AlertDialog open={showUnblockDialog} onOpenChange={setShowUnblockDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>取消拉黑？</AlertDialogTitle>
-            <AlertDialogDescription>
-              取消拉黑 {username} 后，你们将可以正常互动。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUnblock}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  处理中...
-                </>
-              ) : (
-                '确认取消'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <FormDialog
+        open={showUnblockDialog}
+        onOpenChange={setShowUnblockDialog}
+        title="取消拉黑？"
+        description={`取消拉黑 ${username} 后，你们将可以正常互动。`}
+        submitText="确认取消"
+        onSubmit={handleUnblock}
+        loading={loading}
+      />
     </>
   );
 }
