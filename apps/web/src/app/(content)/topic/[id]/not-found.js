@@ -1,22 +1,41 @@
+'use client';
+
 import Link from '@/components/common/Link';
 import { Button } from '@/components/ui/button';
+import { Home, ArrowLeft, MessageSquareOff } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className='px-4 py-6 flex-1'>
-      <div className='text-center py-16 border border-border rounded-lg bg-card'>
-        <div className='text-destructive font-semibold mb-2'>
-          话题不存在
+    <div className='flex-1 flex items-center justify-center px-4 py-16'>
+      <div className='max-w-sm w-full text-center'>
+        <div className='flex justify-center mb-6'>
+          <div className='rounded-full bg-muted/50 p-5'>
+            <MessageSquareOff className='h-10 w-10 text-muted-foreground/50 stroke-[1.5]' />
+          </div>
         </div>
-        <p className='text-muted-foreground mb-4'>
-          该话题可能已被删除或不存在
+
+        <h1 className='text-xl font-semibold text-foreground mb-2'>
+          话题不存在
+        </h1>
+        <p className='text-sm text-muted-foreground mb-8'>
+          该话题可能已被删除或从未发布过。
         </p>
-        <div className='flex items-center justify-center gap-2 mt-4'>
-          <Link href='/'>
-            <Button size='sm' variant='outline'>
+
+        <div className='flex items-center justify-center gap-3'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className='h-4 w-4' />
+            返回上一页
+          </Button>
+          <Button size='sm' asChild>
+            <Link href='/'>
+              <Home className='h-4 w-4' />
               返回首页
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </div>
