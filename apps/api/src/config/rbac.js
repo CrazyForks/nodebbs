@@ -454,6 +454,14 @@ export const SYSTEM_PERMISSIONS = [
     conditions: [],
   },
   {
+    slug: 'dashboard.pages',
+    name: '页面管理',
+    module: 'dashboard',
+    action: 'pages',
+    isSystem: true,
+    conditions: [],
+  },
+  {
     slug: 'dashboard.settings',
     name: '系统配置',
     module: 'dashboard',

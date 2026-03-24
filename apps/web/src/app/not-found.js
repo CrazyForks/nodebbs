@@ -8,7 +8,6 @@ export default function NotFound() {
   return (
     <div className='flex-1 flex items-center justify-center px-4 py-16'>
       <div className='max-w-sm w-full text-center'>
-        {/* 404 数字 */}
         <div className='relative mb-8'>
           <div className='text-[8rem] font-black leading-none tracking-tighter text-muted-foreground/10 select-none'>
             404
@@ -18,7 +17,6 @@ export default function NotFound() {
           </div>
         </div>
 
-        {/* 文案 */}
         <h1 className='text-xl font-semibold text-foreground mb-2'>
           页面未找到
         </h1>
@@ -26,7 +24,6 @@ export default function NotFound() {
           抱歉，您访问的页面不存在或已被删除。
         </p>
 
-        {/* 操作按钮 */}
         <div className='flex items-center justify-center gap-3'>
           <Button
             variant='outline'

@@ -1,4 +1,5 @@
 import { request, getCurrentUser } from './api';
+import { cache } from 'react';
 import {
   THEMES,
   FONT_SIZES,
@@ -14,6 +15,10 @@ const DEFAULT_SITE_LOGO = '/logo.svg';
 const DEFAULT_FAVICON = '/favicon.ico';
 const DEFAULT_APPLE_TOUCH_ICON = '/apple-touch-icon.png';
 
+export const getApiInfo = cache(async () => {
+  return await request('/');
+});
+
 // ============ 主函数 ============
 
 /**
@@ -28,7 +33,7 @@ export async function getLayoutData() {
   try {
     const [settingsData, apiData, currenciesData] = await Promise.all([
       request('/settings'),
-      request('/'),
+      getApiInfo(),
       request('/ledger/active-currencies'),
     ]);
     settings = settingsData;

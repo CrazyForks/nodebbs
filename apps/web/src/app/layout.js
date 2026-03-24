@@ -32,12 +32,12 @@ export const viewport = {
   userScalable: false,
 };
 
-async function AppLayout({ children, settings, apiInfo }) {
+function AppLayout({ children, apiInfo }) {
   return (
     <div className='min-h-screen bg-background flex flex-col'>
       <Header />
       <EmailVerificationBanner />
-      <div className='flex-1 flex flex-col'>{children}</div>
+      <main className='flex-1 flex flex-col'>{children}</main>
       <Footer version={apiInfo?.version} />
     </div>
   );

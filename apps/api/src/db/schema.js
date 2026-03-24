@@ -944,6 +944,24 @@ export const filesRelations = relations(files, ({ one }) => ({
   }),
 }));
 
+// ============ Pages (页面管理) ============
+export const pages = pgTable(
+  'pages',
+  {
+    ...$defaults,
+    title: varchar('title', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 500 }).notNull().unique(),
+    type: varchar('type', { length: 20 }).notNull(), // text | html | markdown | json
+    content: text('content').notNull(),
+    isPublished: boolean('is_published').notNull().default(false),
+  },
+  (table) => [
+    index('pages_slug_idx').on(table.slug),
+    index('pages_type_idx').on(table.type),
+    index('pages_is_published_idx').on(table.isPublished),
+  ]
+);
+
 // ============ QR Login Requests (扫码登录请求) ============
 export const qrLoginRequests = pgTable(
   'qr_login_requests',

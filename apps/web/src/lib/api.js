@@ -45,11 +45,25 @@ class ApiClient {
     }
   }
 
+  buildQueryString(params) {
+    if (!params) {
+      return '';
+    }
+
+    const filteredEntries = Object.entries(params).filter(([, value]) => (
+      value !== undefined && value !== null
+    ));
+
+    if (filteredEntries.length === 0) {
+      return '';
+    }
+
+    return `?${new URLSearchParams(filteredEntries).toString()}`;
+  }
+
   // GET 请求
   async get(endpoint, params) {
-    const queryString = params
-      ? '?' + new URLSearchParams(params).toString()
-      : '';
+    const queryString = this.buildQueryString(params);
     return this.request(endpoint + queryString, {
       method: 'GET',
     });
@@ -87,9 +101,7 @@ class ApiClient {
 
   // DELETE 请求
   async delete(endpoint, params) {
-    const queryString = params
-      ? '?' + new URLSearchParams(params).toString()
-      : '';
+    const queryString = this.buildQueryString(params);
     return this.request(endpoint + queryString, {
       method: 'DELETE',
       body: JSON.stringify({}),
@@ -99,6 +111,14 @@ class ApiClient {
 
 // 创建单例实例
 const apiClient = new ApiClient();
+
+function encodePageSlug(slug) {
+  return String(slug || '')
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
 
 // ============= 认证 API =============
 export const authApi = {
@@ -904,6 +924,35 @@ export const captchaConfigApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+};
+
+// ============= 页面管理 API =============
+export const pagesApi = {
+  async getBySlug(slug) {
+    return apiClient.get(`/pages/${encodePageSlug(slug)}`);
+  },
+
+  admin: {
+    async getList(params = {}) {
+      return apiClient.get('/pages/admin', params);
+    },
+
+    async getById(id) {
+      return apiClient.get(`/pages/admin/${id}`);
+    },
+
+    async create(data) {
+      return apiClient.post('/pages/admin', data);
+    },
+
+    async update(id, data) {
+      return apiClient.patch(`/pages/admin/${id}`, data);
+    },
+
+    async delete(id) {
+      return apiClient.delete(`/pages/admin/${id}`);
+    },
   },
 };
 

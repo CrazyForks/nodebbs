@@ -26,6 +26,7 @@ import {
   Medal,
   Megaphone,
   Files,
+  FileCode,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
@@ -68,6 +69,7 @@ export default function DashboardSidebar() {
         { href: '/dashboard/categories', icon: FolderTree, label: '分类管理', permission: 'dashboard.categories' },
         { href: '/dashboard/tags', icon: Tag, label: '标签管理', permission: 'dashboard.tags' },
         { href: '/dashboard/files', icon: Files, label: '文件管理', permission: 'dashboard.files' },
+        { href: '/dashboard/pages', icon: FileCode, label: '页面管理', permission: 'dashboard.pages' },
         { href: '/dashboard/emojis', icon: Smile, label: '表情管理', permission: 'dashboard.emojis' },
       ],
     },

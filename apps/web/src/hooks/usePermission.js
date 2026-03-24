@@ -19,6 +19,7 @@ export const DASHBOARD_PERMISSIONS = [
   'dashboard.moderation',
   'dashboard.extensions',
   'dashboard.ads',
+  'dashboard.pages',
   'dashboard.settings',
 ];
 
