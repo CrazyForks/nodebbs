@@ -1,24 +1,12 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Trophy, Coins, TrendingUp, Medal, Crown } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Trophy, Coins, Crown } from 'lucide-react';
 import Link from '@/components/common/Link';
 import UserAvatar from '@/components/user/UserAvatar';
-import { request, getCurrentUser } from '@/lib/server/api';
-import { getDefaultCurrencyName } from '@/lib/server/ledger';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Suspense } from 'react';
-
-export const metadata = {
-  title: '排行榜',
-  description: '查看社区活跃用户和财富榜单。',
-};
-
 
 // 领奖台组件，用于展示前三名
 function Podium({ top3, rankType }) {
-  // 规范化数组，确保始终有3个位置（不足3人时用 null 填充）
   const [first, second, third] = [top3[0], top3[1], top3[2]];
 
   const PodiumItem = ({ user, rank, className }) => {
@@ -40,10 +28,10 @@ function Podium({ top3, rankType }) {
                 isSecond && "border-gray-300 bg-gray-100",
                 isThird && "border-amber-600 bg-amber-50"
             )}>
-                 <UserAvatar 
-                    url={user.avatar} 
+                 <UserAvatar
+                    url={user.avatar}
                     name={user.name || user.username}
-                    size={isFirst ? "xl" : "lg"} 
+                    size={isFirst ? "xl" : "lg"}
                     className="border-2 border-white dark:border-gray-900"
                     modifiers='embed,s_200x200'
                  />
@@ -57,7 +45,7 @@ function Podium({ top3, rankType }) {
                 {rank}
             </div>
          </div>
-         
+
          <Link href={`/users/${user.username}`} className="text-center group p-2 rounded-lg hover:bg-muted/50 transition-colors w-full max-w-35">
             <div className="font-bold text-sm sm:text-base truncate w-full group-hover:text-primary transition-colors">
                 {user.name}
@@ -80,38 +68,27 @@ function Podium({ top3, rankType }) {
 
   return (
     <div className="flex justify-center items-end gap-4 sm:gap-8 pb-8 pt-4 sm:pt-6 mb-2 border-b">
-        {/* 第二名 (左) */}
         <PodiumItem user={second} rank={2} className="order-1 flex-1 sm:flex-none" />
-        
-        {/* 第一名 (中, 更高) */}
         <PodiumItem user={first} rank={1} className="order-2 flex-1 sm:flex-none -mt-8 sm:-mt-12" />
-        
-        {/* 第三名 (右) */}
         <PodiumItem user={third} rank={3} className="order-3 flex-1 sm:flex-none" />
     </div>
   );
 }
 
-// 排名第4及以后的简洁列表项
 function RankItem({ user, index, rankType, currentUserId }) {
   const isCurrentUser = currentUserId === user.userId;
   const rank = index + 1;
-
-  // Top 10 与其他的视觉区分？为了保持简洁，可能不需要。
-  // 只使用数字编号。
 
   return (
     <Link
       href={`/users/${user.username}`}
       className="block group"
-     
     >
       <div className={cn(
           "flex items-center gap-3 sm:gap-6 p-4 rounded-xl transition-colors hover:bg-muted/50",
-          "border border-transparent", // 预留边框空间
+          "border border-transparent",
           isCurrentUser && "bg-primary/5 hover:bg-primary/10 border-primary/20",
       )}>
-        {/* 排名数字 */}
         <div className={cn(
             "w-8 text-center font-bold text-lg tabular-nums opacity-50 group-hover:opacity-100 transition-opacity",
             isCurrentUser && "opacity-100 text-primary"
@@ -119,7 +96,6 @@ function RankItem({ user, index, rankType, currentUserId }) {
           {rank}
         </div>
 
-        {/* 用户信息 */}
         <div className="flex-1 min-w-0 flex items-center gap-3">
              <UserAvatar url={user.avatar} name={user.name || user.username} size="md" modifiers='embed,s_200x200' />
              <div className="flex-1 min-w-0">
@@ -144,7 +120,6 @@ function RankItem({ user, index, rankType, currentUserId }) {
              </div>
         </div>
 
-        {/* 积分 */}
         <div className="text-right shrink-0 ml-4">
           <div className="flex items-center justify-end gap-1.5 font-bold text-muted-foreground group-hover:text-foreground transition-colors">
             <Coins className="h-4 w-4 text-yellow-500/70 group-hover:text-yellow-500 transition-colors" />
@@ -163,18 +138,15 @@ function RankItem({ user, index, rankType, currentUserId }) {
   );
 }
 
-// 骨架屏加载状态
 function RankSkeleton() {
     return (
         <div className="space-y-6 animate-pulse">
-             {/* 领奖台骨架屏 */}
              <div className="flex justify-center items-end gap-8 pb-8 border-b h-50">
                  <div className="w-20 h-32 bg-muted rounded-t-lg mx-2" />
                  <div className="w-24 h-40 bg-muted rounded-t-lg mx-2" />
                  <div className="w-20 h-24 bg-muted rounded-t-lg mx-2" />
              </div>
-             
-             {/* 列表骨架屏 */}
+
              <div className="space-y-2">
                  {[...Array(8)].map((_, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-xl">
@@ -189,24 +161,10 @@ function RankSkeleton() {
                  ))}
              </div>
         </div>
-    )
+    );
 }
 
-// 异步数据获取组件
-async function RankList({ type, limit = 50, currentUserId, currencyName }) {
-    let ranking = [];
-    try {
-        const data = await request(`/rewards/rank?limit=${limit}&type=${type}`);
-        ranking = data?.items || [];
-    } catch (e) {
-        console.error("Fetch ranking failed", e);
-        return (
-             <div className="text-center py-12 text-destructive">
-                获取排行榜数据失败，请稍后重试
-             </div>
-        )
-    }
-
+function RankListView({ ranking, rankType, currentUserId, currencyName }) {
     if (ranking.length === 0) {
         return (
             <div className="text-center py-12">
@@ -226,21 +184,19 @@ async function RankList({ type, limit = 50, currentUserId, currencyName }) {
 
     return (
         <div className="animate-in fade-in duration-500">
-             {/* 前三名领奖台 */}
-             <Podium top3={top3} rankType={type} />
+             <Podium top3={top3} rankType={rankType} />
 
-             {/* 其余用户列表 */}
              <div className="space-y-1 mt-4">
                  {rest.map((user, index) => (
                      <RankItem
                         key={user.userId}
                         user={user}
-                        index={index + 3} // 偏移3位
-                        rankType={type}
+                        index={index + 3}
+                        rankType={rankType}
                         currentUserId={currentUserId}
                      />
                  ))}
-                 
+
                  {rest.length === 0 && ranking.length > 0 && (
                      <div className="text-center text-muted-foreground py-8 text-sm">
                          上榜用户太少，快来冲榜吧！
@@ -248,19 +204,12 @@ async function RankList({ type, limit = 50, currentUserId, currencyName }) {
                  )}
              </div>
         </div>
-    )
+    );
 }
 
-
-export default async function RankPage({ searchParams }) {
-  const { type } = await searchParams; // Next.js 15+ searchParams 是 promise
-  const rankType = type || 'balance';
-  const currentUser = await getCurrentUser();
-  const currencyName = await getDefaultCurrencyName();
-
+export default function RankView({ rankType, currentUserId, currencyName, ranking }) {
   return (
     <div className="px-4 py-8 max-w-4xl mx-auto">
-      {/* 页面标题 */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
             <h1 className="text-3xl font-bold text-card-foreground mb-2 flex items-center gap-2">
@@ -269,8 +218,7 @@ export default async function RankPage({ searchParams }) {
             </h1>
             <p className="text-muted-foreground">社区活跃度排名</p>
         </div>
-        
-        {/* Tab 切换器 - 简单的链接样式，使头部更整洁 */}
+
         <div className="flex bg-muted p-1 rounded-lg self-start sm:self-auto">
              <Link href="/rank?type=balance" scroll={false} replace className={cn(
                 "px-4 py-1.5 text-sm font-medium rounded-md transition",
@@ -288,11 +236,13 @@ export default async function RankPage({ searchParams }) {
       </div>
 
       <Card className="border-none shadow-none sm:border sm:shadow-sm bg-transparent sm:bg-card">
-        {/* 移动端: 卡片无内边距，提供全宽滑动感？或者保持标准。标准更安全。 */}
         <CardContent className="p-0 sm:p-6">
-            <Suspense key={rankType} fallback={<RankSkeleton />}>
-                <RankList type={rankType} currentUserId={currentUser?.id} currencyName={currencyName} />
-            </Suspense>
+            <RankListView
+              ranking={ranking}
+              rankType={rankType}
+              currentUserId={currentUserId}
+              currencyName={currencyName}
+            />
         </CardContent>
       </Card>
     </div>

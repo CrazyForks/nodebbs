@@ -208,3 +208,78 @@ export async function getRewardStats(topic, posts) {
   }
   return {};
 }
+
+/**
+ * 服务端获取单个标签数据
+ * @param {string} slug - 标签slug
+ * @returns {Promise<Object|null>} 标签数据
+ */
+export async function getTagData(slug) {
+  try {
+    const data = await request(`/tags/${slug}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching tag:', error);
+    return null;
+  }
+}
+
+/**
+ * 将扁平分类列表组装为树形结构
+ * @param {Array} data - 扁平分类列表
+ * @returns {Array} 树形分类列表
+ */
+export function buildCategoryTree(data) {
+  const categoryMap = new Map();
+  const rootCategories = [];
+
+  data.forEach(cat => {
+    categoryMap.set(cat.id, { ...cat, subcategories: [] });
+  });
+
+  data.forEach(cat => {
+    const category = categoryMap.get(cat.id);
+    if (cat.parentId) {
+      const parent = categoryMap.get(cat.parentId);
+      if (parent) {
+        parent.subcategories.push(category);
+      }
+    } else {
+      rootCategories.push(category);
+    }
+  });
+
+  const sortByName = (a, b) => a.name.localeCompare(b.name);
+  const sortCategories = (cats) => {
+    cats.sort(sortByName);
+    cats.forEach(cat => {
+      if (cat.subcategories.length > 0) {
+        sortCategories(cat.subcategories);
+      }
+    });
+  };
+  sortCategories(rootCategories);
+
+  const calculateTotalStats = (category) => {
+    let total = category.topicCount || 0;
+    if (category.subcategories.length > 0) {
+      category.subcategories.forEach(sub => {
+        total += calculateTotalStats(sub);
+      });
+    }
+    category.totalTopics = total;
+    return total;
+  };
+  rootCategories.forEach(calculateTotalStats);
+
+  return rootCategories;
+}
+
+/**
+ * 服务端获取分类树形数据（获取 + 组装）
+ * @returns {Promise<Array>} 树形分类列表
+ */
+export async function getCategoriesTree() {
+  const data = await getCategoriesData();
+  return buildCategoryTree(data);
+}

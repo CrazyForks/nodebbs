@@ -1,7 +1,6 @@
 import { getTopicsData } from '@/lib/server/topics';
-import { TopicList } from '@/components/topic/TopicList';
-import { TopicSortTabs } from '@/components/topic/TopicSortTabs';
-import { AdSlot } from '@/extensions/ads/components';
+import SidebarLayout from './components/SidebarLayout';
+import HomeView from './components/HomeView';
 
 // 页面标题映射
 const PAGE_OPTS = {
@@ -30,7 +29,6 @@ export async function generateMetadata({ searchParams }) {
   const { title } = PAGE_OPTS[sort] || PAGE_OPTS.latest;
 
   return {
-    // title,
     openGraph: {
       title,
       type: 'website',
@@ -47,7 +45,6 @@ export default async function HomePage({ searchParams }) {
 
   const { title, description } = PAGE_OPTS[sort] || PAGE_OPTS.latest;
 
-  // 服务端获取数据
   const data = await getTopicsData({
     page,
     sort,
@@ -57,28 +54,16 @@ export default async function HomePage({ searchParams }) {
   const totalPages = Math.ceil(data.total / LIMIT);
 
   return (
-    <>
-      {/* 页面标题 & 排序切换 */}
-      <div className='flex flex-col gap-2 px-3 sm:px-0 lg:flex-row lg:items-end lg:justify-between lg:gap-4'>
-        <div>
-          <h1 className='text-2xl sm:text-3xl font-semibold tracking-tight'>{title}</h1>
-          <p className='text-muted-foreground mt-1'>{description}</p>
-        </div>
-
-        <TopicSortTabs defaultValue={sort} className='w-auto' />
-      </div>
-      <TopicList
-        initialData={data.items}
-        total={data.total}
-        currentPage={page}
+    <SidebarLayout>
+      <HomeView
+        title={title}
+        description={description}
+        sort={sort}
+        data={data}
+        page={page}
         totalPages={totalPages}
         limit={LIMIT}
-        showPagination={true}
-        useUrlPagination={true}
-        itemInserts={{
-          4: <AdSlot key='ad-topic-inline' slotCode='topic_list_inline' className='p-3 rounded-none' />
-        }}
       />
-    </>
+    </SidebarLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { request } from '@/lib/server/api';
+import { getTagsData } from '@/lib/server/topics';
 import TagsUI from './components/TagsUI';
 
 export const metadata = {
@@ -6,18 +6,8 @@ export const metadata = {
   description: '浏览社区中的所有话题标签',
 };
 
-async function getTags() {
-  try {
-    const data = await request('/tags?limit=500');
-    return data.items || [];
-  } catch (error) {
-    console.error('Error fetching tags:', error);
-    return [];
-  }
-}
-
 export default async function TagsPage() {
-  const tags = await getTags();
+  const tags = await getTagsData({ limit: 500 });
 
   return (
     <div className='py-3 sm:py-6 lg:px-4'>

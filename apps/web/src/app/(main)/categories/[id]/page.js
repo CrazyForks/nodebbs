@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getCategoryBySlug, getTopicsData } from '@/lib/server/topics';
-import { TopicList } from '@/components/topic/TopicList';
-import { TopicSortTabs } from '@/components/topic/TopicSortTabs';
+import SidebarLayout from '../../components/SidebarLayout';
+import CategoryView from './components/CategoryView';
 
 // 生成页面元数据
 export async function generateMetadata({ params }) {
@@ -32,15 +32,12 @@ export default async function CategoryPage({ params, searchParams }) {
   const sort = resolvedParams.sort || 'latest';
   const LIMIT = 20;
 
-  // 服务端获取分类信息
   const category = await getCategoryBySlug(slug);
 
-  // 分类不存在
   if (!category) {
     notFound();
   }
 
-  // 服务端获取话题数据
   const data = await getTopicsData({
     page,
     sort,
@@ -51,37 +48,15 @@ export default async function CategoryPage({ params, searchParams }) {
   const totalPages = Math.ceil(data.total / LIMIT);
 
   return (
-    <>
-      {/* 分类标题 & 排序切换 */}
-      <div className='flex flex-col gap-2 mb-3 px-3 sm:px-0 lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:mb-4'>
-        <div className='pt-3 sm:pt-0'>
-          <div className='flex items-center gap-2'>
-            <div
-              className='w-3 h-3 rounded-sm'
-              style={{ backgroundColor: category.color }}
-            ></div>
-            <h1 className='text-2xl font-semibold'>{category.name}</h1>
-          </div>
-          {category.description && (
-            <p className='text-sm text-muted-foreground mt-1'>
-              {category.description}
-            </p>
-          )}
-        </div>
-
-        <TopicSortTabs defaultValue={sort} className='w-auto' />
-      </div>
-
-      {/* 话题列表 */}
-      <TopicList
-        initialData={data.items}
-        total={data.total}
-        currentPage={page}
+    <SidebarLayout>
+      <CategoryView
+        category={category}
+        sort={sort}
+        data={data}
+        page={page}
         totalPages={totalPages}
         limit={LIMIT}
-        showPagination={true}
-        useUrlPagination={true}
       />
-    </>
+    </SidebarLayout>
   );
 }

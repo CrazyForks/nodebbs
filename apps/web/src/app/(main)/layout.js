@@ -1,4 +1,4 @@
-export default function ContentLayout({ children }) {
+export default function MainLayout({ children }) {
   return (
     <div className='container mx-auto'>
       {children}
