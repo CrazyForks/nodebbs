@@ -123,7 +123,7 @@ export default function TopicContent() {
       )}
 
       {/* 话题标题 */}
-      <div className='px-4 pt-4 mb-6'>
+      <div className='px-4 mb-6'>
         <div className='flex items-start'>
           <div className='flex-1 min-w-0'>
             {/* 分类 */}

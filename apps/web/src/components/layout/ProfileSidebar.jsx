@@ -195,7 +195,7 @@ export default function ProfileSidebar() {
   };
 
   return (
-    <nav className="py-3">
+    <nav className="">
       {menuItems.map(item => renderMenuItem(item))}
     </nav>
   );

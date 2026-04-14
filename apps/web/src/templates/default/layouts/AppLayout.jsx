@@ -6,7 +6,7 @@ export default function AppLayout({ children, apiInfo }) {
   const Footer = getTemplate('Footer');
 
   return (
-    <div className='min-h-screen bg-background flex flex-col' style={{ '--header-offset': '57px', '--content-padding-top': '1.5rem' }}>
+    <div className='min-h-screen bg-background flex flex-col' style={{ '--header-offset': '73px' }}>
       <Header />
       <EmailVerificationBanner />
       <main className='flex-1 flex flex-col'>{children}</main>

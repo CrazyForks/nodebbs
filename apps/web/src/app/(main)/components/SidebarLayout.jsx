@@ -11,7 +11,7 @@ export default async function SidebarLayout({ children }) {
   const safeStats = stats || null;
 
   return (
-    <div className='py-3 sm:p-2 lg:px-4 lg:py-6 space-y-3'>
+    <div className='py-3 sm:p-2 lg:p-4 space-y-3'>
       <AdSlot slotCode='home_header_banner' className='rounded-none lg:rounded-lg' />
       <div className='flex lg:gap-6'>
         <div className='fixed z-10 -left-full lg:static lg:w-64 shrink-0'>

@@ -14,7 +14,7 @@ export const metadata = {
 export default function ProfileLayout({ children }) {
   return (
     <RequireAuth>
-      <div className='container mx-auto p-2 lg:px-4' style={{ paddingTop: 'var(--content-padding-top, 1.5rem)' }}>
+      <div className='container mx-auto p-2 lg:p-4'>
         <div className='flex lg:gap-6'>
           <div className='fixed z-10 -left-full lg:static lg:w-64 shrink-0'>
             <StickySidebar className='sticky top-[var(--header-offset)]'>

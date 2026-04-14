@@ -7,7 +7,7 @@ export default function AppLayout({ children }) {
   const Header = getTemplate('Header');
 
   return (
-    <div className='min-h-screen bg-background' style={{ '--header-offset': '0px', '--content-padding-top': '0px' }}>
+    <div className='min-h-screen bg-background' style={{ '--header-offset': '8px' }}>
       <Header />
       <EmailVerificationBanner />
       <div className='container mx-auto flex min-h-screen'>
