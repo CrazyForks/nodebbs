@@ -1,0 +1,54 @@
+'use client';
+
+import StickySidebar from '@/components/common/StickySidebar';
+import { TopicProvider } from '@/contexts/TopicContext';
+import TopicContent from '@/app/(main)/topic/[id]/components/TopicContent';
+import ReplySection from '@/app/(main)/topic/[id]/components/ReplySection';
+import TopicSidebar from '@/app/(main)/topic/[id]/components/TopicSidebar';
+
+/**
+ * Jatra 话题详情页（客户端组件）
+ * 自行管理布局：内容区 + TopicSidebar
+ * 左侧栏由 PageLayout 提供
+ */
+export default function TopicView({
+  topic: initialTopic,
+  initialPosts,
+  totalPosts,
+  totalPages,
+  currentPage,
+  limit,
+  initialRewardStats = {},
+  initialIsRewardEnabled = false,
+}) {
+  return (
+    <TopicProvider
+      initialTopic={initialTopic}
+      initialRewardStats={initialRewardStats}
+      initialIsRewardEnabled={initialIsRewardEnabled}
+      currentPage={currentPage}
+      limit={limit}
+    >
+      <div className='flex gap-6 w-full'>
+        {/* 主内容区 */}
+        <div className='flex-1 min-w-0'>
+          <TopicContent />
+          <ReplySection
+            initialPosts={initialPosts}
+            totalPosts={totalPosts}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            limit={limit}
+          />
+        </div>
+
+        {/* 话题专属右侧栏 */}
+        <div className='hidden lg:block w-64 shrink-0'>
+          <StickySidebar className='sticky top-[var(--header-offset)] space-y-4'>
+            <TopicSidebar />
+          </StickySidebar>
+        </div>
+      </div>
+    </TopicProvider>
+  );
+}

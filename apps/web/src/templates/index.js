@@ -2,17 +2,19 @@ import * as defaultTemplate from './default';
 import * as minimalTemplate from './minimal';
 import * as twitterTemplate from './twitter';
 import * as mediumTemplate from './medium';
+import * as jatraTemplate from './jatra';
 
 const templates = {
   default: defaultTemplate,
   minimal: minimalTemplate,
   twitter: twitterTemplate,
   medium: mediumTemplate,
+  jatra: jatraTemplate,
 };
 
 // 第一阶段：通过环境变量硬编码模板名称
 // 后续改为从数据库/settings 读取
-const ACTIVE_TEMPLATE = process.env.NEXT_PUBLIC_TEMPLATE || 'medium';
+const ACTIVE_TEMPLATE = process.env.NEXT_PUBLIC_TEMPLATE || 'jatra';
 
 /**
  * 获取当前激活的模板名称

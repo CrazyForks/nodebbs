@@ -1,0 +1,14 @@
+/* === Jatra 模板全局样式 === */
+
+.jatra-template {
+  background-color: var(--background);
+  min-height: 100vh;
+}
+
+/* 卡片通用样式 */
+.jatra-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}

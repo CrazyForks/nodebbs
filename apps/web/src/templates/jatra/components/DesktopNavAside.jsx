@@ -1,0 +1,73 @@
+'use client';
+
+import Link from 'next/link';
+import { Home, Megaphone, MessageCircle, Hash } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
+
+/**
+ * Jatra 左侧导航
+ * 优先显示 Home，然后动态渲染 categories
+ * 当 categories 为空时回退到静态菜单
+ */
+export default function DesktopNavAside({ categories = [] }) {
+  const pathname = usePathname();
+
+  // 动态构建导航项：固定首页 + 分类列表
+  const navItems = [
+    { href: '/', label: 'Home', icon: Home },
+  ];
+
+  if (categories.length > 0) {
+    // 使用真实分类数据
+    categories.forEach((cat) => {
+      navItems.push({
+        href: `/categories/${cat.slug}`,
+        label: cat.name,
+        icon: Hash,
+        color: cat.color,
+      });
+    });
+  }
+
+  // 固定底部入口
+  navItems.push(
+    { href: '/categories', label: '全部版块', icon: MessageCircle },
+    { href: '/tags', label: '标签广场', icon: Hash },
+  );
+
+  return (
+    <aside className='hidden md:flex flex-col w-44 shrink-0 sticky top-[var(--header-offset)] overflow-y-auto'>
+      <nav className='flex flex-col gap-1'>
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-all border-l-2',
+                isActive
+                  ? 'border-primary text-primary bg-primary/5 dark:bg-primary/10'
+                  : 'border-transparent text-muted-foreground hover:bg-muted dark:hover:bg-muted/50'
+              )}
+            >
+              {/* 分类带颜色圆点 */}
+              {item.color ? (
+                <span
+                  className='w-3 h-3 rounded-full shrink-0'
+                  style={{ backgroundColor: item.color }}
+                />
+              ) : (
+                <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : 'text-muted-foreground')} />
+              )}
+              <span className='text-sm truncate'>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
