@@ -17,7 +17,7 @@ export default function JatraTopicList({
   if (topics.length === 0) {
     return (
       <div className='py-12 text-center text-muted-foreground bg-card rounded-xl border border-border shadow-sm'>
-        No discussions found.
+        暂无话题
       </div>
     );
   }
