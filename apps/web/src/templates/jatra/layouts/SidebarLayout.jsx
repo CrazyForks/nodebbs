@@ -5,12 +5,13 @@ import RightSidebar from '../components/RightSidebar';
 
 /**
  * Jatra SidebarLayout（服务端组件）
- * 仅负责右侧栏。各 View 按需调用。
+ * 负责右栏(stats/关于社区) + 主体横幅广告。
+ * 列表型 View(Home/Category/Tag/Categories/Rank) 通过它接入默认右栏。
+ * 详情/特殊 View(Topic/User/Tags/Search) 自行布局,不走本 layout。
  *
- * 用法：
- *   <SidebarLayout>              → 默认显示 RightSidebar
- *   <SidebarLayout rightSidebar={<Custom />}> → 自定义右侧栏
- *   <SidebarLayout rightSidebar={null}>       → 不显示右侧栏
+ * 用法:
+ *   <SidebarLayout>                       → 默认右栏 + 侧栏广告
+ *   <SidebarLayout rightSidebar={null}>   → 不显示右栏
  */
 export default async function SidebarLayout({ children, rightSidebar }) {
   const [stats, apiInfo] = await Promise.all([

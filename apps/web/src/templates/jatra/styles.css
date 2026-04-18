@@ -3,10 +3,6 @@
  * 此文件只保留模板结构性工具类
  */
 
-.jatra-template {
-  min-height: 100vh;
-}
-
 /* 论坛风扁平卡片 — 无阴影，依赖边框 */
 .jatra-card {
   background-color: var(--card);

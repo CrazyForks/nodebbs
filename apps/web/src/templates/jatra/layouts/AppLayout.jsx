@@ -8,15 +8,10 @@ export default function AppLayout({ children }) {
   const Footer = getTemplate(GLOBALS.Footer);
 
   return (
-    <div className='jatra-template min-h-screen text-foreground flex flex-col font-sans' style={{ '--header-offset': '89px' }}>
+    <div className='min-h-screen bg-background text-foreground flex flex-col font-sans' style={{ '--header-offset': '89px' }}>
       <Header />
       <EmailVerificationBanner />
-      
-      {/* 主内容区域 */}
-      <div className='flex-grow flex flex-col bg-background'>
-        {children}
-      </div>
-
+      <main className='flex-1 flex flex-col'>{children}</main>
       <Footer />
     </div>
   );

@@ -14,7 +14,7 @@ export default function RightSidebar({ stats, version }) {
       {/* 卡片1：关于社区 */}
       <div className='jatra-card p-4'>
         <h3 className='font-bold text-foreground mb-2 text-[13px] flex items-center gap-2'>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
           关于社区
         </h3>
         <p className='text-xs text-muted-foreground leading-relaxed'>
@@ -35,7 +35,7 @@ function StatsPanel({ stats }) {
   return (
     <div className='jatra-card p-4'>
         <h3 className='font-bold text-foreground mb-3 text-[13px] flex items-center gap-2'>
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-chart-1 shrink-0"></span>
           社区数据
         </h3>
         {/* 统计数字 */}

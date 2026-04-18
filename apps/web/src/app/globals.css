@@ -49,7 +49,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -412,8 +412,8 @@
   --muted: oklch(0.948 0.008 260);
   --muted-foreground: oklch(0.52 0.025 260); /* #5F6F86 */
 
-  --accent: oklch(0.6 0.13 240); /* #3386C5 Jatra 蓝 */
-  --accent-foreground: oklch(1 0 0);
+  --accent: oklch(0.94 0.018 240); /* 淡蓝着色背景，供 shadcn hover 状态使用 */
+  --accent-foreground: oklch(0.45 0.13 240); /* Jatra 品牌蓝作为强调文字 */
 
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(1 0 0);
@@ -459,8 +459,8 @@
   --muted: oklch(0.2 0.028 260);
   --muted-foreground: oklch(0.7 0.025 260); /* #98A9C4 */
 
-  --accent: oklch(0.72 0.1 220); /* #4AB3D6 */
-  --accent-foreground: oklch(0.2 0.03 265);
+  --accent: oklch(0.28 0.035 220); /* 深色上的淡蓝着色背景（对齐 ring/chart-2 hue 220）*/
+  --accent-foreground: oklch(0.82 0.1 220); /* 亮蓝强调文字 */
 
   --destructive: oklch(0.68 0.22 25);
   --destructive-foreground: oklch(0.93 0.015 260);

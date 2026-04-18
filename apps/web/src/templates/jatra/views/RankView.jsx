@@ -42,7 +42,7 @@ function Podium({ top3, rankType }) {
   };
 
   return (
-    <div className='flex justify-center items-end gap-4 sm:gap-8 pb-8 pt-4 sm:pt-6 mb-2 border-b'>
+    <div className='flex justify-center items-end gap-4 sm:gap-8 pb-8 pt-14 mb-2 border-b'>
       <PodiumItem user={second} rank={2} className='order-1 flex-1 sm:flex-none' />
       <PodiumItem user={first} rank={1} className='order-2 flex-1 sm:flex-none -mt-8 sm:-mt-12' />
       <PodiumItem user={third} rank={3} className='order-3 flex-1 sm:flex-none' />
@@ -61,7 +61,7 @@ function RankItem({ user, index, rankType, currentUserId }) {
           <UserAvatar url={user.avatar} name={user.name || user.username} size='md' modifiers='embed,s_200x200' />
           <div className='flex-1 min-w-0'>
             <div className='flex items-center gap-2'>
-              <span className={cn('font-medium truncate', isCurrentUser && 'text-primary font-semibold')}>{user.name}</span>
+              <span className={cn('font-medium truncate', isCurrentUser && 'text-primary font-semibold')}>{user.name || '-'}</span>
               {isCurrentUser && <span className='text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap hidden sm:inline-block'>You</span>}
             </div>
             {user.checkInStreak > 0 && <div className='text-xs text-muted-foreground truncate opacity-70'>连续签到 {user.checkInStreak} 天</div>}
