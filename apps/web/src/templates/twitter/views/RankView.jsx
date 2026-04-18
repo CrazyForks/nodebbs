@@ -39,7 +39,7 @@ function Podium({ top3, rankType }) {
   };
 
   return (
-    <div className="flex justify-center items-end gap-4 sm:gap-8 pb-6 pt-4 border-b border-border">
+    <div className="flex justify-center items-end gap-4 sm:gap-8 pb-6 pt-14 border-b border-border">
       <PodiumItem user={second} rank={2} className="order-1 flex-1 sm:flex-none" />
       <PodiumItem user={first} rank={1} className="order-2 flex-1 sm:flex-none -mt-6" />
       <PodiumItem user={third} rank={3} className="order-3 flex-1 sm:flex-none" />
@@ -56,7 +56,7 @@ function RankItem({ user, index, rankType, currentUserId }) {
       <span className={cn("w-6 text-center font-bold tabular-nums text-muted-foreground", isCurrentUser && "text-primary")}>{rank}</span>
       <UserAvatar url={user.avatar} name={user.name || user.username} size="sm" modifiers='embed,s_200x200' />
       <div className="flex-1 min-w-0">
-        <span className={cn("font-bold text-[15px]", isCurrentUser && "text-primary")}>{user.name}</span>
+        <span className={cn("font-bold text-[15px]", isCurrentUser && "text-primary")}>{user.name || '-'}</span>
         {isCurrentUser && <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full ml-2">You</span>}
       </div>
       <div className="flex items-center gap-1 text-muted-foreground">
