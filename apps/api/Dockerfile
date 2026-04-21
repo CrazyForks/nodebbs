@@ -8,7 +8,7 @@
 # ============================================
 
 FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+RUN corepack enable
 
 # ============================================
 # 阶段 1: 使用 turbo prune 提取依赖
