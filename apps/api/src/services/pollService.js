@@ -1,6 +1,7 @@
 import db from '../db/index.js';
 import { polls, pollOptions, pollVotes, topics, users } from '../db/schema.js';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { extractPollIds, stripPollDirectives } from '../utils/extractPollIds.js';
 
 /**
  * 创建投票（不绑定 topic）
@@ -247,4 +248,96 @@ export async function listVoters(pollId, optionId, { page = 1, limit = 20 } = {}
     .where(and(eq(pollVotes.pollId, pollId), eq(pollVotes.optionId, optionId)));
 
   return { voters: rows, total: count };
+}
+
+/**
+ * 把 markdown 正文里所有 ::poll{id="..."} 指令绑定到 topic。
+ * 规则：
+ *   - 只允许绑定 createdBy === userId 的 poll
+ *   - 若 poll.topicId 已是当前 topicId → 跳过（编辑话题幂等）
+ *   - 若 poll.topicId 为 null → UPDATE 为当前 topicId
+ *   - 若 poll.topicId 是别的 → 视为盗用，删除该指令并不绑定
+ *   - 校验失败的指令从 content 里剥离
+ *
+ * @param {number} topicId
+ * @param {string} content - 原始 markdown
+ * @param {number} userId - 话题作者 ID
+ * @returns {Promise<string>} 清洗后的 content
+ */
+export async function bindPollsToTopic(topicId, content, userId) {
+  const ids = extractPollIds(content);
+  if (ids.length === 0) return content;
+
+  // 字符串 id（前端传过来的）转 number；非法 id 直接进 invalid
+  const numericIds = ids
+    .map((s) => Number(s))
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+  if (numericIds.length === 0) {
+    return stripPollDirectives(content, ids);
+  }
+
+  const rows = await db
+    .select({
+      id: polls.id,
+      topicId: polls.topicId,
+      createdBy: polls.createdBy,
+    })
+    .from(polls)
+    .where(inArray(polls.id, numericIds));
+
+  const rowsById = new Map(rows.map((r) => [r.id, r]));
+  const invalidIds = [];
+  const toBindIds = [];
+
+  for (const idStr of ids) {
+    const idNum = Number(idStr);
+    const row = rowsById.get(idNum);
+    if (!row) {
+      invalidIds.push(idStr);
+      continue;
+    }
+    if (row.createdBy !== userId) {
+      invalidIds.push(idStr);
+      continue;
+    }
+    if (row.topicId == null) {
+      toBindIds.push(idNum);
+    } else if (row.topicId !== topicId) {
+      invalidIds.push(idStr);
+    }
+    // else: 已绑定到本 topic，幂等跳过
+  }
+
+  if (toBindIds.length > 0) {
+    await db
+      .update(polls)
+      .set({ topicId })
+      .where(inArray(polls.id, toBindIds));
+  }
+
+  return invalidIds.length > 0 ? stripPollDirectives(content, invalidIds) : content;
+}
+
+/**
+ * 删除投票（CASCADE 自动清掉 options 与 votes）
+ *
+ * @param {number} pollId
+ */
+export async function deletePoll(pollId) {
+  await db.delete(polls).where(eq(polls.id, pollId));
+}
+
+/**
+ * 清理孤儿投票：创建超过 30 分钟仍未绑定 topic 的 poll
+ * 由 plugins/cleanup.js 调度
+ *
+ * @returns {Promise<number>} 清理的记录数
+ */
+export async function cleanupOrphanPolls() {
+  const threshold = new Date(Date.now() - 30 * 60 * 1000);
+  const result = await db
+    .delete(polls)
+    .where(and(isNull(polls.topicId), lt(polls.createdAt, threshold)));
+  return result.rowCount ?? 0;
 }
