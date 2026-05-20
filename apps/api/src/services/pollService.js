@@ -4,20 +4,12 @@ import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { extractPollIds, stripPollDirectives } from '../utils/extractPollIds.js';
 
 /**
- * 创建投票（不绑定 topic）
- *
- * @param {object} data - 投票数据
- * @param {string} data.question
- * @param {Array<string>} data.options - 至少 2、至多 20 项
- * @param {'single'|'multiple'} data.selectionType
- * @param {number|null} data.maxChoices - 仅 multiple 时有意义；null = 不限（最多等于选项数）
- * @param {boolean} data.isAnonymous
- * @param {Date|null} data.closedAt
- * @param {number} userId - 创建者
- * @returns {Promise<{id:number}>}
+ * 校验 poll 表单数据。createPoll 与 updateDraft 共用。
+ * @param {object} data
+ * @throws {Error & {statusCode: 400}}
  */
-export async function createPoll(data, userId) {
-  const { question, options, selectionType, maxChoices, isAnonymous, closedAt } = data;
+function validatePollData(data) {
+  const { question, options, selectionType, maxChoices } = data;
 
   if (!question || !question.trim()) {
     throw Object.assign(new Error('问题不能为空'), { statusCode: 400 });
@@ -33,6 +25,24 @@ export async function createPoll(data, userId) {
       throw Object.assign(new Error('maxChoices 必须在 1 到选项数之间'), { statusCode: 400 });
     }
   }
+}
+
+/**
+ * 创建投票（不绑定 topic）
+ *
+ * @param {object} data - 投票数据
+ * @param {string} data.question
+ * @param {Array<string>} data.options - 至少 2、至多 20 项
+ * @param {'single'|'multiple'} data.selectionType
+ * @param {number|null} data.maxChoices - 仅 multiple 时有意义；null = 不限（最多等于选项数）
+ * @param {boolean} data.isAnonymous
+ * @param {Date|null} data.closedAt
+ * @param {number} userId - 创建者
+ * @returns {Promise<{id:number}>}
+ */
+export async function createPoll(data, userId) {
+  validatePollData(data);
+  const { question, options, selectionType, maxChoices, isAnonymous, closedAt } = data;
 
   return await db.transaction(async (tx) => {
     const [poll] = await tx
@@ -329,13 +339,13 @@ export async function deletePoll(pollId) {
 }
 
 /**
- * 清理孤儿投票：创建超过 30 分钟仍未绑定 topic 的 poll
+ * 清理过期草稿：未绑定 topic 且创建超过 7 天的 poll
  * 由 plugins/cleanup.js 调度
  *
  * @returns {Promise<number>} 清理的记录数
  */
-export async function cleanupOrphanPolls() {
-  const threshold = new Date(Date.now() - 30 * 60 * 1000);
+export async function cleanupExpiredDraftPolls() {
+  const threshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const result = await db
     .delete(polls)
     .where(and(isNull(polls.topicId), lt(polls.createdAt, threshold)));
