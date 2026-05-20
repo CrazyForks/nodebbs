@@ -1173,8 +1173,10 @@ export default async function topicRoutes(fastify, options) {
           .limit(1);
 
         if (firstPost) {
-          // 绑定正文里的 ::poll{id} 到本话题，剥离非法/盗用引用
-          const cleanContent = await bindPollsToTopic(id, content, request.user.id);
+          // 绑定正文里的 ::poll{id} 到本话题，剥离非法/盗用引用。
+          // 使用 topic.userId（话题作者）作为所有权基准，
+          // 避免 admin/版主编辑别人话题时"无声"剥离原作者的投票
+          const cleanContent = await bindPollsToTopic(id, content, topic.userId);
 
           const postUpdates = {
             content: cleanContent,

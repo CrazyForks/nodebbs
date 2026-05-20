@@ -45,8 +45,8 @@ export default async function pollRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      await fastify.permission.check(request, 'topic.poll.create');
       try {
+        await fastify.permission.check(request, 'topic.poll.create');
         const { closedAt, ...rest } = request.body;
         const result = await createPoll(
           { ...rest, closedAt: closedAt ? new Date(closedAt) : null },
