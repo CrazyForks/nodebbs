@@ -162,6 +162,7 @@ export default function TopicActions() {
       >
           <TopicForm
             initialData={{
+              id: topic.id,
               title: topic.title,
               content: topic.content,
               categoryId: topic.categoryId,
