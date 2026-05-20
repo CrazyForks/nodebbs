@@ -332,9 +332,30 @@ export async function bindPollsToTopic(topicId, content, userId) {
 /**
  * 删除投票（CASCADE 自动清掉 options 与 votes）
  *
+ * 业务规则：
+ *  - 调用方传 isAdmin=true 时跳过 bound 校验（admin 走特权路径）
+ *  - 否则若 poll 已绑话题（topicId 非空）→ 抛 400，要求先移除话题正文里的引用
+ *
  * @param {number} pollId
+ * @param {{isAdmin?: boolean}} options
+ * @throws {Error & {statusCode}} 404 / 400
  */
-export async function deletePoll(pollId) {
+export async function deletePoll(pollId, { isAdmin = false } = {}) {
+  const [poll] = await db
+    .select({ id: polls.id, topicId: polls.topicId })
+    .from(polls)
+    .where(eq(polls.id, pollId))
+    .limit(1);
+
+  if (!poll) {
+    throw Object.assign(new Error('投票不存在'), { statusCode: 404 });
+  }
+  if (!isAdmin && poll.topicId !== null) {
+    throw Object.assign(
+      new Error('已发布的投票不允许删除，请先从话题正文中移除引用'),
+      { statusCode: 400 }
+    );
+  }
   await db.delete(polls).where(eq(polls.id, pollId));
 }
 
@@ -405,4 +426,62 @@ export async function listByTopic(topicId) {
   const detailed = await Promise.all(rows.map((r) => getPoll(r.id, null)));
   // getPoll 在 topic 软删时返回 null；此处 topic 应存在但并发删除时过滤
   return { polls: detailed.filter(Boolean) };
+}
+
+/**
+ * 编辑草稿（仅 owner，仅未绑）。
+ * 事务：DELETE 旧 options → INSERT 新 options → UPDATE polls 元数据。
+ *
+ * @param {number} pollId
+ * @param {object} data - 与 createPoll 一致字段
+ * @param {number} userId - 必须是 poll.userId
+ * @returns {Promise<{success: true}>}
+ * @throws {Error & {statusCode}} 400 / 403 / 404
+ */
+export async function updateDraft(pollId, data, userId) {
+  validatePollData(data);
+
+  return await db.transaction(async (tx) => {
+    const [poll] = await tx
+      .select({ id: polls.id, topicId: polls.topicId, userId: polls.userId })
+      .from(polls)
+      .where(eq(polls.id, pollId))
+      .for('update')
+      .limit(1);
+
+    if (!poll) {
+      throw Object.assign(new Error('投票不存在'), { statusCode: 404 });
+    }
+    if (poll.topicId !== null) {
+      throw Object.assign(new Error('已发布的投票不允许修改'), { statusCode: 400 });
+    }
+    if (poll.userId !== userId) {
+      throw Object.assign(new Error('没有权限修改此投票'), { statusCode: 403 });
+    }
+
+    const { question, options, selectionType, maxChoices, isAnonymous, closedAt } = data;
+
+    await tx.delete(pollOptions).where(eq(pollOptions.pollId, pollId));
+    await tx.insert(pollOptions).values(
+      options.map((text, idx) => ({
+        pollId,
+        text: String(text).slice(0, 500),
+        displayOrder: idx,
+        voteCount: 0,
+      }))
+    );
+
+    await tx
+      .update(polls)
+      .set({
+        question: question.trim(),
+        selectionType,
+        maxChoices: selectionType === 'multiple' ? maxChoices ?? null : null,
+        isAnonymous: !!isAnonymous,
+        closedAt: closedAt ?? null,
+      })
+      .where(eq(polls.id, pollId));
+
+    return { success: true };
+  });
 }
