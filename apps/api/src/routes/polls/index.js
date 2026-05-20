@@ -191,7 +191,7 @@ export default async function pollRoutes(fastify, options) {
     },
     async (request, reply) => {
       const [poll] = await db
-        .select({ id: polls.id, createdBy: polls.createdBy })
+        .select({ id: polls.id, userId: polls.userId })
         .from(polls)
         .where(eq(polls.id, request.params.id))
         .limit(1);
@@ -201,7 +201,7 @@ export default async function pollRoutes(fastify, options) {
       }
 
       const hasDashboard = await fastify.permission.can(request, 'dashboard.polls');
-      const isOwner = request.user.id === poll.createdBy;
+      const isOwner = request.user.id === poll.userId;
 
       if (!hasDashboard) {
         if (!isOwner) {

@@ -1002,7 +1002,7 @@ export const polls = pgTable(
   {
     ...$defaults,
     topicId: integer('topic_id').references(() => topics.id, { onDelete: 'cascade' }), // 允许 NULL：创建到绑定的过渡期
-    createdBy: integer('created_by')
+    userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     question: text('question').notNull(),
@@ -1014,7 +1014,7 @@ export const polls = pgTable(
   },
   (table) => [
     index('polls_topic_idx').on(table.topicId),
-    index('polls_created_by_idx').on(table.createdBy),
+    index('polls_user_idx').on(table.userId),
   ]
 );
 
@@ -1023,8 +1023,8 @@ export const pollsRelations = relations(polls, ({ one, many }) => ({
     fields: [polls.topicId],
     references: [topics.id],
   }),
-  creator: one(users, {
-    fields: [polls.createdBy],
+  user: one(users, {
+    fields: [polls.userId],
     references: [users.id],
   }),
   options: many(pollOptions),

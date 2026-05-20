@@ -39,7 +39,7 @@ export async function createPoll(data, userId) {
       .insert(polls)
       .values({
         topicId: null,
-        createdBy: userId,
+        userId,
         question: question.trim(),
         selectionType,
         maxChoices: selectionType === 'multiple' ? maxChoices ?? null : null,
@@ -121,7 +121,7 @@ export async function getPoll(pollId, userId) {
     options,
     myVotedOptionIds,
     createdAt: poll.createdAt,
-    createdBy: poll.createdBy,
+    userId: poll.userId,
   };
 }
 
@@ -253,7 +253,7 @@ export async function listVoters(pollId, optionId, { page = 1, limit = 20 } = {}
 /**
  * 把 markdown 正文里所有 ::poll{id="..."} 指令绑定到 topic。
  * 规则：
- *   - 只允许绑定 createdBy === userId 的 poll
+ *   - 只允许绑定 poll.userId === userId 的 poll
  *   - 若 poll.topicId 已是当前 topicId → 跳过（编辑话题幂等）
  *   - 若 poll.topicId 为 null → UPDATE 为当前 topicId
  *   - 若 poll.topicId 是别的 → 视为盗用，删除该指令并不绑定
@@ -281,7 +281,7 @@ export async function bindPollsToTopic(topicId, content, userId) {
     .select({
       id: polls.id,
       topicId: polls.topicId,
-      createdBy: polls.createdBy,
+      userId: polls.userId,
     })
     .from(polls)
     .where(inArray(polls.id, numericIds));
@@ -297,7 +297,7 @@ export async function bindPollsToTopic(topicId, content, userId) {
       invalidIds.push(idStr);
       continue;
     }
-    if (row.createdBy !== userId) {
+    if (row.userId !== userId) {
       invalidIds.push(idStr);
       continue;
     }
