@@ -22,6 +22,7 @@ import {
 import { createPaginator } from '../../utils/pagination.js';
 import { userEnricher } from '../../services/user/index.js';
 import { shouldHideUserInfo } from '../../utils/visibility.js';
+import { bindPollsToTopic } from '../../services/pollService.js';
 
 // :::protected{attrs}\n...\n::: 块（行首 ::: 结束）
 // 捕获组：1=attrs，2=content（由详情处理器消费；列表摘要处理仅使用整体匹配）
@@ -959,14 +960,17 @@ export default async function topicRoutes(fastify, options) {
         })
         .returning();
 
+      // 绑定正文里的 ::poll{id} 到本话题，剥离非法/盗用引用
+      const cleanContent = await bindPollsToTopic(newTopic.id, content, request.user.id);
+
       // 创建首贴
       const [firstPost] = await db
         .insert(posts)
         .values({
           topicId: newTopic.id,
           userId: request.user.id,
-          content,
-          rawContent: content,
+          content: cleanContent,
+          rawContent: cleanContent,
           postNumber: 1,
           approvalStatus,
         })
@@ -1169,9 +1173,12 @@ export default async function topicRoutes(fastify, options) {
           .limit(1);
 
         if (firstPost) {
+          // 绑定正文里的 ::poll{id} 到本话题，剥离非法/盗用引用
+          const cleanContent = await bindPollsToTopic(id, content, request.user.id);
+
           const postUpdates = {
-            content,
-            rawContent: content,
+            content: cleanContent,
+            rawContent: cleanContent,
             editedAt: new Date(),
             editCount: sql`${posts.editCount} + 1`,
           };
