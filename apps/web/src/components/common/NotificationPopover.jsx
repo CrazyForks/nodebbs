@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -17,6 +18,7 @@ import UserAvatar from '../user/UserAvatar';
 import Time from '../common/Time';
 
 export default function NotificationPopover() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -195,11 +197,11 @@ export default function NotificationPopover() {
                     className={`px-4 py-3 hover:bg-accent transition-colors ${
                       !notification.isRead ? 'bg-accent/50' : ''
                     } ${linkUrl ? 'cursor-pointer' : ''}`}
-                    onClick={() => {
-                      if (linkUrl) {
-                        handleNotificationClick(notification);
-                        window.location.href = linkUrl;
-                      }
+                    onClick={async () => {
+                      if (!linkUrl) return;
+                      // 客户端路由，不卸载文档；markAsRead 的 fetch 不会被中止
+                      handleNotificationClick(notification);
+                      router.push(linkUrl);
                     }}
                   >
                     <div className='flex items-start gap-3'>

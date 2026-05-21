@@ -7,6 +7,7 @@ import {
   Coins,
   CheckCheck,
   ThumbsUp,
+  Trophy,
 } from 'lucide-react';
 
 export const getNotificationIcon = (type) => {
@@ -30,6 +31,12 @@ export const getNotificationIcon = (type) => {
     case 'reward_topic':
     case 'reward_reply':
       return <Coins className='h-4 w-4 text-yellow-500' />;
+    case 'lottery_won':
+      return <Trophy className='h-4 w-4 text-amber-500' />;
+    case 'lottery_lost':
+      return <Gift className='h-4 w-4 text-muted-foreground' />;
+    case 'lottery_drawn':
+      return <Trophy className='h-4 w-4 text-amber-600' />;
     case 'report_resolved':
       return <CheckCheck className='h-4 w-4 text-green-600' />;
     case 'report_dismissed':
@@ -83,6 +90,10 @@ export const getNotificationMessage = (notification) => {
       return notification.message || '打赏了你的话题';
     case 'reward_reply':
       return notification.message || '打赏了你的回复';
+    case 'lottery_won':
+    case 'lottery_lost':
+    case 'lottery_drawn':
+      return notification.message;
     default:
       return notification.message || '发送了一条通知';
   }

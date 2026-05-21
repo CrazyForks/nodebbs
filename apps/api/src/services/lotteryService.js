@@ -10,6 +10,7 @@ import {
 import { and, asc, desc, eq, gt, inArray, isNull, lte, lt, sql } from 'drizzle-orm';
 import { DEFAULT_CURRENCY_CODE } from '../extensions/ledger/constants.js';
 import { extractLotteryIds, stripLotteryDirectives } from '../utils/extractLotteryIds.js';
+import notificationService from './notificationService.js';
 
 /**
  * 抽奖业务模块
@@ -544,11 +545,87 @@ export async function drawLottery(lotteryId, ledger, { triggerSource = 'user-ear
     }
   }
 
+  // 4. 发开奖通知（事务已 commit，失败仅日志，不影响开奖结果）
+  try {
+    await sendDrawNotifications({
+      lotteryId,
+      creatorId: row.userId,
+      topicId: row.topicId,
+      title: row.title,
+      pointsPerWinner: row.pointsPerWinner,
+      winnerUserIds: preparedWinnerIds,
+      refundedAmount: refundAmount,
+    });
+  } catch (e) {
+    console.error(`[lottery ${lotteryId}] notification dispatch failed:`, e?.message || e);
+  }
+
   return {
     success: true,
     winnersCount: actualWinnersCount,
     refundedAmount: refundAmount,
   };
+}
+
+/**
+ * 给中奖者 / 未中奖参与者 / 创建者发开奖通知。
+ * 拆出独立函数便于测试与失败隔离。
+ */
+async function sendDrawNotifications({
+  lotteryId,
+  creatorId,
+  topicId,
+  title,
+  pointsPerWinner,
+  winnerUserIds,
+  refundedAmount,
+}) {
+  // 拉全部参与者（不含创建者）
+  const participantRows = await db
+    .select({ userId: lotteryParticipants.userId, isWinner: lotteryParticipants.isWinner })
+    .from(lotteryParticipants)
+    .where(eq(lotteryParticipants.lotteryId, lotteryId));
+
+  const winnerSet = new Set(winnerUserIds);
+  const payloads = [];
+
+  for (const p of participantRows) {
+    if (winnerSet.has(p.userId)) {
+      payloads.push({
+        userId: p.userId,
+        type: 'lottery_won',
+        triggeredByUserId: creatorId,
+        topicId,
+        message: `恭喜！你在抽奖「${title}」中中奖了`,
+        metadata: { lotteryId, pointsAwarded: pointsPerWinner || 0 },
+      });
+    } else {
+      payloads.push({
+        userId: p.userId,
+        type: 'lottery_lost',
+        triggeredByUserId: creatorId,
+        topicId,
+        message: `抽奖「${title}」已开奖，可惜没有中奖`,
+        metadata: { lotteryId },
+      });
+    }
+  }
+
+  // 创建者总结
+  payloads.push({
+    userId: creatorId,
+    type: 'lottery_drawn',
+    triggeredByUserId: null,
+    topicId,
+    message: winnerUserIds.length > 0
+      ? `你的抽奖「${title}」已开奖，${winnerUserIds.length} 人中奖${refundedAmount > 0 ? `，已退还 ${refundedAmount} 积分` : ''}`
+      : `你的抽奖「${title}」已开奖，无人参与，已退还 ${refundedAmount} 积分`,
+    metadata: { lotteryId, winnersCount: winnerUserIds.length, refundedAmount },
+  });
+
+  if (payloads.length > 0) {
+    await notificationService.sendBatch(payloads);
+  }
 }
 
 /**
