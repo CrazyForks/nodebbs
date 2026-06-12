@@ -807,16 +807,15 @@ export const settingsApi = {
 
 // ============= OAuth 配置 API =============
 export const oauthConfigApi = {
-  // 获取 OAuth 提供商配置
-  // 公开：只返回已启用的提供商
-  // 管理员：返回所有提供商（含完整配置）
+  // 获取已启用的 OAuth 提供商（公开）
+  // 仅返回已启用项，与调用者身份无关；登录 / 注册入口使用
   async getProviders() {
     return apiClient.get('/oauth/providers');
   },
 
-  // 管理员：获取所有 OAuth 配置（已合并到 getProviders）
+  // 管理员：获取所有 OAuth 提供商（含完整配置，需要 dashboard.settings 权限）
   async getAllProviders() {
-    return apiClient.get('/oauth/providers');
+    return apiClient.get('/oauth/providers/all');
   },
 
   // 管理员：更新 OAuth 配置

@@ -1,7 +1,12 @@
 import { OAuthButton } from './OAuthButton';
 
 export function OAuthSection({ providers, isLogin, isLoading, setIsLoading, setError }) {
-  if (!providers || providers.length === 0) {
+  // 登录入口只展示已启用的提供商，与调用者身份无关。
+  // 即便接口返回了未启用项（如管理员上下文），这里也兜底过滤掉，
+  // 避免出现“未配置任何三方登录却显示全部按钮”的情况。
+  const enabledProviders = (providers ?? []).filter((provider) => provider.isEnabled);
+
+  if (enabledProviders.length === 0) {
     return null;
   }
 
@@ -19,7 +24,7 @@ export function OAuthSection({ providers, isLogin, isLoading, setIsLoading, setE
       </div>
 
       <div className="grid gap-2">
-        {providers.map((provider) => (
+        {enabledProviders.map((provider) => (
           <OAuthButton
             key={provider.provider}
             provider={provider}

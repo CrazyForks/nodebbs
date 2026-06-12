@@ -35,17 +35,73 @@ export default async function oauthRoutes(fastify, options) {
   // ============= OAuth 配置管理 =============
 
   /**
-   * 获取 OAuth 提供商配置
-   * 公开接口：只返回已启用的提供商（不含敏感信息）
-   * 管理员：返回所有提供商（含完整配置）
+   * 获取已启用的 OAuth 提供商（公开）
+   *
+   * 永远只返回已启用的提供商，且不含敏感信息，与调用者身份无关
+   * （管理员访问此接口同样只会拿到已启用项）。
+   * 登录 / 注册入口使用此接口，因此未启用的提供商绝不会在登录页出现。
    */
   fastify.get(
     '/providers',
     {
-      preHandler: [fastify.optionalAuth],
       schema: {
         tags: ['oauth'],
-        description: '获取 OAuth 提供商配置',
+        description: '获取已启用的 OAuth 提供商（公开）',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    provider: { type: 'string' },
+                    isEnabled: { type: 'boolean' },
+                    displayName: { type: ['string', 'null'] },
+                    displayOrder: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const items = await db
+          .select({
+            provider: oauthProviders.provider,
+            isEnabled: oauthProviders.isEnabled,
+            displayName: oauthProviders.displayName,
+            displayOrder: oauthProviders.displayOrder,
+          })
+          .from(oauthProviders)
+          .where(eq(oauthProviders.isEnabled, true))
+          .orderBy(oauthProviders.displayOrder);
+
+        return { items };
+      } catch (error) {
+        fastify.log.error(error, '[OAuth] 获取已启用提供商失败');
+        return reply.code(500).send({ error: '获取 OAuth 配置失败' });
+      }
+    }
+  );
+
+  /**
+   * 获取所有 OAuth 提供商配置（管理员，含完整配置）
+   *
+   * 用于后台管理页，需要 dashboard.settings 权限。
+   */
+  fastify.get(
+    '/providers/all',
+    {
+      preHandler: [fastify.requirePermission('dashboard.settings')],
+      schema: {
+        tags: ['oauth'],
+        description: '获取所有 OAuth 提供商配置（管理员）',
+        security: [{ bearerAuth: [] }],
         response: {
           200: {
             type: 'object',
@@ -70,9 +126,6 @@ export default async function oauthRoutes(fastify, options) {
                   },
                 },
               },
-              page: { type: 'number' },
-              limit: { type: 'number' },
-              total: { type: 'number' },
             },
           },
         },
@@ -80,31 +133,14 @@ export default async function oauthRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        const canManage = await fastify.permission.can(request, 'dashboard.settings');
-
-        let items;
-
-        if (canManage) {
-          items = await db
-            .select()
-            .from(oauthProviders)
-            .orderBy(oauthProviders.displayOrder);
-        } else {
-          items = await db
-            .select({
-              provider: oauthProviders.provider,
-              isEnabled: oauthProviders.isEnabled,
-              displayName: oauthProviders.displayName,
-              displayOrder: oauthProviders.displayOrder,
-            })
-            .from(oauthProviders)
-            .where(eq(oauthProviders.isEnabled, true))
-            .orderBy(oauthProviders.displayOrder);
-        }
+        const items = await db
+          .select()
+          .from(oauthProviders)
+          .orderBy(oauthProviders.displayOrder);
 
         return { items };
       } catch (error) {
-        fastify.log.error(error, '[OAuth] 获取配置失败');
+        fastify.log.error(error, '[OAuth] 获取全部提供商配置失败');
         return reply.code(500).send({ error: '获取 OAuth 配置失败' });
       }
     }
