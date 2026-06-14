@@ -27,6 +27,9 @@ export function useUserManagement() {
       if (sf === 'pending_deletion') {
         apiParams.pendingDeletion = true;
       }
+      if (sf === 'unverified_email') {
+        apiParams.isEmailVerified = false;
+      }
       delete apiParams.statusFilter;
 
       return userApi.getList(apiParams);

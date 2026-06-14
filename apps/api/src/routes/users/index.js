@@ -123,6 +123,7 @@ export default async function userRoutes(fastify, options) {
           isBanned: { type: 'boolean' },
           isDeleted: { type: 'boolean' },
           pendingDeletion: { type: 'boolean' },
+          isEmailVerified: { type: 'boolean' },
         }
       }
     }
@@ -138,6 +139,7 @@ export default async function userRoutes(fastify, options) {
       isBanned,
       isDeleted,
       pendingDeletion,
+      isEmailVerified,
     } = request.query;
     const offset = (page - 1) * limit;
 
@@ -179,6 +181,9 @@ export default async function userRoutes(fastify, options) {
       if (isDeleted) {
         conditions.push(sql`${users.deletionRequestedAt} IS NULL`);
       }
+    }
+    if (isEmailVerified !== undefined) {
+      conditions.push(eq(users.isEmailVerified, isEmailVerified));
     }
 
     if (conditions.length > 0) {

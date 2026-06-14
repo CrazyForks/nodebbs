@@ -227,6 +227,7 @@ export default function UsersManagement() {
             { value: 'banned', label: '已封禁' },
             { value: 'deleted', label: '已删除' },
             { value: 'pending_deletion', label: '待注销' },
+            { value: 'unverified_email', label: '未验证邮箱' },
           ],
         }}
         pagination={{ page, total, limit, onPageChange: setPage }}
