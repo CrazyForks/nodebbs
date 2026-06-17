@@ -9,7 +9,7 @@ import {
 import { users } from '#core/db/schema.js';
 import { and, asc, desc, eq, gt, inArray, isNull, lte, lt, sql } from 'drizzle-orm';
 import { DEFAULT_CURRENCY_CODE } from '#core/extensions/ledger/constants.js';
-import { extractLotteryIds, stripLotteryDirectives } from '#core/utils/extractLotteryIds.js';
+import { extractLotteryIds, stripLotteryDirectives } from '../utils/extractLotteryIds.js';
 import notificationService from '#core/services/notificationService.js';
 
 /**

@@ -2,7 +2,7 @@ import db from '#core/db/index.js';
 import { polls, pollOptions, pollVotes, topics } from '#modules/forum/db/schema.js';
 import { users } from '#core/db/schema.js';
 import { and, asc, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
-import { extractPollIds, stripPollDirectives } from '#core/utils/extractPollIds.js';
+import { extractPollIds, stripPollDirectives } from '../utils/extractPollIds.js';
 
 /**
  * 校验 poll 表单数据。createPoll 与 updateDraft 共用。
