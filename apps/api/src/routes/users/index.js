@@ -390,25 +390,15 @@ export default async function userRoutes(fastify, options) {
 
     // 检查访问者权限
     const canManageUsers = await permission.can(request, 'dashboard.users');
-    const isOwner = request.user?.id === user.id;
 
     // 如果用户已被删除且访问者没有管理权限，返回 404
     if (user.isDeleted && !canManageUsers) {
       return reply.code(404).send({ error: '用户不存在' });
     }
 
-    // 检查用户隐私设置 contentVisibility
-    // 统一返回 404 避免信息泄露（不区分"不公开"和"需要登录"）
-    // everyone: 所有人可见
-    // authenticated: 仅登录用户可见
-    // private: 仅自己和有管理权限的用户可见
-    const visibility = user.contentVisibility || 'everyone';
-    if (visibility === 'private' && !isOwner && !canManageUsers) {
-      return reply.code(404).send({ error: '用户不存在' });
-    }
-    if (visibility === 'authenticated' && !request.user && !canManageUsers) {
-      return reply.code(404).send({ error: '用户不存在' });
-    }
+    // contentVisibility 只控制「内容（话题/回复）」的可见性，不隐藏资料本身：
+    // 基础资料（身份/头像/统计）对所有人可见，便于前端统一展示「侧栏 + 友好提示」；
+    // 话题/回复内容由 /topics、/posts 接口按 contentVisibility 各自拦截（私密/需登录时返回空）。
 
     // 如果用户被封禁且访问者没有管理权限，隐藏头像
     if (user.isBanned && !canManageUsers) {

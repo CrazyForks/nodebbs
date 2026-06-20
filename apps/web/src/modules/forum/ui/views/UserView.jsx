@@ -3,14 +3,14 @@
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/common/Loading';
-import UserSidebar from '@/app/(main)/users/[id]/components/UserSidebar';
+import UserProfileHeader from '@/app/(main)/users/[id]/components/UserProfileHeader';
 import UserActivityTabs from '@/app/(main)/users/[id]/components/UserActivityTabs';
 import { useUserProfile } from '@/hooks/user/useUserProfile';
 
 /**
  * 用户主页（客户端组件）
- * 不使用右侧栏，直接自上而下布局
- * 左侧栏由 PageLayout 提供
+ * 整宽身份头部 + 下方门控内容（话题/回复 或 受限提示）
+ * 全局左导航由 PageLayout 提供
  */
 export default function UserView({
   user,
@@ -35,48 +35,34 @@ export default function UserView({
     initialIsFollowing: user.isFollowing,
   });
 
+  const activityTabs = (
+    <UserActivityTabs
+      userId={user.id}
+      initialTab={initialTab}
+      initialTopics={initialTopics}
+      initialPosts={initialPosts}
+      topicsTotal={topicsTotal}
+      postsTotal={postsTotal}
+      currentPage={currentPage}
+      limit={limit}
+    />
+  );
+
   const renderContent = () => {
-    if (!needsAuthCheck) {
-      return (
-        <UserActivityTabs
-          userId={user.id}
-          initialTab={initialTab}
-          initialTopics={initialTopics}
-          initialPosts={initialPosts}
-          topicsTotal={topicsTotal}
-          postsTotal={postsTotal}
-          currentPage={currentPage}
-          limit={limit}
-        />
-      );
-    }
-
-    if (authLoading) {
-      return <Loading className='py-12' />;
-    }
-
-    if (canViewContent) {
-      return (
-        <UserActivityTabs
-          userId={user.id}
-          initialTab={initialTab}
-          initialTopics={initialTopics}
-          initialPosts={initialPosts}
-          topicsTotal={topicsTotal}
-          postsTotal={postsTotal}
-          currentPage={currentPage}
-          limit={limit}
-        />
-      );
-    }
-
+    // 公开内容：直接展示
+    if (!needsAuthCheck) return activityTabs;
+    // 需鉴权且认证状态加载中
+    if (authLoading) return <Loading className='py-12' />;
+    // 有权限：展示
+    if (canViewContent) return activityTabs;
+    // 受限：友好提示
     return (
-      <div className='bg-card border border-border rounded-lg p-8 text-center'>
-        <Lock className='h-12 w-12 text-muted-foreground/50 mx-auto mb-4' />
-        <h3 className='text-lg font-semibold text-foreground mb-2'>
+      <div className='card-base mx-auto max-w-md p-10 text-center'>
+        <Lock className='mx-auto mb-4 h-12 w-12 text-muted-foreground/40' />
+        <h3 className='mb-2 text-lg font-semibold text-foreground'>
           {accessMessage?.title}
         </h3>
-        <p className='text-sm text-muted-foreground mb-4'>
+        <p className='mb-5 text-sm text-muted-foreground'>
           {accessMessage?.description}
         </p>
         {accessMessage?.showLoginButton && (
@@ -87,8 +73,8 @@ export default function UserView({
   };
 
   return (
-    <div className='flex flex-col lg:flex-row gap-4'>
-      <UserSidebar user={user} />
+    <div>
+      <UserProfileHeader user={user} />
       {renderContent()}
     </div>
   );

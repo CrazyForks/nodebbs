@@ -52,7 +52,7 @@ export default function UserActivityTabs({
         <TabsTrigger value='posts'>参与的回复</TabsTrigger>
       </TabsList>
 
-      <TabsContent value='topics' className='mt-0'>
+      <TabsContent value='topics' className='mt-4'>
         <TopicsList
           topics={topics}
           isLoading={isLoadingTopics}
@@ -63,7 +63,7 @@ export default function UserActivityTabs({
         />
       </TabsContent>
 
-      <TabsContent value='posts' className='mt-0'>
+      <TabsContent value='posts' className='mt-4'>
         <PostsList
           posts={posts}
           isLoading={isLoadingPosts}
