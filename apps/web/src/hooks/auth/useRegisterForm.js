@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { invitationsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { validateUsername } from '@/lib/validateUsername';
+import { validateUsername } from '@/utils/validateUsername';
 
 const initialFormData = {
   username: '',
