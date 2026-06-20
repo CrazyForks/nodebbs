@@ -36,6 +36,7 @@ export default function DashboardSidebar() {
   const { hasPermission } = usePermission();
   const [openMenus, setOpenMenus] = useState({
     'content': true,
+    'assets': true,
     'users': true,
     'security': true,
     'extensions': true,
@@ -58,7 +59,7 @@ export default function DashboardSidebar() {
       permission: 'dashboard.access',
     },
 
-    // 内容管理
+    // 内容管理（讨论内容及其组织）
     {
       key: 'content',
       label: '内容管理',
@@ -68,6 +69,15 @@ export default function DashboardSidebar() {
         { href: '/dashboard/posts', icon: MessagesSquare, label: '回复管理', permission: 'dashboard.posts' },
         { href: '/dashboard/categories', icon: FolderTree, label: '分类管理', permission: 'dashboard.categories' },
         { href: '/dashboard/tags', icon: Tag, label: '标签管理', permission: 'dashboard.tags' },
+      ],
+    },
+
+    // 页面与素材（站点静态页与媒体素材）
+    {
+      key: 'assets',
+      label: '页面与素材',
+      icon: Files,
+      children: [
         { href: '/dashboard/files', icon: Files, label: '文件管理', permission: 'dashboard.files' },
         { href: '/dashboard/pages', icon: FileCode, label: '页面管理', permission: 'dashboard.pages' },
         { href: '/dashboard/emojis', icon: Smile, label: '表情管理', permission: 'dashboard.emojis' },
