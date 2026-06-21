@@ -81,7 +81,7 @@ export default function ReplyBody({
     <div className="relative">
       <div
         ref={contentRef}
-        className={`max-w-none prose prose-stone dark:prose-invert prose-sm sm:prose-base wrap-break-word transition-all duration-300 ${(!hasCheckedHeight || (!isExpanded && needsCollapse)) ? 'max-h-75 overflow-hidden' : ''}`}
+        className={`max-w-none prose prose-stone dark:prose-invert prose-sm sm:prose-base wrap-break-word ${(!hasCheckedHeight || (!isExpanded && needsCollapse)) ? 'max-h-75 overflow-hidden' : ''}`}
         style={{
           maskImage: hasCheckedHeight && !isExpanded && needsCollapse ? 'linear-gradient(to bottom, black 70%, transparent 100%)' : 'none',
           WebkitMaskImage: hasCheckedHeight && !isExpanded && needsCollapse ? 'linear-gradient(to bottom, black 70%, transparent 100%)' : 'none',
