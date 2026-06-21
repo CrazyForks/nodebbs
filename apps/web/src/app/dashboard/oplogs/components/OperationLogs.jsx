@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { moderationApi } from '@/lib/api';
+import { oplogApi } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   CheckCircle,
@@ -28,9 +28,9 @@ import {
   ACTION_FILTER_OPTIONS,
   getActionDescription,
   isSelfAction,
-} from '@/constants/moderation';
+} from '@/constants/oplog';
 
-export function ModerationLogs() {
+export function OperationLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -43,7 +43,6 @@ export function ModerationLogs() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
 
-  // 搜索词变化时重置页码
   useEffect(() => {
     if (page !== 1) {
       setPage(1);
@@ -57,7 +56,7 @@ export function ModerationLogs() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const data = await moderationApi.getLogs({
+      const data = await oplogApi.getLogs({
         ...filters,
         search: debouncedSearch,
         page,
@@ -66,8 +65,8 @@ export function ModerationLogs() {
       setLogs(data.items || []);
       setTotal(data.total || 0);
     } catch (error) {
-      console.error('Failed to load moderation logs:', error);
-      toast.error('加载审核日志失败');
+      console.error('Failed to load operation logs:', error);
+      toast.error('加载操作日志失败');
     } finally {
       setLoading(false);
     }
@@ -152,7 +151,7 @@ export function ModerationLogs() {
         <div className='border border-border rounded-lg p-12 bg-card'>
           <div className='text-center text-muted-foreground'>
             <FileText className='h-12 w-12 mx-auto mb-4 opacity-50' />
-            <p>暂无审核日志</p>
+            <p>暂无操作日志</p>
           </div>
         </div>
       ) : (

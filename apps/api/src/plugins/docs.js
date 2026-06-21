@@ -626,8 +626,8 @@ async function docsPlugin(fastify, opts) {
               },
             },
           },
-          // 审核日志
-          ModerationLog: {
+          // 操作日志
+          OperationLog: {
             type: 'object',
             properties: {
               id: { type: 'number', description: '日志ID' },

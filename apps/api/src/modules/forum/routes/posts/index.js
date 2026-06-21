@@ -1039,7 +1039,7 @@ export default async function postRoutes(fastify, options) {
         ? '已批准的回复编辑后重新提交审核'
         : '被拒绝的回复编辑后重新提交审核';
 
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action,
         targetType: 'post',
         targetId: id,

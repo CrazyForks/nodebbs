@@ -658,7 +658,7 @@ export default async function userRoutes(fastify, options) {
     await fastify.clearUserCache(userId);
 
     // 记录操作日志
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'username_change',
       targetType: 'user',
       targetId: userId,
@@ -792,7 +792,7 @@ export default async function userRoutes(fastify, options) {
       await fastify.clearUserCache(userId);
 
       // 记录操作日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'email_bind',
         targetType: 'user',
         targetId: userId,
@@ -915,7 +915,7 @@ export default async function userRoutes(fastify, options) {
       await fastify.clearUserCache(userId);
 
       // 记录操作日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'phone_bind',
         targetType: 'user',
         targetId: userId,
@@ -1063,7 +1063,7 @@ export default async function userRoutes(fastify, options) {
       await fastify.clearUserCache(userId);
 
       // 记录操作日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'email_change',
         targetType: 'user',
         targetId: userId,
@@ -1213,7 +1213,7 @@ export default async function userRoutes(fastify, options) {
       await fastify.clearUserCache(userId);
 
       // 记录操作日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'phone_change',
         targetType: 'user',
         targetId: userId,
@@ -1977,7 +1977,7 @@ export default async function userRoutes(fastify, options) {
     }).where(eq(users.id, userId));
 
     // 记录审计日志（匿名化后管理员仍可追溯）
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'request_deletion',
       targetType: 'user',
       targetId: userId,
@@ -2071,7 +2071,7 @@ export default async function userRoutes(fastify, options) {
     }).where(eq(users.id, userId));
 
     // 记录审计日志
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'restore',
       targetType: 'user',
       targetId: userId,
@@ -2127,7 +2127,7 @@ export default async function userRoutes(fastify, options) {
     }
 
     // 在匿名化之前记录审计日志（之后 PII 将被清除）
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'anonymize',
       targetType: 'user',
       targetId: userId,

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ModerationLogs } from './components/ModerationLogs';
 import { PendingContent } from './components/PendingContent';
 import { moderationApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -81,18 +80,13 @@ export default function ContentModerationPage() {
           <TabsTrigger value='all'>全部待审核</TabsTrigger>
           <TabsTrigger value='topic'>话题</TabsTrigger>
           <TabsTrigger value='post'>回复</TabsTrigger>
-          <TabsTrigger value='logs'>审核日志</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className='space-y-4 mt-6'>
-          {activeTab === 'logs' ? (
-            <ModerationLogs />
-          ) : (
-            <PendingContent
-              type={activeTab}
-              onModerationComplete={handleModerationComplete}
-            />
-          )}
+          <PendingContent
+            type={activeTab}
+            onModerationComplete={handleModerationComplete}
+          />
         </TabsContent>
       </Tabs>
     </div>

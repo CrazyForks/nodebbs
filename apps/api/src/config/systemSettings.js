@@ -142,7 +142,7 @@ export const SETTING_KEYS = {
     key: 'moderation_log_retention_days',
     defaultValue: '180',
     valueType: 'number',
-    description: '审核日志保留天数（超过此天数的日志将被自动清理，0 表示永不清理）',
+    description: '操作日志保留天数（超过此天数的日志将被自动清理，0 表示永不清理）',
     category: 'features',
     accessLevel: ACCESS_LEVEL.ADMIN,
   },

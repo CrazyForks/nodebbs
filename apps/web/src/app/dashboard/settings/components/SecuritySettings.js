@@ -42,7 +42,7 @@ export function SecuritySettings({ settings, handleChange, handleInputBlur, savi
 
         {settings.moderation_log_retention_days && (
           <SettingItem
-            title="审核日志保留天数"
+            title="操作日志保留天数"
             description={settings.moderation_log_retention_days.description}
           >
             <Input

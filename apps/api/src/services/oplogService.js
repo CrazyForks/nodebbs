@@ -1,16 +1,16 @@
 import db from '../db/index.js';
-import { moderationLogs } from '../db/schema.js';
-import { VALID_ACTIONS, VALID_TARGET_TYPES } from '../constants/moderation.js';
+import { oplogs } from '../db/schema.js';
+import { VALID_ACTIONS, VALID_TARGET_TYPES } from '../constants/oplog.js';
 
 /**
- * 审核日志服务
+ * 操作日志服务
  *
- * 统一所有审核日志写入入口，标准化数据结构。
- * 仿照 notificationService 的设计。
+ * 统一所有系统操作日志写入入口，标准化数据结构。
+ * 通过 fastify.oplog.add() 使用。
  */
 
 /**
- * @typedef {Object} ModerationLogOptions
+ * @typedef {Object} OplogOptions
  * @property {string} action - 必需：操作类型
  * @property {string} targetType - 必需：目标类型 (topic/post/user)
  * @property {number} targetId - 必需：目标 ID
@@ -24,8 +24,8 @@ import { VALID_ACTIONS, VALID_TARGET_TYPES } from '../constants/moderation.js';
  */
 
 /**
- * 标准化审核日志数据
- * @param {ModerationLogOptions} options
+ * 标准化操作日志数据
+ * @param {OplogOptions} options
  * @returns {object} 数据库插入值
  */
 function normalize(options) {
@@ -42,20 +42,18 @@ function normalize(options) {
     targetLabel = null,
   } = options;
 
-  // 验证必填字段
   if (!action || !targetType || !targetId || !moderatorId) {
-    throw new Error('审核日志缺少必填字段：action, targetType, targetId, moderatorId');
+    throw new Error('操作日志缺少必填字段：action, targetType, targetId, moderatorId');
   }
 
   if (!VALID_ACTIONS.has(action)) {
-    throw new Error(`无效的审核操作: ${action}`);
+    throw new Error(`无效的操作类型: ${action}`);
   }
 
   if (!VALID_TARGET_TYPES.has(targetType)) {
     throw new Error(`无效的目标类型: ${targetType}`);
   }
 
-  // metadata: object → JSON string, string → 保持, null → null
   let metadataStr = null;
   if (metadata !== null && metadata !== undefined) {
     metadataStr = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
@@ -76,15 +74,15 @@ function normalize(options) {
 }
 
 /**
- * 写入单条审核日志
- * @param {ModerationLogOptions} options
+ * 写入单条操作日志
+ * @param {OplogOptions} options
  * @returns {Promise<object>} 创建的日志记录
  */
-async function log(options) {
+async function add(options) {
   const values = normalize(options);
 
   const [record] = await db
-    .insert(moderationLogs)
+    .insert(oplogs)
     .values(values)
     .returning();
 
@@ -92,11 +90,11 @@ async function log(options) {
 }
 
 /**
- * 批量写入审核日志
- * @param {ModerationLogOptions[]} list
+ * 批量写入操作日志
+ * @param {OplogOptions[]} list
  * @returns {Promise<object[]>} 创建的日志记录列表
  */
-async function logBatch(list) {
+async function addBatch(list) {
   if (!list || list.length === 0) {
     return [];
   }
@@ -104,16 +102,16 @@ async function logBatch(list) {
   const values = list.map(normalize);
 
   const results = await db
-    .insert(moderationLogs)
+    .insert(oplogs)
     .values(values)
     .returning();
 
   return results;
 }
 
-export const moderationLogService = {
-  log,
-  logBatch,
+export const oplogService = {
+  add,
+  addBatch,
 };
 
-export default moderationLogService;
+export default oplogService;

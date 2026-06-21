@@ -520,16 +520,18 @@ export const moderationApi = {
   async reject(type, id) {
     return apiClient.post(`/moderation/reject/${type}/${id}`);
   },
+};
 
-  // 获取审核日志列表
+// ============= 操作日志 API =============
+export const oplogApi = {
+  // 获取操作日志列表
   async getLogs(params = {}) {
-    // params: { targetType, action, targetId, moderatorId, page, limit, search }
-    return apiClient.get('/moderation/logs', params);
+    return apiClient.get('/oplogs', params);
   },
 
-  // 获取特定内容的审核日志
+  // 获取特定内容的操作日志
   async getLogsByTarget(targetType, targetId) {
-    return apiClient.get(`/moderation/logs/${targetType}/${targetId}`);
+    return apiClient.get(`/oplogs/${targetType}/${targetId}`);
   },
 };
 

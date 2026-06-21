@@ -279,9 +279,9 @@ export const reportsRelations = relations(reports, ({ one }) => ({
   }),
 }));
 
-// ============ Moderation Logs (审核日志) ============
-export const moderationLogs = pgTable(
-  'moderation_logs',
+// ============ Operation Logs (操作日志) ============
+export const oplogs = pgTable(
+  'oplogs',
   {
     ...$defaults,
     // action 值: approve, reject, ban, unban, username_change, email_bind, phone_bind,
@@ -292,7 +292,7 @@ export const moderationLogs = pgTable(
     targetId: integer('target_id').notNull(), // 目标对象的ID
     moderatorId: integer('moderator_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }), // 执行操作的版主/管理员
+      .references(() => users.id, { onDelete: 'cascade' }), // 执行操作的管理员/用户
     reason: text('reason'), // 操作原因/备注
     previousStatus: varchar('previous_status', { length: 20 }), // 操作前的状态
     newStatus: varchar('new_status', { length: 20 }), // 操作后的状态
@@ -301,17 +301,17 @@ export const moderationLogs = pgTable(
     targetLabel: varchar('target_label', { length: 255 }), // 目标快照（话题标题/用户名等）
   },
   (table) => [
-    index('moderation_logs_action_idx').on(table.action),
-    index('moderation_logs_target_type_idx').on(table.targetType),
-    index('moderation_logs_target_id_idx').on(table.targetId),
-    index('moderation_logs_moderator_idx').on(table.moderatorId),
-    index('moderation_logs_created_at_idx').on(table.createdAt),
+    index('oplogs_action_idx').on(table.action),
+    index('oplogs_target_type_idx').on(table.targetType),
+    index('oplogs_target_id_idx').on(table.targetId),
+    index('oplogs_moderator_idx').on(table.moderatorId),
+    index('oplogs_created_at_idx').on(table.createdAt),
   ]
 );
 
-export const moderationLogsRelations = relations(moderationLogs, ({ one }) => ({
+export const oplogsRelations = relations(oplogs, ({ one }) => ({
   moderator: one(users, {
-    fields: [moderationLogs.moderatorId],
+    fields: [oplogs.moderatorId],
     references: [users.id],
     relationName: 'moderator',
   }),

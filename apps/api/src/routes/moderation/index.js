@@ -1,7 +1,6 @@
 import db from '../../db/index.js';
-import { reports, posts, topics, users, moderationLogs } from '../../db/schema.js';
+import { reports, posts, topics, users } from '../../db/schema.js';
 import { eq, sql, desc, and, ne, like, or, inArray, count } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 import { EVENTS } from '../../constants/events.js';
 
 // 生成举报通知消息
@@ -376,7 +375,7 @@ export default async function moderationRoutes(fastify, options) {
       .returning();
 
     // 记录审核日志
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'ban',
       targetType: 'user',
       targetId: id,
@@ -441,7 +440,7 @@ export default async function moderationRoutes(fastify, options) {
       .returning();
 
     // 记录审核日志
-    await fastify.moderation.log({
+    await fastify.oplog.add({
       action: 'unban',
       targetType: 'user',
       targetId: id,
@@ -900,7 +899,7 @@ export default async function moderationRoutes(fastify, options) {
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'approve',
         targetType: 'topic',
         targetId: id,
@@ -942,7 +941,7 @@ export default async function moderationRoutes(fastify, options) {
         .returning();
 
       // 记录审核日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'approve',
         targetType: 'post',
         targetId: id,
@@ -1013,7 +1012,7 @@ export default async function moderationRoutes(fastify, options) {
         .where(and(eq(posts.topicId, id), eq(posts.postNumber, 1)));
 
       // 记录审核日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'reject',
         targetType: 'topic',
         targetId: id,
@@ -1043,7 +1042,7 @@ export default async function moderationRoutes(fastify, options) {
         .returning();
 
       // 记录审核日志
-      await fastify.moderation.log({
+      await fastify.oplog.add({
         action: 'reject',
         targetType: 'post',
         targetId: id,
@@ -1058,217 +1057,5 @@ export default async function moderationRoutes(fastify, options) {
     }
   });
 
-  // ============= 审核日志接口 =============
-
-  // 获取审核日志列表（管理员/版主）
-  fastify.get('/logs', {
-    preHandler: [fastify.requirePermission('dashboard.moderation')],
-    schema: {
-      tags: ['moderation'],
-      description: '获取审核日志列表（管理员/版主）',
-      security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          targetType: { type: 'string', enum: ['topic', 'post', 'user', 'all'] },
-          action: { type: 'string', enum: ['approve', 'reject', 'ban', 'unban', 'username_change', 'email_bind', 'phone_bind', 'email_change', 'phone_change', 'request_deletion', 'restore', 'anonymize', 'edit_resubmit', 'resubmit', 'all'] },
-          targetId: { type: 'number' },
-          moderatorId: { type: 'number' },
-          page: { type: 'number', default: 1 },
-          limit: { type: 'number', default: 20, maximum: 100 },
-          search: { type: 'string' }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    const {
-      targetType = 'all',
-      action = 'all',
-      targetId,
-      moderatorId,
-      page = 1,
-      limit = 20,
-      search
-    } = request.query;
-    const offset = (page - 1) * limit;
-
-    // 构建查询条件
-    const conditions = [];
-    if (targetType !== 'all') {
-      conditions.push(eq(moderationLogs.targetType, targetType));
-    }
-    if (action !== 'all') {
-      conditions.push(eq(moderationLogs.action, action));
-    }
-    if (targetId) {
-      conditions.push(eq(moderationLogs.targetId, targetId));
-    }
-    if (moderatorId) {
-      conditions.push(eq(moderationLogs.moderatorId, moderatorId));
-    }
-    if (search && search.trim()) {
-      conditions.push(like(users.username, `%${search.trim()}%`));
-    }
-
-    // 为多态连接创建别名
-    const targetUsers = alias(users, 'targetUsers');
-    const topicAuthors = alias(users, 'topicAuthors');
-    const postAuthors = alias(users, 'postAuthors');
-    const postTopics = alias(topics, 'postTopics');
-
-    // 获取日志列表
-    let query = db
-      .select({
-        id: moderationLogs.id,
-        action: moderationLogs.action,
-        targetType: moderationLogs.targetType,
-        targetId: moderationLogs.targetId,
-        reason: moderationLogs.reason,
-        previousStatus: moderationLogs.previousStatus,
-        newStatus: moderationLogs.newStatus,
-        targetLabel: moderationLogs.targetLabel,
-        metadata: moderationLogs.metadata,
-        createdAt: moderationLogs.createdAt,
-        moderatorUsername: users.username,
-        moderatorName: users.name,
-        moderatorRole: users.role,
-        // 话题信息
-        topicTitle: topics.title,
-        topicSlug: topics.slug,
-        topicAuthor: topicAuthors.username,
-        // 回复信息
-        postContent: sql`LEFT(${posts.content}, 100)`,
-        postAuthor: postAuthors.username,
-        postTopicId: posts.topicId,
-        postTopicTitle: postTopics.title,
-        // 用户信息
-        targetUserUsername: targetUsers.username,
-        targetUserName: targetUsers.name,
-        targetUserRole: targetUsers.role
-      })
-      .from(moderationLogs)
-      .innerJoin(users, eq(moderationLogs.moderatorId, users.id))
-      // 关联话题
-      .leftJoin(topics, and(eq(moderationLogs.targetId, topics.id), eq(moderationLogs.targetType, 'topic')))
-      .leftJoin(topicAuthors, eq(topics.userId, topicAuthors.id))
-      // 关联回复
-      .leftJoin(posts, and(eq(moderationLogs.targetId, posts.id), eq(moderationLogs.targetType, 'post')))
-      .leftJoin(postAuthors, eq(posts.userId, postAuthors.id))
-      .leftJoin(postTopics, eq(posts.topicId, postTopics.id))
-      // 关联用户
-      .leftJoin(targetUsers, and(eq(moderationLogs.targetId, targetUsers.id), eq(moderationLogs.targetType, 'user')));
-
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const logsList = await query
-      .orderBy(desc(moderationLogs.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    // 格式化结果
-    const enrichedLogs = logsList.map(log => {
-      let targetInfo = null;
-
-      if (log.targetType === 'topic' && (log.targetLabel || log.topicTitle)) {
-        targetInfo = {
-          title: log.targetLabel || log.topicTitle,
-          slug: log.topicSlug,
-          authorUsername: log.topicAuthor
-        };
-      } else if (log.targetType === 'post' && (log.targetLabel || log.postContent)) {
-        targetInfo = {
-          content: log.targetLabel || log.postContent,
-          authorUsername: log.postAuthor,
-          topicId: log.postTopicId,
-          topicTitle: log.postTopicTitle
-        };
-      } else if (log.targetType === 'user' && log.targetUserUsername) {
-        targetInfo = {
-          username: log.targetUserUsername,
-          name: log.targetUserName,
-          role: log.targetUserRole
-        };
-      }
-
-      // 清理扁平化字段
-      const {
-        targetLabel,
-        topicTitle, topicSlug, topicAuthor,
-        postContent, postAuthor, postTopicId, postTopicTitle,
-        targetUserUsername, targetUserName, targetUserRole,
-        ...cleanLog
-      } = log;
-
-      return {
-        ...cleanLog,
-        targetInfo
-      };
-    });
-
-    // 获取总数
-    let countQuery = db
-      .select({ count: count() })
-      .from(moderationLogs)
-      .innerJoin(users, eq(moderationLogs.moderatorId, users.id));
-
-    if (conditions.length > 0) {
-      countQuery = countQuery.where(and(...conditions));
-    }
-
-    const [{ count: total }] = await countQuery;
-
-    return {
-      items: enrichedLogs,
-      page,
-      limit,
-      total,
-    };
-  });
-
-  // 根据目标ID获取审核日志（查看特定内容的审核历史）
-  fastify.get('/logs/:targetType/:targetId', {
-    preHandler: [fastify.requirePermission('dashboard.moderation')],
-    schema: {
-      tags: ['moderation'],
-      description: '获取特定内容的审核日志（管理员/版主）',
-      security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        required: ['targetType', 'targetId'],
-        properties: {
-          targetType: { type: 'string', enum: ['topic', 'post', 'user'] },
-          targetId: { type: 'number' }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    const { targetType, targetId } = request.params;
-
-    const logs = await db
-      .select({
-        id: moderationLogs.id,
-        action: moderationLogs.action,
-        reason: moderationLogs.reason,
-        previousStatus: moderationLogs.previousStatus,
-        newStatus: moderationLogs.newStatus,
-        metadata: moderationLogs.metadata,
-        createdAt: moderationLogs.createdAt,
-        moderatorUsername: users.username,
-        moderatorName: users.name,
-        moderatorRole: users.role
-      })
-      .from(moderationLogs)
-      .innerJoin(users, eq(moderationLogs.moderatorId, users.id))
-      .where(
-        and(
-          eq(moderationLogs.targetType, targetType),
-          eq(moderationLogs.targetId, targetId)
-        )
-      )
-      .orderBy(desc(moderationLogs.createdAt));
-
-    return { items: logs };
-  });
+  // Change user role (admin only)
 }

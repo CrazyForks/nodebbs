@@ -1204,7 +1204,7 @@ export default async function topicRoutes(fastify, options) {
           ? '已批准的话题编辑后重新提交审核'
           : '被拒绝的话题编辑后重新提交审核';
 
-        await fastify.moderation.log({
+        await fastify.oplog.add({
           action,
           targetType: 'topic',
           targetId: id,

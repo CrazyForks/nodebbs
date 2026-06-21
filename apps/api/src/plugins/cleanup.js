@@ -1,9 +1,8 @@
 import fp from 'fastify-plugin';
 import db from '../db/index.js';
-import { qrLoginRequests, users, moderationLogs } from '../db/schema.js';
+import { qrLoginRequests, users, oplogs } from '../db/schema.js';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { anonymizeUser } from '../services/user/index.js';
-import moderationLogService from '../services/moderationLogService.js';
 import { EVENTS } from '../constants/events.js';
 
 /**
@@ -94,7 +93,7 @@ async function cleanupPlugin(fastify, options) {
     for (const user of expiredUsers) {
       try {
         // 在匿名化之前记录审计日志
-        await moderationLogService.log({
+        await fastify.oplog.add({
           action: 'anonymize',
           targetType: 'user',
           targetId: user.id,
@@ -131,8 +130,8 @@ async function cleanupPlugin(fastify, options) {
     return processed;
   });
 
-  // 4. 过期审核日志自动清理
-  registerCleanupTask('moderation-logs-cleanup', async () => {
+  // 4. 过期操作日志自动清理
+  registerCleanupTask('oplogs-cleanup', async () => {
     const retentionDays = await fastify.settings.get('moderation_log_retention_days', 180);
     if (!retentionDays || retentionDays <= 0) {
       return 0; // 0 表示永不清理
@@ -140,8 +139,8 @@ async function cleanupPlugin(fastify, options) {
 
     const threshold = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
     const result = await db
-      .delete(moderationLogs)
-      .where(lt(moderationLogs.createdAt, threshold));
+      .delete(oplogs)
+      .where(lt(oplogs.createdAt, threshold));
 
     return result.rowCount || 0;
   });
@@ -162,5 +161,5 @@ async function cleanupPlugin(fastify, options) {
 
 export default fp(cleanupPlugin, {
   name: 'cleanup',
-  dependencies: ['db', 'settings'],
+  dependencies: ['db', 'settings', 'oplog'],
 });

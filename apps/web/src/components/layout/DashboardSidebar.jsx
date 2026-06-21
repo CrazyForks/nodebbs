@@ -27,6 +27,7 @@ import {
   Megaphone,
   Files,
   FileCode,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
@@ -104,6 +105,7 @@ export default function DashboardSidebar() {
       children: [
         { href: '/dashboard/reports', icon: Flag, label: '举报管理', permission: 'dashboard.reports' },
         { href: '/dashboard/moderation', icon: Shield, label: '内容审核', permission: 'dashboard.moderation' },
+        { href: '/dashboard/oplogs', icon: History, label: '操作日志', permission: 'dashboard.moderation' },
       ],
     },
 
