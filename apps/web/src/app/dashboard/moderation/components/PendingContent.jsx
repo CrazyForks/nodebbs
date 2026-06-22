@@ -12,7 +12,7 @@ import { Pager } from '@/components/common/Pagination';
 
 export function PendingContent({ type = 'all', onModerationComplete }) {
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
@@ -75,7 +75,7 @@ export function PendingContent({ type = 'all', onModerationComplete }) {
   };
 
   if (loading && items.length === 0) {
-    return <Loading text='加载中...' />;
+    return <Loading text='加载中...' className='py-12' />;
   }
 
   return (
